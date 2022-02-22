@@ -1,4 +1,16 @@
-import datetime
+#####################################################
+#                                                   #
+#          Copyright(c) 2022 KeppyNaushika          #
+#                                                   #
+#        This software is released under the        #
+#      GNU Affero General Public License v3.0,      #
+#                    see LICENSE.                   #
+#                                                   #
+#      The github repository of this software:      #
+# https://github.com/KeppyNaushika/scoring_at_once/ #
+#                                                   #
+#####################################################
+
 import tkinter
 import tkinter.filedialog
 import tkinter.font
