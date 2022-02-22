@@ -280,36 +280,6 @@ class SubWindow:
     with open(path_json_answer_area, "r", encoding="utf-8") as f:
       dict_answer_area = json.load(f)
 
-    self.window.title("解答欄を指定")
-    frame_main = tkinter.Frame(self.window)
-    frame_main.grid(column=0, row=0)
-
-    frame_question = tkinter.Frame(frame_main)
-    frame_question.grid(column=0, row=0)
-    frame_picture = tkinter.Frame(frame_main)
-    frame_picture.grid(column=1, row=0)
-
-    frame_listbox_question = tkinter.Frame(frame_question)
-    frame_listbox_question.grid(column=0, row=0)
-    frame_btn_list_question = tkinter.Frame(frame_question)
-    frame_btn_list_question.grid(column=0, row=1)
-
-    listbox_question = tkinter.Listbox(frame_listbox_question, width=20, height=30)
-    listbox_question.pack(side="left")
-    listbox_question.configure(
-      activestyle=tkinter.DOTBOX,
-      selectmode=tkinter.SINGLE,
-      selectbackground="grey"
-    )
-    for index_question in range(len(dict_answer_area["questions"])):
-      listbox_question.insert(tkinter.END, f"設問{index_question}")   
-    listbox_question.bind("<MouseWheel>", lambda eve:listbox_question.yview_scroll(int(-eve.delta/120), 'units'))
-    yscrollbar_table_question = tkinter.Scrollbar(frame_listbox_question, orient=tkinter.VERTICAL, command=listbox_question.yview)
-    yscrollbar_table_question.pack(side="right", fill="y")
-    listbox_question.config(
-      yscrollcommand=yscrollbar_table_question.set
-    )
-    
     def del_question():
       if self.index_selected_question is not None:
         with open(path_json_answer_area, "r", encoding="utf-8") as f:
@@ -362,46 +332,6 @@ class SubWindow:
     def set_total():
       set_type("合計点")
 
-    btn_list_question_del = tkinter.Button(frame_btn_list_question, width=6, text="削除", command=del_question)
-    btn_list_question_del.grid(column=0, row=0)
-    btn_list_question_up = tkinter.Button(frame_btn_list_question, width=6, text="上へ", command=up_question)
-    btn_list_question_up.grid(column=1, row=0)
-    btn_list_question_down = tkinter.Button(frame_btn_list_question, width=6, text="下へ", command=down_question)
-    btn_list_question_down.grid(column=2, row=0)
-    btn_list_question_que = tkinter.Button(frame_btn_list_question, width=6, text="設問", command=set_question)
-    btn_list_question_que.grid(column=0, row=1)
-    btn_list_question_name = tkinter.Button(frame_btn_list_question, width=6, text="氏名", command=set_name)
-    btn_list_question_name.grid(column=1, row=1)
-    btn_list_question_id = tkinter.Button(frame_btn_list_question, width=6, text="生徒番号", command=set_id)
-    btn_list_question_id.grid(column=2, row=1)
-    btn_list_question_id = tkinter.Button(frame_btn_list_question, width=6, text="採点者印", command=set_stamp)
-    btn_list_question_id.grid(column=0, row=2)
-    btn_list_question_subtotal = tkinter.Button(frame_btn_list_question, width=6, text="小計点", command=set_subtotal)
-    btn_list_question_subtotal.grid(column=1, row=2)
-    btn_list_question_total = tkinter.Button(frame_btn_list_question, width=6, text="合計点", command=set_total)
-    btn_list_question_total.grid(column=2, row=2)
-    btn_scale_up = tkinter.Button(frame_btn_list_question, width=6, text="拡大")
-    btn_scale_up.grid(column=0, row=3)
-    btn_scale_reset = tkinter.Button(frame_btn_list_question, width=6, text="100%")
-    btn_scale_reset.grid(column=1, row=3)
-    btn_scale_down = tkinter.Button(frame_btn_list_question, width=6, text="縮小")
-    btn_scale_down.grid(column=2, row=3)
-    btn_scale_mode = tkinter.Button(frame_btn_list_question, width=21, text="[ドラッグ] / 自動")
-    btn_scale_mode.grid(column=0, row=4, columnspan=3)
-    btn_scale_help = tkinter.Button(frame_btn_list_question, width=21, text="ヘルプ")
-    btn_scale_help.grid(column=0, row=5, columnspan=3)
-    btn_scale_back = tkinter.Button(frame_btn_list_question, width=21, text="戻る", command=self.this_window_close)
-    btn_scale_back.grid(column=0, row=6, columnspan=3)
-
-    frame_canvas = tkinter.Frame(frame_picture)
-    frame_canvas.pack()
-
-    self.scale_canvas = 1.0
-    def canvas_scale_up(self):
-      self.scale_canvas += 0.1
-    
-
-    self.canvas_draw_rectangle = [0, 0, 0, 0]
     def canvas_draw_rectangle_click(event):
       self.canvas_draw_rectangle[0] = event.x
       self.canvas_draw_rectangle[1] = event.y
@@ -446,22 +376,6 @@ class SubWindow:
       reload_listbox_question()
       canvas.coords("rectangle_new", 0, 0, 0, 0)
 
-    canvas = tkinter.Canvas(frame_canvas, bg="black", width=567, height=800)
-    canvas.bind("<Control-MouseWheel>", lambda eve:canvas.xview_scroll(int(-eve.delta/120), 'units'))
-    canvas.bind("<MouseWheel>", lambda eve:canvas.yview_scroll(int(-eve.delta/120), 'units'))
-    self.tk_image_model_answer = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
-    canvas.create_image(0, 0, image=self.tk_image_model_answer, anchor="nw")
-    yscrollbar_canvas = tkinter.Scrollbar(frame_canvas, orient=tkinter.VERTICAL, command=canvas.yview)
-    xscrollbar_canvas = tkinter.Scrollbar(frame_canvas, orient=tkinter.HORIZONTAL, command=canvas.xview)
-    yscrollbar_canvas.pack(side="right", fill="y")
-    xscrollbar_canvas.pack(side="bottom", fill="x")
-    canvas.pack()
-    canvas.config(
-      xscrollcommand=xscrollbar_canvas.set,
-      yscrollcommand=yscrollbar_canvas.set,
-      scrollregion=(0, 0, self.tk_image_model_answer.width(), self.tk_image_model_answer.height())
-    )
-    
     def selected_listbox_question(*args, **kwargs):
       with open(path_json_answer_area, "r", encoding="utf-8") as f:
         dict_answer_area = json.load(f)      
@@ -520,6 +434,88 @@ class SubWindow:
         listbox_question.select_set(self.index_selected_question)
         selected_listbox_question()
 
+    self.window.title("解答欄を指定")
+    self.canvas_draw_rectangle = [0, 0, 0, 0]
+
+    frame_main = tkinter.Frame(self.window)
+    frame_main.grid(column=0, row=0)
+
+    frame_question = tkinter.Frame(frame_main)
+    frame_question.grid(column=0, row=0)
+    frame_picture = tkinter.Frame(frame_main)
+    frame_picture.grid(column=1, row=0)
+
+    frame_listbox_question = tkinter.Frame(frame_question)
+    frame_listbox_question.grid(column=0, row=0)
+    frame_btn_list_question = tkinter.Frame(frame_question)
+    frame_btn_list_question.grid(column=0, row=1)
+
+    listbox_question = tkinter.Listbox(frame_listbox_question, width=20, height=30)
+    listbox_question.pack(side="left")
+    listbox_question.configure(
+      activestyle=tkinter.DOTBOX,
+      selectmode=tkinter.SINGLE,
+      selectbackground="grey"
+    )
+    for index_question in range(len(dict_answer_area["questions"])):
+      listbox_question.insert(tkinter.END, f"設問{index_question}")   
+    listbox_question.bind("<MouseWheel>", lambda eve:listbox_question.yview_scroll(int(-eve.delta/120), 'units'))
+    yscrollbar_table_question = tkinter.Scrollbar(frame_listbox_question, orient=tkinter.VERTICAL, command=listbox_question.yview)
+    yscrollbar_table_question.pack(side="right", fill="y")
+    listbox_question.config(
+      yscrollcommand=yscrollbar_table_question.set
+    )
+    
+    btn_list_question_del = tkinter.Button(frame_btn_list_question, width=6, text="削除", command=del_question)
+    btn_list_question_del.grid(column=0, row=0)
+    btn_list_question_up = tkinter.Button(frame_btn_list_question, width=6, text="上へ", command=up_question)
+    btn_list_question_up.grid(column=1, row=0)
+    btn_list_question_down = tkinter.Button(frame_btn_list_question, width=6, text="下へ", command=down_question)
+    btn_list_question_down.grid(column=2, row=0)
+    btn_list_question_que = tkinter.Button(frame_btn_list_question, width=6, text="設問", command=set_question)
+    btn_list_question_que.grid(column=0, row=1)
+    btn_list_question_name = tkinter.Button(frame_btn_list_question, width=6, text="氏名", command=set_name)
+    btn_list_question_name.grid(column=1, row=1)
+    btn_list_question_id = tkinter.Button(frame_btn_list_question, width=6, text="生徒番号", command=set_id)
+    btn_list_question_id.grid(column=2, row=1)
+    btn_list_question_id = tkinter.Button(frame_btn_list_question, width=6, text="採点者印", command=set_stamp)
+    btn_list_question_id.grid(column=0, row=2)
+    btn_list_question_subtotal = tkinter.Button(frame_btn_list_question, width=6, text="小計点", command=set_subtotal)
+    btn_list_question_subtotal.grid(column=1, row=2)
+    btn_list_question_total = tkinter.Button(frame_btn_list_question, width=6, text="合計点", command=set_total)
+    btn_list_question_total.grid(column=2, row=2)
+    btn_scale_up = tkinter.Button(frame_btn_list_question, width=6, text="拡大")
+    btn_scale_up.grid(column=0, row=3)
+    btn_scale_reset = tkinter.Button(frame_btn_list_question, width=6, text="100%")
+    btn_scale_reset.grid(column=1, row=3)
+    btn_scale_down = tkinter.Button(frame_btn_list_question, width=6, text="縮小")
+    btn_scale_down.grid(column=2, row=3)
+    btn_scale_mode = tkinter.Button(frame_btn_list_question, width=21, text="[ドラッグ] / 自動")
+    btn_scale_mode.grid(column=0, row=4, columnspan=3)
+    btn_scale_help = tkinter.Button(frame_btn_list_question, width=21, text="ヘルプ")
+    btn_scale_help.grid(column=0, row=5, columnspan=3)
+    btn_scale_back = tkinter.Button(frame_btn_list_question, width=21, text="戻る", command=self.this_window_close)
+    btn_scale_back.grid(column=0, row=6, columnspan=3)
+
+    frame_canvas = tkinter.Frame(frame_picture)
+    frame_canvas.pack()
+
+    canvas = tkinter.Canvas(frame_canvas, bg="black", width=567, height=800)
+    canvas.bind("<Control-MouseWheel>", lambda eve:canvas.xview_scroll(int(-eve.delta/120), 'units'))
+    canvas.bind("<MouseWheel>", lambda eve:canvas.yview_scroll(int(-eve.delta/120), 'units'))
+    self.tk_image_model_answer = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
+    canvas.create_image(0, 0, image=self.tk_image_model_answer, anchor="nw")
+    yscrollbar_canvas = tkinter.Scrollbar(frame_canvas, orient=tkinter.VERTICAL, command=canvas.yview)
+    xscrollbar_canvas = tkinter.Scrollbar(frame_canvas, orient=tkinter.HORIZONTAL, command=canvas.xview)
+    yscrollbar_canvas.pack(side="right", fill="y")
+    xscrollbar_canvas.pack(side="bottom", fill="x")
+    canvas.pack()
+    canvas.config(
+      xscrollcommand=xscrollbar_canvas.set,
+      yscrollcommand=yscrollbar_canvas.set,
+      scrollregion=(0, 0, self.tk_image_model_answer.width(), self.tk_image_model_answer.height())
+    )
+    
     listbox_question.bind("<<ListboxSelect>>", selected_listbox_question)
     canvas.coords("rectangle_new", 0, 0, 0, 0)
     canvas.create_rectangle(0, 0, 0, 0, fill="red", tags="rectangle_new")
@@ -639,10 +635,7 @@ class MainFrame(tkinter.Frame):
   def down_project(self):
     nothing_to_do()
     self.load_listbox_projects()
-
-
-
-
+    
   # btn_left: 操作ボタン
   def btn_left(self):
     frame_operate = tkinter.Frame(self)
