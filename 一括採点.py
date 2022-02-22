@@ -1,4 +1,16 @@
-import datetime
+#####################################################
+#                                                   #
+#          Copyright(c) 2022 KeppyNaushika          #
+#                                                   #
+#        This software is released under the        #
+#      GNU Affero General Public License v3.0,      #
+#                    see LICENSE.                   #
+#                                                   #
+#      The github repository of this software:      #
+# https://github.com/KeppyNaushika/scoring_at_once/ #
+#                                                   #
+#####################################################
+
 import tkinter
 import tkinter.filedialog
 import tkinter.font
@@ -8,6 +20,7 @@ import PIL
 import PIL.Image
 import PIL.ImageTk
 
+import functools
 import glob
 import json
 import os
@@ -260,7 +273,6 @@ class SubWindow:
 
     with open("config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
-
     dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
     path_json_answer_area = dict_project["path_dir"] + "/.temp_saiten/answer_area.json"
     path_file_model_answer = dict_project["path_dir"] + "/.temp_saiten/model_answer/model_answer.png"
@@ -268,46 +280,18 @@ class SubWindow:
     with open(path_json_answer_area, "r", encoding="utf-8") as f:
       dict_answer_area = json.load(f)
 
-    self.window.title("解答欄を指定")
-    frame_main = tkinter.Frame(self.window)
-    frame_main.grid(column=0, row=0)
-
-    frame_question = tkinter.Frame(frame_main)
-    frame_question.grid(column=0, row=0)
-    frame_picture = tkinter.Frame(frame_main)
-    frame_picture.grid(column=1, row=0)
-
-    frame_listbox_question = tkinter.Frame(frame_question)
-    frame_listbox_question.grid(column=0, row=0)
-    frame_btn_list_question = tkinter.Frame(frame_question)
-    frame_btn_list_question.grid(column=0, row=1)
-
-    listbox_question = tkinter.Listbox(frame_listbox_question, width=20, height=30)
-    listbox_question.pack(side="left")
-    listbox_question.configure(
-      activestyle=tkinter.DOTBOX,
-      selectmode=tkinter.SINGLE,
-      selectbackground="grey"
-    )
-    for index_question in range(len(dict_answer_area["questions"])):
-      listbox_question.insert(tkinter.END, f"設問{index_question}")   
-    listbox_question.bind("<MouseWheel>", lambda eve:listbox_question.yview_scroll(int(-eve.delta/120), 'units'))
-    yscrollbar_table_question = tkinter.Scrollbar(frame_listbox_question, orient=tkinter.VERTICAL, command=listbox_question.yview)
-    yscrollbar_table_question.pack(side="right", fill="y")
-    listbox_question.config(
-      yscrollcommand=yscrollbar_table_question.set
-    )
-    
-    def del_question():
+    def del_question(index_selected_question=None):
+      self.index_selected_question = index_selected_question
       if self.index_selected_question is not None:
         with open(path_json_answer_area, "r", encoding="utf-8") as f:
           dict_answer_area = json.load(f)
         dict_answer_area["questions"].pop(self.index_selected_question)
         with open(path_json_answer_area, "w", encoding="utf-8") as f:
           json.dump(dict_answer_area, f, indent=2)
-        reload_listbox_question()
+        load_question(self.index_selected_question)
 
-    def up_question():
+    def up_question(index_selected_question=None):
+      self.index_selected_question = index_selected_question
       if self.index_selected_question is not None:
         with open(path_json_answer_area, "r", encoding="utf-8") as f:
           dict_answer_area = json.load(f)
@@ -316,9 +300,9 @@ class SubWindow:
         dict_answer_area["questions"].insert(self.index_selected_question, pop_question)
         with open(path_json_answer_area, "w", encoding="utf-8") as f:
           json.dump(dict_answer_area, f, indent=2)
-        reload_listbox_question()
+        load_question(self.index_selected_question)
 
-    def down_question():
+    def down_question(index_selected_question=None):
       if self.index_selected_question is not None:
         with open(path_json_answer_area, "r", encoding="utf-8") as f:
           dict_answer_area = json.load(f)
@@ -327,7 +311,7 @@ class SubWindow:
         dict_answer_area["questions"].insert(self.index_selected_question, pop_question)
         with open(path_json_answer_area, "w", encoding="utf-8") as f:
           json.dump(dict_answer_area, f, indent=2)
-        reload_listbox_question()
+        load_question(self.index_selected_question)
 
     def set_type(str_type):
       if self.index_selected_question is not None:
@@ -336,7 +320,7 @@ class SubWindow:
         dict_answer_area["questions"][self.index_selected_question]["type"] = str_type
         with open(path_json_answer_area, "w", encoding="utf-8") as f:
           json.dump(dict_answer_area, f, indent=2)
-        reload_listbox_question()
+        load_question(self.index_selected_question)
     def set_question():
       set_type("設問")
     def set_name():
@@ -350,24 +334,168 @@ class SubWindow:
     def set_total():
       set_type("合計点")
 
-    btn_list_question_del = tkinter.Button(frame_btn_list_question, width=6, text="削除", command=del_question)
-    btn_list_question_del.grid(column=0, row=0)
-    btn_list_question_up = tkinter.Button(frame_btn_list_question, width=6, text="上へ", command=up_question)
-    btn_list_question_up.grid(column=1, row=0)
-    btn_list_question_down = tkinter.Button(frame_btn_list_question, width=6, text="下へ", command=down_question)
-    btn_list_question_down.grid(column=2, row=0)
-    btn_list_question_que = tkinter.Button(frame_btn_list_question, width=6, text="設問", command=set_question)
-    btn_list_question_que.grid(column=0, row=1)
-    btn_list_question_name = tkinter.Button(frame_btn_list_question, width=6, text="氏名", command=set_name)
-    btn_list_question_name.grid(column=1, row=1)
-    btn_list_question_id = tkinter.Button(frame_btn_list_question, width=6, text="生徒番号", command=set_id)
-    btn_list_question_id.grid(column=2, row=1)
-    btn_list_question_id = tkinter.Button(frame_btn_list_question, width=6, text="採点者印", command=set_stamp)
-    btn_list_question_id.grid(column=0, row=2)
-    btn_list_question_subtotal = tkinter.Button(frame_btn_list_question, width=6, text="小計点", command=set_subtotal)
-    btn_list_question_subtotal.grid(column=1, row=2)
-    btn_list_question_total = tkinter.Button(frame_btn_list_question, width=6, text="合計点", command=set_total)
-    btn_list_question_total.grid(column=2, row=2)
+    
+    self.canvas_model_answer_draw_rectangle = [0, 0, 0, 0]
+    def canvas_model_answer_draw_rectangle_click(event):
+      self.canvas_model_answer_draw_rectangle[0] = event.x
+      self.canvas_model_answer_draw_rectangle[1] = event.y
+      self.canvas_model_answer_draw_rectangle[2] = min(event.x + 1, canvas_model_answer.winfo_width())
+      self.canvas_model_answer_draw_rectangle[3] = min(event.y + 1, canvas_model_answer.winfo_height())
+      canvas_model_answer.coords("rectangle_new",
+        self.canvas_model_answer_draw_rectangle[0],
+        self.canvas_model_answer_draw_rectangle[1],
+        self.canvas_model_answer_draw_rectangle[2],
+        self.canvas_model_answer_draw_rectangle[3], 
+      )
+    def canvas_model_answer_draw_rectangle_drag(event):
+      self.canvas_model_answer_draw_rectangle[2] = min(max(event.x, 0), canvas_model_answer.winfo_width())
+      self.canvas_model_answer_draw_rectangle[3] = min(max(event.y, 0), canvas_model_answer.winfo_height())
+      canvas_model_answer.coords("rectangle_new",
+        self.canvas_model_answer_draw_rectangle[0],
+        self.canvas_model_answer_draw_rectangle[1],
+        self.canvas_model_answer_draw_rectangle[2],
+        self.canvas_model_answer_draw_rectangle[3], 
+      )
+    def canvas_model_answer_draw_rectangle_release(event):
+      with open(path_json_answer_area, "r", encoding="utf-8") as f:
+        dict_answer_area = json.load(f)
+      dict_answer_area["questions"].append(
+        {
+          "type": "設問", 
+          "daimon": "",
+          "shomon": "",
+          "shimon": "",
+          "haiten": None,
+          "area": [
+            min(self.canvas_model_answer_draw_rectangle[0], self.canvas_model_answer_draw_rectangle[2]),
+            min(self.canvas_model_answer_draw_rectangle[1], self.canvas_model_answer_draw_rectangle[3]),
+            max(self.canvas_model_answer_draw_rectangle[0], self.canvas_model_answer_draw_rectangle[2]),
+            max(self.canvas_model_answer_draw_rectangle[1], self.canvas_model_answer_draw_rectangle[3])
+          ]
+        }
+      )
+      with open(path_json_answer_area, "w", encoding="utf-8") as f:
+        json.dump(dict_answer_area, f, indent=2)
+      self.index_selected_question = len(dict_answer_area["questions"]) - 1
+      load_question()
+      canvas_model_answer.coords("rectangle_new", 0, 0, 0, 0)
+      
+    def load_question(index_selected_question=None, event=None):
+      def color_question_of_type(str_type):
+        if str_type == "設問":
+          return "green"
+        elif str_type == "氏名":
+          return "blue"
+        elif str_type == "生徒番号":
+          return "cyan"
+        elif str_type == "小計点":
+          return "magenta"
+        elif str_type == "合計点":
+          return "orange"
+        elif str_type == "採点者印":
+          return "red"
+
+      canvas_question.delete("frame_question")
+      canvas_model_answer.delete("field")
+      canvas_model_answer.delete("number")
+      with open(path_json_answer_area, "r", encoding="utf-8") as f:
+        dict_answer_area = json.load(f)
+      self.index_selected_question = index_selected_question
+
+      # canvas_question への描画
+      if len(dict_answer_area["questions"]) == 0:
+        self.index_selected_question = None
+        tkinter.Label(canvas_question, width=40, text="模範解答上で\nドラッグアンドドロップして\n枠を指定します", tags="question")
+      else:
+        list_frame_border_question = [tkinter.Frame(canvas_question, borderwidth=2, bg=color_question_of_type(question["type"])) for question in dict_answer_area["questions"]]
+        for index_frame_border_question, frame_border_question in enumerate(list_frame_border_question):
+          if index_frame_border_question == self.index_selected_question:
+            list_frame_border_question[index_frame_border_question].configure(borderwidth=4)
+        for index_question in range(len(dict_answer_area["questions"])):
+          canvas_question.create_window(5, index_question * 40 + 4, window=list_frame_border_question[index_question], anchor=tkinter.NW, tags="frame_question")
+        list_frame_question = [tkinter.Frame(list_frame_border_question[index_question], borderwidth=4, bg="white") for index_question in range(len(dict_answer_area["questions"]))]
+        for index_frame_question, frame_question in enumerate(list_frame_question):
+          frame_question.pack()
+          if index_frame_question == self.index_selected_question:
+            list_frame_question[index_frame_question].configure(borderwidth=2)
+        list_label_question_index  = [tkinter.Label(list_frame_question[index_question], width=4, text=index_question) for index_question, question in enumerate(dict_answer_area["questions"])]
+        list_label_question_type   = [tkinter.Label(list_frame_question[index_question], width=10, text=question["type"]) for index_question, question in enumerate(dict_answer_area["questions"])]
+        list_entry_question_haiten = [tkinter.Entry(list_frame_question[index_question], width=5, text=str(question["haiten"])) for index_question, question in enumerate(dict_answer_area["questions"])]
+        list_entry_question_daimon = [tkinter.Entry(list_frame_question[index_question], width=5, text=question["daimon"]) for index_question, question in enumerate(dict_answer_area["questions"])]
+        list_entry_question_shomon = [tkinter.Entry(list_frame_question[index_question], width=5, text=question["shomon"]) for index_question, question in enumerate(dict_answer_area["questions"])]
+        list_entry_question_shimon = [tkinter.Entry(list_frame_question[index_question], width=5, text=question["shimon"]) for index_question, question in enumerate(dict_answer_area["questions"])]
+        list_btn_question_bold     = [tkinter.Button(list_frame_question[index_question], width=5, text="強調", command=functools.partial(load_question, index_question)) for index_question, question in enumerate(dict_answer_area["questions"])]
+        list_btn_question_up       = [tkinter.Button(list_frame_question[index_question], width=5, text="上へ") for index_question, question in enumerate(dict_answer_area["questions"])]
+        list_btn_question_down     = [tkinter.Button(list_frame_question[index_question], width=5, text="下へ") for index_question, question in enumerate(dict_answer_area["questions"])]
+        list_btn_question_del      = [tkinter.Button(list_frame_question[index_question], width=5, text="削除") for index_question, question in enumerate(dict_answer_area["questions"])]
+        for index_question in range(len(dict_answer_area["questions"])):
+          list_label_question_index[index_question].grid(column=0, row=0)
+          list_label_question_type[index_question].grid(column=1, row=0)
+          list_entry_question_haiten[index_question].grid(column=2, row=0)
+          list_entry_question_daimon[index_question].grid(column=3, row=0)
+          list_entry_question_shomon[index_question].grid(column=4, row=0)
+          list_entry_question_shimon[index_question].grid(column=5, row=0)
+          list_btn_question_bold[index_question].grid(column=6, row=0)
+          list_btn_question_up[index_question].grid(column=7, row=0)
+          list_btn_question_down[index_question].grid(column=8, row=0)
+          list_btn_question_del[index_question].grid(column=9, row=0)
+
+      # canvas_model_answer への描画
+      for index_question, question in enumerate(dict_answer_area["questions"]):
+        color_reactangle = color_question_of_type(question["type"])
+        if index_question == index_selected_question:
+          color_width = 3
+        else:
+          color_width = 1
+        canvas_model_answer.create_rectangle(
+          question["area"][0], 
+          question["area"][1], 
+          question["area"][2], 
+          question["area"][3], 
+          outline=color_reactangle,
+          width=color_width,
+          fill=color_reactangle,
+          stipple="gray12",
+          tags="field"
+        )
+        canvas_model_answer.create_text(
+          question["area"][0] - 10, 
+          (question["area"][1] + question["area"][3]) // 2, 
+          text=str(index_question),
+          fill="green",
+          tags="number"
+        )
+
+
+    self.scale_canvas_model_answer = 1.0
+    def canvas_model_answer_scale_up(self):
+      self.scale_canvas_model_answer += 0.1
+    
+    self.window.title("解答欄を指定")
+    frame_main = tkinter.Frame(self.window)
+    frame_main.grid(column=0, row=0)
+
+    frame_question = tkinter.Frame(frame_main)
+    frame_question.grid(column=0, row=0)
+    frame_model_answer = tkinter.Frame(frame_main)
+    frame_model_answer.grid(column=1, row=0)
+
+    frame_table_question = tkinter.Frame(frame_question)
+    frame_table_question.pack()
+    frame_btn_list_question = tkinter.Frame(frame_question)
+    frame_btn_list_question.pack()
+
+
+    canvas_question = tkinter.Canvas(frame_table_question, bg="black", width=567, height=700)
+    canvas_question.grid(row=0, column=0, sticky=(tkinter.N, tkinter.S))
+    canvas_question.bind("<MouseWheel>", lambda eve:canvas_question.yview_scroll(int(-eve.delta/120), 'units'))
+    yscrollbar_canvas_question = tkinter.Scrollbar(frame_table_question, orient=tkinter.VERTICAL, command=canvas_question.yview)
+    yscrollbar_canvas_question.grid(row=0, column=1, sticky=(tkinter.N, tkinter.S))
+    canvas_question.config(
+      yscrollcommand=yscrollbar_canvas_question.set,
+      scrollregion=(0, 0, 400, 1500)
+    )
+
     btn_scale_up = tkinter.Button(frame_btn_list_question, width=6, text="拡大")
     btn_scale_up.grid(column=0, row=3)
     btn_scale_reset = tkinter.Button(frame_btn_list_question, width=6, text="100%")
@@ -379,148 +507,42 @@ class SubWindow:
     btn_scale_help = tkinter.Button(frame_btn_list_question, width=21, text="ヘルプ")
     btn_scale_help.grid(column=0, row=5, columnspan=3)
     btn_scale_back = tkinter.Button(frame_btn_list_question, width=21, text="戻る", command=self.this_window_close)
-    btn_scale_back.grid(column=0, row=6, columnspan=3)
+    btn_scale_back.grid(column=0, row=6, columnspan=3)      
 
-    frame_canvas = tkinter.Frame(frame_picture)
-    frame_canvas.pack()
+    # canvas_model_answer: 模範解答画像
+    frame_canvas_model_answer = tkinter.Frame(frame_model_answer)
+    frame_canvas_model_answer.pack()
 
-    self.scale_canvas = 1.0
-    def canvas_scale_up(self):
-      self.scale_canvas += 0.1
-    
-
-    self.canvas_draw_rectangle = [0, 0, 0, 0]
-    def canvas_draw_rectangle_click(event):
-      self.canvas_draw_rectangle[0] = event.x
-      self.canvas_draw_rectangle[1] = event.y
-      self.canvas_draw_rectangle[2] = min(event.x + 1, canvas.winfo_width())
-      self.canvas_draw_rectangle[3] = min(event.y + 1, canvas.winfo_height())
-      canvas.coords("rectangle_new",
-        self.canvas_draw_rectangle[0],
-        self.canvas_draw_rectangle[1],
-        self.canvas_draw_rectangle[2],
-        self.canvas_draw_rectangle[3], 
-      )
-    def canvas_draw_rectangle_drag(event):
-      self.canvas_draw_rectangle[2] = min(max(event.x, 0), canvas.winfo_width())
-      self.canvas_draw_rectangle[3] = min(max(event.y, 0), canvas.winfo_height())
-      canvas.coords("rectangle_new",
-        self.canvas_draw_rectangle[0],
-        self.canvas_draw_rectangle[1],
-        self.canvas_draw_rectangle[2],
-        self.canvas_draw_rectangle[3], 
-      )
-    def canvas_draw_rectangle_release(event):
-      with open(path_json_answer_area, "r", encoding="utf-8") as f:
-        dict_answer_area = json.load(f)
-      dict_answer_area["questions"].append(
-        {
-          "type": "設問", 
-          "daimon": "",
-          "shomon": "",
-          "shimon": "",
-          "haiten": None,
-          "area": [
-            min(self.canvas_draw_rectangle[0], self.canvas_draw_rectangle[2]),
-            min(self.canvas_draw_rectangle[1], self.canvas_draw_rectangle[3]),
-            max(self.canvas_draw_rectangle[0], self.canvas_draw_rectangle[2]),
-            max(self.canvas_draw_rectangle[1], self.canvas_draw_rectangle[3])
-          ]
-        }
-      )
-      with open(path_json_answer_area, "w", encoding="utf-8") as f:
-        json.dump(dict_answer_area, f, indent=2)
-      self.index_selected_question = len(dict_answer_area["questions"]) - 1
-      reload_listbox_question()
-      canvas.coords("rectangle_new", 0, 0, 0, 0)
-
-    canvas = tkinter.Canvas(frame_canvas, bg="black", width=567, height=800)
-    canvas.bind("<Control-MouseWheel>", lambda eve:canvas.xview_scroll(int(-eve.delta/120), 'units'))
-    canvas.bind("<MouseWheel>", lambda eve:canvas.yview_scroll(int(-eve.delta/120), 'units'))
+    canvas_model_answer = tkinter.Canvas(frame_canvas_model_answer, bg="black", width=567, height=700)
+    canvas_model_answer.bind("<Control-MouseWheel>", lambda eve:canvas_model_answer.xview_scroll(int(-eve.delta/120), 'units'))
+    canvas_model_answer.bind("<MouseWheel>", lambda eve:canvas_model_answer.yview_scroll(int(-eve.delta/120), 'units'))
     self.tk_image_model_answer = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
-    canvas.create_image(0, 0, image=self.tk_image_model_answer, anchor="nw")
-    yscrollbar_canvas = tkinter.Scrollbar(frame_canvas, orient=tkinter.VERTICAL, command=canvas.yview)
-    xscrollbar_canvas = tkinter.Scrollbar(frame_canvas, orient=tkinter.HORIZONTAL, command=canvas.xview)
-    yscrollbar_canvas.pack(side="right", fill="y")
-    xscrollbar_canvas.pack(side="bottom", fill="x")
-    canvas.pack()
-    canvas.config(
-      xscrollcommand=xscrollbar_canvas.set,
-      yscrollcommand=yscrollbar_canvas.set,
+    canvas_model_answer.create_image(0, 0, image=self.tk_image_model_answer, anchor="nw")
+    yscrollbar_canvas_model_answer = tkinter.Scrollbar(frame_canvas_model_answer, orient=tkinter.VERTICAL, command=canvas_model_answer.yview)
+    xscrollbar_canvas_model_answer = tkinter.Scrollbar(frame_canvas_model_answer, orient=tkinter.HORIZONTAL, command=canvas_model_answer.xview)
+    yscrollbar_canvas_model_answer.pack(side="right", fill="y")
+    xscrollbar_canvas_model_answer.pack(side="bottom", fill="x")
+    canvas_model_answer.pack()
+    canvas_model_answer.config(
+      xscrollcommand=xscrollbar_canvas_model_answer.set,
+      yscrollcommand=yscrollbar_canvas_model_answer.set,
       scrollregion=(0, 0, self.tk_image_model_answer.width(), self.tk_image_model_answer.height())
     )
-    
-    def selected_listbox_question(*args, **kwargs):
-      with open(path_json_answer_area, "r", encoding="utf-8") as f:
-        dict_answer_area = json.load(f)      
-      for index_question, question in enumerate(dict_answer_area["questions"]):
-        if question["type"] == "設問":
-          color_reactangle = "green"
-        elif question["type"] == "氏名":
-          color_reactangle = "blue"
-        elif question["type"] == "生徒番号":
-          color_reactangle = "cyan"
-        elif question["type"] == "小計点":
-          color_reactangle = "magenta"
-        elif question["type"] == "合計点":
-          color_reactangle = "orange"
-        elif question["type"] == "採点者印":
-          color_reactangle = "yellow"
-        self.index_selected_question = listbox_question.curselection()[0]
-        if index_question == listbox_question.curselection()[0]:
-          color_reactangle = "red"
-        canvas.create_rectangle(
-          question["area"][0], 
-          question["area"][1], 
-          question["area"][2], 
-          question["area"][3], 
-          outline=color_reactangle,
-          width=2,
-          fill=color_reactangle,
-          stipple="gray12",
-          tags="field"
-        )
-        canvas.create_text(
-          question["area"][0] - 10, 
-          (question["area"][1] + question["area"][3]) // 2, 
-          text=str(index_question),
-          fill="green",
-          tags="number"
-        )
-
-    def reload_listbox_question():
-      listbox_question.configure(state=tkinter.NORMAL)
-      listbox_question.delete(0, tkinter.END)
-      with open(path_json_answer_area, "r", encoding="utf-8") as f:
-        dict_answer_area = json.load(f)
-      canvas.delete("field")
-      canvas.delete("number")
-      if len(dict_answer_area["questions"]) == 0:
-        self.index_selected_question = None
-        listbox_question.insert(tkinter.END, "模範解答の画像の上で")
-        listbox_question.insert(tkinter.END, "ドラッグして")
-        listbox_question.insert(tkinter.END, "解答欄を指定して下さい")
-        listbox_question.configure(state=tkinter.DISABLED)
-      else:
-        self.index_selected_question = min(self.index_selected_question, len(dict_answer_area["questions"]) - 1)
-        for index_question, question in enumerate(dict_answer_area["questions"]):
-          listbox_question.insert(tkinter.END, f"枠{index_question} - {question['type']}")
-        listbox_question.select_set(self.index_selected_question)
-        selected_listbox_question()
-
-    listbox_question.bind("<<ListboxSelect>>", selected_listbox_question)
-    canvas.coords("rectangle_new", 0, 0, 0, 0)
-    canvas.create_rectangle(0, 0, 0, 0, fill="red", tags="rectangle_new")
-    canvas.bind("<Button-1>", canvas_draw_rectangle_click)
-    canvas.bind("<B1-Motion>", canvas_draw_rectangle_drag)
-    canvas.bind("<ButtonRelease-1>", canvas_draw_rectangle_release)
+    canvas_model_answer.coords("rectangle_new", 0, 0, 0, 0)
+    canvas_model_answer.create_rectangle(0, 0, 0, 0, fill="red", tags="rectangle_new")
+    canvas_model_answer.bind("<Button-1>", canvas_model_answer_draw_rectangle_click)
+    canvas_model_answer.bind("<B1-Motion>", canvas_model_answer_draw_rectangle_drag)
+    canvas_model_answer.bind("<ButtonRelease-1>", canvas_model_answer_draw_rectangle_release)
     
     if len(dict_answer_area["questions"]) == 0:
       self.index_selected_question = None
     else:
       self.index_selected_question = len(dict_answer_area["questions"]) - 1
 
-    reload_listbox_question()
+    load_question()
+
+
+#############################################################################################################################################
 
 class MainFrame(tkinter.Frame):
   def __init__(self, root):
