@@ -11,6 +11,7 @@
 #                                                   #
 #####################################################
 
+from operator import index
 import tkinter
 import tkinter.filedialog
 import tkinter.font
@@ -20,10 +21,16 @@ import PIL
 import PIL.Image
 import PIL.ImageTk
 
+import openpyxl
+import openpyxl.styles
+import openpyxl.worksheet.datavalidation
+
 import glob
 import json
 import os
 import subprocess
+
+
 
 def nothing_to_do():
   tkinter.messagebox.showinfo(
@@ -98,7 +105,7 @@ class SubWindow:
     if not os.path.exists(path_dir + "/.temp_saiten"):
       os.mkdir(path_dir + "/.temp_saiten")
     if not os.path.exists(path_dir + "/.temp_saiten/answer_area.json"):
-      dict_answer_area = {"id": None, "questions": []}
+      dict_answer_area = {"questions": []}
       with open(path_dir + "/.temp_saiten/answer_area.json", "w", encoding="utf-8") as f:
         json.dump(dict_answer_area, f, indent=2)
     if not os.path.exists(path_dir + "/.temp_saiten/model_answer"):
@@ -635,17 +642,118 @@ class MainFrame(tkinter.Frame):
   def down_project(self):
     nothing_to_do()
     self.load_listbox_projects()
-    
+
+  def make_xlsx(self):
+    if tkinter.messagebox.askokcancel(
+      "配点を入力します",
+      "配点の入力は, 本ソフトウェア上ではなく Excel 等の表計算ソフトウェアを使用して行います. \n"
+      + "表計算ソフトウェアがインストールされていない場合は, 別途インストールして下さい. \n\n"
+      + "既に Excel で配点を入力されている場合で［配点を読み込む］をクリックしていない場合は, 入力した情報が削除されます. \n"
+      + "登録した配点を修正したい場合は, ［配点を読み込む］をクリックして配点を読み込んだ後に, もう一度［配点を入力する］をクリックして下さい. \n\n"
+      + "配点を登録するために 配点.xlsx ファイルを作成して開きます. "
+    ):
+      with open("config.json", "r", encoding="utf-8") as f:
+        dict_config = json.load(f)
+      dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+      path_dir = dict_project["path_dir"]
+      with open(path_dir + "/.temp_saiten/answer_area.json") as f:
+        dict_answer_area = json.load(f)
+      workbook_haiten = openpyxl.Workbook()
+      workbook_haiten.remove(workbook_haiten["Sheet"])
+      workbook_haiten.create_sheet(title="配点登録")
+      sheet_haiten = workbook_haiten["配点登録"]
+      sheet_haiten.cell(1, 2).value = "種類"
+      sheet_haiten.cell(1, 3).value = "大問"
+      sheet_haiten.cell(1, 4).value = "小問"
+      sheet_haiten.cell(1, 5).value = "枝問"
+      sheet_haiten.cell(1, 6).value = "配点"
+      side = openpyxl.styles.Side(style="thin", color="000000")
+      border_up_down = openpyxl.styles.Border(top=side, bottom=side)
+      datavalidation_whole = openpyxl.worksheet.datavalidation.DataValidation(type="whole")
+      datavalidation_textlength10 = openpyxl.worksheet.datavalidation.DataValidation(type="textLength", operator="lessThanOrEqual", formula1=10)
+      for index_question, question in enumerate(dict_answer_area["questions"]):
+        sheet_haiten.cell(index_question + 2, 1).value = index_question
+        sheet_haiten.cell(index_question + 2, 1).border = border_up_down
+        sheet_haiten.cell(index_question + 2, 2).value = question["type"]
+        sheet_haiten.cell(index_question + 2, 2).border = border_up_down
+        sheet_haiten.cell(index_question + 2, 3).value = question["daimon"]
+        sheet_haiten.cell(index_question + 2, 3).border = border_up_down
+        if question["type"] in ["設問", "小計点"]:
+          sheet_haiten.cell(index_question + 2, 3).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="bfffff")
+          sheet_haiten.cell(index_question + 2, 3).protection = openpyxl.styles.Protection(locked=False)
+          datavalidation_textlength10.add(sheet_haiten.cell(index_question + 2, 3))
+        else:
+          sheet_haiten.cell(index_question + 2, 3).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
+        sheet_haiten.cell(index_question + 2, 4).value = question["shomon"]
+        sheet_haiten.cell(index_question + 2, 4).border = border_up_down
+        if question["type"] in ["設問"]:
+          sheet_haiten.cell(index_question + 2, 4).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cfefef")
+          sheet_haiten.cell(index_question + 2, 4).protection = openpyxl.styles.Protection(locked=False)
+          datavalidation_textlength10.add(sheet_haiten.cell(index_question + 2, 4))
+        else:
+          sheet_haiten.cell(index_question + 2, 4).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
+        sheet_haiten.cell(index_question + 2, 5).value = question["shimon"]
+        sheet_haiten.cell(index_question + 2, 5).border = border_up_down
+        if question["type"] in ["設問"]:
+          sheet_haiten.cell(index_question + 2, 5).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="bfffff")
+          sheet_haiten.cell(index_question + 2, 5).protection = openpyxl.styles.Protection(locked=False)
+          datavalidation_textlength10.add(sheet_haiten.cell(index_question + 2, 5))
+        else:
+          sheet_haiten.cell(index_question + 2, 5).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
+        sheet_haiten.cell(index_question + 2, 6).value = question["haiten"]
+        sheet_haiten.cell(index_question + 2, 6).border = border_up_down
+        if question["type"] in ["設問"]:
+          sheet_haiten.cell(index_question + 2, 6).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="ffbfbf")
+          sheet_haiten.cell(index_question + 2, 6).protection = openpyxl.styles.Protection(locked=False)
+          datavalidation_whole.add(sheet_haiten.cell(index_question + 2, 6))
+        else:
+          sheet_haiten.cell(index_question + 2, 6).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
+      sheet_haiten.cell(index_question + 3, 5).value = "配点合計"
+      sheet_haiten.cell(index_question + 3, 6).value = f"=SUMIF(B2:B{index_question + 2}, \"設問\", F2:F{index_question + 2})"
+      sheet_haiten.protection.selectLockedCells   = True  # ロックされたセルの選択
+      sheet_haiten.protection.selectUnlockedCells = False # ロックされていないセルの選択
+      sheet_haiten.protection.formatCells         = True  # セルの書式設定
+      sheet_haiten.protection.formatColumns       = True  # 列の書式設定
+      sheet_haiten.protection.formatRows          = True  # 行の書式設定
+      sheet_haiten.protection.insertColumns       = True  # 列の挿入
+      sheet_haiten.protection.insertRows          = True  # 行の挿入
+      sheet_haiten.protection.insertHyperlinks    = True  # ハイパーリンクの挿入
+      sheet_haiten.protection.deleteColumns       = True  # 列の削除
+      sheet_haiten.protection.deleteRows          = True  # 行の削除
+      sheet_haiten.protection.sort                = True  # 並べ替え
+      sheet_haiten.protection.autoFilter          = True  # フィルター
+      sheet_haiten.protection.pivotTables         = True  # ピボットテーブルレポート
+      sheet_haiten.protection.objects             = False # オブジェクトの編集
+      sheet_haiten.protection.scenarios           = True  # シナリオの編集
+      sheet_haiten.protection.enable()
+
+      try:
+        workbook_haiten.save(path_dir + "/.temp_saiten/配点.xlsx")
+      except PermissionError:
+        tkinter.messagebox.showerror(
+          "ファイルを保存できません",
+          "ファイルを保存できませんでした. \n"
+          + "既にファイルを開いていませんか？\n"
+          + "Excel を終了して, もう一度お試し下さい. "
+        )
+      else:
+        os.startfile(path_dir + "/.temp_saiten/配点.xlsx")
+
+  def read_xlsx(self):
+    nothing_to_do()    
+
   # btn_left: 操作ボタン
   def btn_left(self):
     frame_operate = tkinter.Frame(self)
     frame_operate.grid(column=1, row=0, padx=10, pady=10)
-    tkinter.Frame(frame_operate, width=20, height=25).pack(expand=True)
-    tkinter.Button(frame_operate, text="解答欄の位置を指定", command=self.sub_window.select_area, width=20, height=2).pack(expand=True)
-    tkinter.Button(frame_operate, text="一括採点する", command=nothing_to_do, width=20, height=2).pack(expand=True)
-    tkinter.Frame(frame_operate, width=20, height=25).pack(expand=True)
-    tkinter.Button(frame_operate, text="書き出す", command=nothing_to_do, width=20, height=2).pack(expand=True)
-    tkinter.Button(frame_operate, text="終了", command=self.root.destroy, width=20, height=2).pack(expand=True)  
+    tkinter.Button(frame_operate, text="解答欄の位置を指定", command=self.sub_window.select_area, width=20, height=2).grid(column=0, row=0, columnspan=2)
+    tkinter.Button(frame_operate, text="配点を\n入力する", command=self.make_xlsx, width=9, height=2).grid(column=0, row=1, sticky="WE")
+    tkinter.Button(frame_operate, text="配点を\n読み込む", command=self.read_xlsx, width=9, height=2).grid(column=1, row=1, sticky="WE")
+    tkinter.Frame(frame_operate, width=20, height=25).grid(column=0, row=2, columnspan=2)
+    tkinter.Button(frame_operate, text="一括採点する", command=nothing_to_do, width=20, height=2).grid(column=0, row=3, columnspan=2)
+    tkinter.Frame(frame_operate, width=20, height=25).grid(column=0, row=4, columnspan=2)
+    tkinter.Button(frame_operate, text="書き出す", command=nothing_to_do, width=20, height=2).grid(column=0, row=5, columnspan=2)
+    tkinter.Button(frame_operate, text="終了", command=self.root.destroy, width=20, height=2).grid(column=0, row=6, columnspan=2)  
 
 def menu(root):
   menu_root = tkinter.Menu(root)
@@ -653,6 +761,7 @@ def menu(root):
   menu_file = tkinter.Menu(menu_root, tearoff=0)
   menu_file.add_command(label="新しく試験を追加")
   menu_file.add_command(label="選択中の試験を編集")
+  menu_file.add_command(label="選択中の試験を削除")
   menu_file.add_separator()
   menu_file.add_command(label="構成設定をリセット")
   menu_file.add_separator()
@@ -660,12 +769,13 @@ def menu(root):
 
   menu_edit = tkinter.Menu(menu_root, tearoff=0)
   menu_edit.add_command(label="選択中の試験の解答欄の位置を指定")
+  menu_edit.add_command(label="選択中の試験の配点を入力する")
+  menu_edit.add_command(label="選択中の試験の配点を読み込む")
   menu_edit.add_command(label="選択中の試験を一括採点する")
-  menu_edit.add_separator()
-  menu_edit.add_command(label="終了")
 
   menu_help = tkinter.Menu(menu_root, tearoff=0)
   menu_help.add_command(label="ヘルプ")
+  menu_help.add_command(label="バージョン情報")
   
   menu_root.add_cascade(label="ファイル", menu=menu_file)
   menu_root.add_cascade(label="編集", menu=menu_edit)
