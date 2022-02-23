@@ -11,7 +11,6 @@
 #                                                   #
 #####################################################
 
-from operator import index
 import tkinter
 import tkinter.filedialog
 import tkinter.font
@@ -29,8 +28,6 @@ import glob
 import json
 import os
 import subprocess
-
-
 
 def nothing_to_do():
   tkinter.messagebox.showinfo(
@@ -52,6 +49,32 @@ class SubWindow:
 
   def sub_window_loop(func):
     def inner(self, *args, **kargs):
+      with open("config.json", "r", encoding="utf-8") as f:
+        dict_config = json.load(f)
+      if dict_config["index_projects_in_listbox"] is not None:
+        dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+        path_dir    : str = dict_project["path_dir"]
+        if os.path.exists(path_dir + "/.temp_saiten/配点.xlsx"):
+          bool_del_xlsx = tkinter.messagebox.askokcancel(
+            "配点ファイルが存在しています", 
+            "配点ファイルに入力した情報を保存するには, ［配点を読み込む］をクリックする必要があります. \n"
+            + "既に Excel で配点を入力されている場合で［配点を読み込む］をクリックしていない場合は, 入力した情報が破棄されます. \n\n"
+            + "入力した配点を保存した上で操作を続行したい場合は, ［キャンセル］をクリックした後, ［配点を読み込む］をクリックして配点を読み込んでから, もう一度実行して下さい. \n\n"
+            + "配点ファイルを削除してもよろしいですか？"
+          )
+          if not bool_del_xlsx:
+            return None
+          else:
+            try:
+              os.remove(path_dir + "/.temp_saiten/配点.xlsx")
+            except PermissionError:
+              tkinter.messagebox.showerror(
+                "ファイルを削除できません",
+                "ファイルを削除できませんでした. \n"
+                + "ファイルを開いていませんか？\n"
+                + "Excel を終了して, もう一度お試し下さい. "
+              )
+              return None
       self.parent.withdraw()
       if self.window:
         self.window.lift()
@@ -276,11 +299,11 @@ class SubWindow:
         f"試験一覧の［編集］ボタンをクリックして, 試験の設定を確認して下さい. \n\n「解答欄の位置を指定」を終了します. "
       )
       return "break"
-
     with open("config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
 
     dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+    path_dir = dict_project["path_dir"]
     path_json_answer_area = dict_project["path_dir"] + "/.temp_saiten/answer_area.json"
     path_file_model_answer = dict_project["path_dir"] + "/.temp_saiten/model_answer/model_answer.png"
     path_dir_of_answers = dict_project["path_dir"] + "/.temp_saiten/answer"
@@ -644,103 +667,161 @@ class MainFrame(tkinter.Frame):
     self.load_listbox_projects()
 
   def make_xlsx(self):
-    if tkinter.messagebox.askokcancel(
+    tkinter.messagebox.showinfo(
       "配点を入力します",
-      "配点の入力は, 本ソフトウェア上ではなく Excel 等の表計算ソフトウェアを使用して行います. \n"
-      + "表計算ソフトウェアがインストールされていない場合は, 別途インストールして下さい. \n\n"
-      + "既に Excel で配点を入力されている場合で［配点を読み込む］をクリックしていない場合は, 入力した情報が削除されます. \n"
-      + "登録した配点を修正したい場合は, ［配点を読み込む］をクリックして配点を読み込んだ後に, もう一度［配点を入力する］をクリックして下さい. \n\n"
+      "配点の入力は, 本ソフトウェア上ではなく Excel 等の表計算ソフトウェアを使用して行います. \n\n"
       + "配点を登録するために 配点.xlsx ファイルを作成して開きます. "
-    ):
-      with open("config.json", "r", encoding="utf-8") as f:
-        dict_config = json.load(f)
-      dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
-      path_dir = dict_project["path_dir"]
-      with open(path_dir + "/.temp_saiten/answer_area.json") as f:
-        dict_answer_area = json.load(f)
-      workbook_haiten = openpyxl.Workbook()
-      workbook_haiten.remove(workbook_haiten["Sheet"])
-      workbook_haiten.create_sheet(title="配点登録")
-      sheet_haiten = workbook_haiten["配点登録"]
-      sheet_haiten.cell(1, 2).value = "種類"
-      sheet_haiten.cell(1, 3).value = "大問"
-      sheet_haiten.cell(1, 4).value = "小問"
-      sheet_haiten.cell(1, 5).value = "枝問"
-      sheet_haiten.cell(1, 6).value = "配点"
-      side = openpyxl.styles.Side(style="thin", color="000000")
-      border_up_down = openpyxl.styles.Border(top=side, bottom=side)
-      datavalidation_whole = openpyxl.worksheet.datavalidation.DataValidation(type="whole")
-      datavalidation_textlength10 = openpyxl.worksheet.datavalidation.DataValidation(type="textLength", operator="lessThanOrEqual", formula1=10)
-      for index_question, question in enumerate(dict_answer_area["questions"]):
-        sheet_haiten.cell(index_question + 2, 1).value = index_question
-        sheet_haiten.cell(index_question + 2, 1).border = border_up_down
-        sheet_haiten.cell(index_question + 2, 2).value = question["type"]
-        sheet_haiten.cell(index_question + 2, 2).border = border_up_down
-        sheet_haiten.cell(index_question + 2, 3).value = question["daimon"]
-        sheet_haiten.cell(index_question + 2, 3).border = border_up_down
-        if question["type"] in ["設問", "小計点"]:
-          sheet_haiten.cell(index_question + 2, 3).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="bfffff")
-          sheet_haiten.cell(index_question + 2, 3).protection = openpyxl.styles.Protection(locked=False)
-          datavalidation_textlength10.add(sheet_haiten.cell(index_question + 2, 3))
-        else:
-          sheet_haiten.cell(index_question + 2, 3).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
-        sheet_haiten.cell(index_question + 2, 4).value = question["shomon"]
-        sheet_haiten.cell(index_question + 2, 4).border = border_up_down
-        if question["type"] in ["設問"]:
-          sheet_haiten.cell(index_question + 2, 4).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cfefef")
-          sheet_haiten.cell(index_question + 2, 4).protection = openpyxl.styles.Protection(locked=False)
-          datavalidation_textlength10.add(sheet_haiten.cell(index_question + 2, 4))
-        else:
-          sheet_haiten.cell(index_question + 2, 4).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
-        sheet_haiten.cell(index_question + 2, 5).value = question["shimon"]
-        sheet_haiten.cell(index_question + 2, 5).border = border_up_down
-        if question["type"] in ["設問"]:
-          sheet_haiten.cell(index_question + 2, 5).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="bfffff")
-          sheet_haiten.cell(index_question + 2, 5).protection = openpyxl.styles.Protection(locked=False)
-          datavalidation_textlength10.add(sheet_haiten.cell(index_question + 2, 5))
-        else:
-          sheet_haiten.cell(index_question + 2, 5).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
-        sheet_haiten.cell(index_question + 2, 6).value = question["haiten"]
-        sheet_haiten.cell(index_question + 2, 6).border = border_up_down
-        if question["type"] in ["設問"]:
-          sheet_haiten.cell(index_question + 2, 6).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="ffbfbf")
-          sheet_haiten.cell(index_question + 2, 6).protection = openpyxl.styles.Protection(locked=False)
-          datavalidation_whole.add(sheet_haiten.cell(index_question + 2, 6))
-        else:
-          sheet_haiten.cell(index_question + 2, 6).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
-      sheet_haiten.cell(index_question + 3, 5).value = "配点合計"
-      sheet_haiten.cell(index_question + 3, 6).value = f"=SUMIF(B2:B{index_question + 2}, \"設問\", F2:F{index_question + 2})"
-      sheet_haiten.protection.selectLockedCells   = True  # ロックされたセルの選択
-      sheet_haiten.protection.selectUnlockedCells = False # ロックされていないセルの選択
-      sheet_haiten.protection.formatCells         = True  # セルの書式設定
-      sheet_haiten.protection.formatColumns       = True  # 列の書式設定
-      sheet_haiten.protection.formatRows          = True  # 行の書式設定
-      sheet_haiten.protection.insertColumns       = True  # 列の挿入
-      sheet_haiten.protection.insertRows          = True  # 行の挿入
-      sheet_haiten.protection.insertHyperlinks    = True  # ハイパーリンクの挿入
-      sheet_haiten.protection.deleteColumns       = True  # 列の削除
-      sheet_haiten.protection.deleteRows          = True  # 行の削除
-      sheet_haiten.protection.sort                = True  # 並べ替え
-      sheet_haiten.protection.autoFilter          = True  # フィルター
-      sheet_haiten.protection.pivotTables         = True  # ピボットテーブルレポート
-      sheet_haiten.protection.objects             = False # オブジェクトの編集
-      sheet_haiten.protection.scenarios           = True  # シナリオの編集
-      sheet_haiten.protection.enable()
-
-      try:
-        workbook_haiten.save(path_dir + "/.temp_saiten/配点.xlsx")
-      except PermissionError:
-        tkinter.messagebox.showerror(
-          "ファイルを保存できません",
-          "ファイルを保存できませんでした. \n"
-          + "既にファイルを開いていませんか？\n"
-          + "Excel を終了して, もう一度お試し下さい. "
+    )
+    with open("config.json", "r", encoding="utf-8") as f:
+      dict_config = json.load(f)
+    dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+    path_dir = dict_project["path_dir"]
+    with open(path_dir + "/.temp_saiten/answer_area.json") as f:
+      dict_answer_area = json.load(f)
+      if os.path.exists(path_dir + "/.temp_saiten/配点.xlsx"):
+        bool_del_xlsx = tkinter.messagebox.askokcancel(
+          "配点ファイルが存在しています", 
+          "配点ファイルに入力した情報を保存するには, ［配点を読み込む］をクリックする必要があります. \n"
+          + "既に Excel で配点を入力されている場合で［配点を読み込む］をクリックしていない場合は, 入力した情報が破棄されます. \n\n"
+          + "入力した配点を保存した上で操作を続行したい場合は, ［キャンセル］をクリックした後, ［配点を読み込む］をクリックして配点を読み込んでから, もう一度実行して下さい. \n\n"
+          + "配点ファイルを削除してもよろしいですか？"
         )
+        if not bool_del_xlsx:
+          return None
+
+    if len(dict_answer_area["questions"]) == 0:
+      tkinter.messagebox.showwarning(
+        "解答欄の位置が指定されていません",
+        "解答欄の位置が指定されていません. \n"
+        + "［解答欄の位置を指定］をクリックして解答欄の位置を指定してから, もう一度お試し下さい. "
+      )
+      return      
+    workbook_haiten = openpyxl.Workbook()
+    workbook_haiten.remove(workbook_haiten["Sheet"])
+    workbook_haiten.create_sheet(title="配点登録")
+    sheet_haiten = workbook_haiten["配点登録"]
+    sheet_haiten.cell(1, 2).value = "種類"
+    sheet_haiten.cell(1, 3).value = "大問"
+    sheet_haiten.cell(1, 4).value = "小問"
+    sheet_haiten.cell(1, 5).value = "枝問"
+    sheet_haiten.cell(1, 6).value = "配点"
+    side = openpyxl.styles.Side(style="thin", color="000000")
+    border_up_down = openpyxl.styles.Border(top=side, bottom=side)
+    datavalidation_whole = openpyxl.worksheet.datavalidation.DataValidation(type="whole")
+    datavalidation_textlength10 = openpyxl.worksheet.datavalidation.DataValidation(type="textLength", operator="lessThanOrEqual", formula1=10)
+    for index_question, question in enumerate(dict_answer_area["questions"]):
+      sheet_haiten.cell(index_question + 2, 1).value = index_question
+      sheet_haiten.cell(index_question + 2, 1).border = border_up_down
+      sheet_haiten.cell(index_question + 2, 2).value = question["type"]
+      sheet_haiten.cell(index_question + 2, 2).border = border_up_down
+      sheet_haiten.cell(index_question + 2, 3).value = question["daimon"]
+      sheet_haiten.cell(index_question + 2, 3).border = border_up_down
+      if question["type"] in ["設問", "小計点"]:
+        sheet_haiten.cell(index_question + 2, 3).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="bfffff")
+        sheet_haiten.cell(index_question + 2, 3).protection = openpyxl.styles.Protection(locked=False)
+        datavalidation_textlength10.add(sheet_haiten.cell(index_question + 2, 3))
       else:
-        os.startfile(path_dir + "/.temp_saiten/配点.xlsx")
+        sheet_haiten.cell(index_question + 2, 3).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
+      sheet_haiten.cell(index_question + 2, 4).value = question["shomon"]
+      sheet_haiten.cell(index_question + 2, 4).border = border_up_down
+      if question["type"] in ["設問"]:
+        sheet_haiten.cell(index_question + 2, 4).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cfefef")
+        sheet_haiten.cell(index_question + 2, 4).protection = openpyxl.styles.Protection(locked=False)
+        datavalidation_textlength10.add(sheet_haiten.cell(index_question + 2, 4))
+      else:
+        sheet_haiten.cell(index_question + 2, 4).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
+      sheet_haiten.cell(index_question + 2, 5).value = question["shimon"]
+      sheet_haiten.cell(index_question + 2, 5).border = border_up_down
+      if question["type"] in ["設問"]:
+        sheet_haiten.cell(index_question + 2, 5).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="bfffff")
+        sheet_haiten.cell(index_question + 2, 5).protection = openpyxl.styles.Protection(locked=False)
+        datavalidation_textlength10.add(sheet_haiten.cell(index_question + 2, 5))
+      else:
+        sheet_haiten.cell(index_question + 2, 5).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
+      sheet_haiten.cell(index_question + 2, 6).value = question["haiten"]
+      sheet_haiten.cell(index_question + 2, 6).border = border_up_down
+      if question["type"] in ["設問"]:
+        sheet_haiten.cell(index_question + 2, 6).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="ffbfbf")
+        sheet_haiten.cell(index_question + 2, 6).protection = openpyxl.styles.Protection(locked=False)
+        datavalidation_whole.add(sheet_haiten.cell(index_question + 2, 6))
+      else:
+        sheet_haiten.cell(index_question + 2, 6).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
+    sheet_haiten.cell(index_question + 3, 5).value = "配点合計"
+    sheet_haiten.cell(index_question + 3, 6).value = f"=SUMIF(B2:B{index_question + 2}, \"設問\", F2:F{index_question + 2})"
+    sheet_haiten.protection.selectLockedCells   = True  # ロックされたセルの選択
+    sheet_haiten.protection.selectUnlockedCells = False # ロックされていないセルの選択
+    sheet_haiten.protection.formatCells         = True  # セルの書式設定
+    sheet_haiten.protection.formatColumns       = True  # 列の書式設定
+    sheet_haiten.protection.formatRows          = True  # 行の書式設定
+    sheet_haiten.protection.insertColumns       = True  # 列の挿入
+    sheet_haiten.protection.insertRows          = True  # 行の挿入
+    sheet_haiten.protection.insertHyperlinks    = True  # ハイパーリンクの挿入
+    sheet_haiten.protection.deleteColumns       = True  # 列の削除
+    sheet_haiten.protection.deleteRows          = True  # 行の削除
+    sheet_haiten.protection.sort                = True  # 並べ替え
+    sheet_haiten.protection.autoFilter          = True  # フィルター
+    sheet_haiten.protection.pivotTables         = True  # ピボットテーブルレポート
+    sheet_haiten.protection.objects             = False # オブジェクトの編集
+    sheet_haiten.protection.scenarios           = True  # シナリオの編集
+    sheet_haiten.protection.enable()
+    workbook_haiten.security.lockStructure = True
+
+    try:
+      workbook_haiten.save(path_dir + "/.temp_saiten/配点.xlsx")
+    except PermissionError:
+      tkinter.messagebox.showerror(
+        "ファイルを保存できません",
+        "ファイルを保存できませんでした. \n"
+        + "既にファイルを開いていませんか？\n"
+        + "Excel を終了して, もう一度お試し下さい. "
+      )
+    else:
+      os.startfile(path_dir + "/.temp_saiten/配点.xlsx")
 
   def read_xlsx(self):
-    nothing_to_do()    
+    with open("config.json", "r", encoding="utf-8") as f:
+      dict_config = json.load(f)
+    dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+    path_dir = dict_project["path_dir"]
+    with open(path_dir + "/.temp_saiten/answer_area.json") as f:
+      dict_answer_area = json.load(f)
+    if not os.path.exists(path_dir + "/.temp_saiten/配点.xlsx"):
+      tkinter.messagebox.showerror(
+        "ファイルが見つかりません",
+        "配点.xlsx が見つかりません. \n"
+        + "［配点を入力する］をクリックして, ファイルを生成し, 配点を入力して保存して下さい. "
+      )
+    else:
+      try:
+        workbook_haiten = openpyxl.load_workbook(path_dir + "/.temp_saiten/配点.xlsx")
+        os.remove(path_dir + "/.temp_saiten/配点.xlsx")
+      except PermissionError:
+        tkinter.messagebox.showerror(
+          "ファイルを操作できません",
+          "ファイルを操作できませんでした. \n"
+          + "ファイルを開いていませんか？\n"
+          + "Excel を終了して, もう一度お試し下さい. "
+        )
+        return
+      sheet_haiten = workbook_haiten["配点登録"]
+      for index_question in range(len(dict_answer_area["questions"])):
+        dict_answer_area["questions"][index_question]["daimon"] = sheet_haiten.cell(index_question + 2, 3).value
+        dict_answer_area["questions"][index_question]["shomon"] = sheet_haiten.cell(index_question + 2, 4).value
+        dict_answer_area["questions"][index_question]["shimon"] = sheet_haiten.cell(index_question + 2, 5).value
+        if sheet_haiten.cell(index_question + 2, 5).value == "":
+          dict_answer_area["questions"][index_question]["haiten"] = None
+        else:
+          dict_answer_area["questions"][index_question]["haiten"] = sheet_haiten.cell(index_question + 2, 6).value
+      with open(path_dir + "/.temp_saiten/answer_area.json", "w", encoding="utf-8") as f:
+        json.dump(dict_answer_area, f, indent=2)
+      message_sample = ""
+      for i in range(1000):
+        message_sample += "ああああああああああ"
+      tkinter.messagebox.showinfo(
+        "配点を読み込みました",
+        "読み込んだ内容は保存し, 配点.xlsx は削除しました. \n"
+        + "再び配点を編集するには, ［配点を入力する］をクリックして下さい. \n"
+      )
 
   # btn_left: 操作ボタン
   def btn_left(self):
@@ -794,17 +875,44 @@ def check_on_run():
   try:
     with open("config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
+    return True
   except FileNotFoundError:
-    make_config()
+    bool_accept_terms = tkinter.messagebox.askyesno(
+      "Accept the terms? - 規約に同意しますか？",
+      "Copyright(c) 2022 KeppyNaushika\n\n"
+      + "This software is released under the GNU Affero General Public License v3.0, see LICENSE. \n\n"
+      + "このソフトウェアは, GNU Affro General Public License version3 の下, 提供されています. \n\n"
+      + "ライセンスを遵守する限り, 商用利用, 変更, 頒布, 特許利用, 私的利用が認められますが, "
+      + "利用にあたって開発者は責任を負いませんしいかなる保証も提供しません. \n\n"
+      + "同梱されている LICENSE をお読みいただき, 同意される場合は［はい］をクリックして下さい. \n\n"
+      + "尚, 本ソフトウェアにおける Microsoft 製品についての記述は, マイクロソフトの商標およびブランドガイドラインに準拠しています. \n\n"
+      + "The github repository of this software:\n"
+      + "https://github.com/KeppyNaushika/scoring_at_once/"
+    )
+    if bool_accept_terms:
+      tkinter.messagebox.showinfo(
+        "表計算ソフトをご用意下さい. ",
+        "本ソフトウェアでは, 一部で Microsoft Excel 等の表計算ソフトウェアを利用します. \n\n"
+        + "あらかじめインストールの上, ご利用下さい. "
+      )
+      tkinter.messagebox.showinfo(
+        "ごめんなさい",
+        "本ソフトウェアは, alpha版です. \n\n"
+        + "一部動作しない機能がございます. "
+      )
+      make_config()
+      return True
+    else:
+      return False
 
 def main():
   root = tkinter.Tk()
-  root.title("一括採点")
+  root.title("一括採点 - alpha版")
   root.geometry("800x500")
   menu(root)
   MainFrame(root=root)
   root.mainloop()
 
 if __name__ == "__main__":
-  check_on_run()
-  main()
+  if check_on_run():
+    main()
