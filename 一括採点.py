@@ -81,14 +81,13 @@ class SubWindow:
       else:
         self.window = tkinter.Toplevel(self.parent)
         self.window.title("一括採点")
-        self.window.withdraw()
         if func(self, *args, **kargs) is None:
-          self.window.deiconify()
           self.window.protocol("WM_DELETE_WINDOW", self.this_window_close)
           self.window.mainloop()
     return inner
 
   def check_dir_exist(self):
+    self.window.withdraw()
     with open("config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
     dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
@@ -139,6 +138,7 @@ class SubWindow:
         img.save(path_dir + "/.temp_saiten/model_answer/model_answer.png")
     if not os.path.exists(path_dir + "/.temp_saiten/answer"):
       os.mkdir(path_dir + "/.temp_saiten/answer")
+    list_path_in_file_dir = [path.replace("\\", "/") for path in glob.glob(path_dir + "/*")]
     if os.path.exists(path_dir + "/.temp_saiten/load_picture.json"):
       with open(path_dir + "/.temp_saiten/load_picture.json", "r", encoding="utf-8") as f:
         dict_load_picture = json.load(f)
@@ -146,7 +146,8 @@ class SubWindow:
       dict_load_picture = {
         "answer": []
       }
-    list_path_in_file_dir = [path.replace("\\", "/") for path in glob.glob(path_dir + "/*")]
+    with open(path_dir + "/.temp_saiten/answer_area.json", "r", encoding="utf-8") as f:
+      dict_answer_area = json.load(f)    
     index_file = len(dict_load_picture["answer"])
     for path_in_file_dir in list_path_in_file_dir:
       if path_in_file_dir == path_file:
@@ -156,12 +157,16 @@ class SubWindow:
       elif os.path.splitext(path_in_file_dir)[1] in [".jpeg", ".jpg", ".png"]:
         img = PIL.Image.open(path_in_file_dir)
         img.save(path_dir + "/.temp_saiten/answer/" + str(index_file) + ".png")
-        dict_load_picture["answer"].append(path_in_file_dir)        
+        dict_load_picture["answer"].append(path_in_file_dir)
+        for index_questions_score in range(len(dict_answer_area["questions"])):
+          dict_answer_area["questions"][index_questions_score]["score"].append({"status": "unscored", "point": None})
       else:
         continue
       index_file += 1
     with open(path_dir + "/.temp_saiten/load_picture.json", "w", encoding="utf-8") as f:
       json.dump(dict_load_picture, f, indent=2)
+    with open(path_dir + "/.temp_saiten/answer_area.json", "w", encoding="utf-8") as f:
+      json.dump(dict_answer_area, f, indent=2)
     if index_file == 0:
       tkinter.messagebox.showwarning(
         "ファイルが存在しません", 
@@ -181,6 +186,7 @@ class SubWindow:
       + f"3. 答案スキャンデータとして使用できるファイルは JPEG または PNG です. 拡張子が *.jpeg, *.jpg, *.png 以外のファイルは無視されます. \n"
       + f"4. ［適用］をクリックして, 答案データを再読み込みします. "
     )
+    self.window.deiconify()
     return True
 
   @sub_window_loop
@@ -385,18 +391,27 @@ class SubWindow:
     def canvas_draw_rectangle_release(event):
       with open(path_json_answer_area, "r", encoding="utf-8") as f:
         dict_answer_area = json.load(f)
+      with open(path_dir + "/.temp_saiten/load_picture.json", "r", encoding="utf-8") as f:
+        dict_load_picture = json.load(f)
       dict_answer_area["questions"].append(
         {
           "type": "設問", 
-          "daimon": "",
-          "shomon": "",
-          "shimon": "",
+          "daimon": None,
+          "shomon": None,
+          "shimon": None,
           "haiten": None,
           "area": [
             min(self.canvas_draw_rectangle[0], self.canvas_draw_rectangle[2]),
             min(self.canvas_draw_rectangle[1], self.canvas_draw_rectangle[3]),
             max(self.canvas_draw_rectangle[0], self.canvas_draw_rectangle[2]),
             max(self.canvas_draw_rectangle[1], self.canvas_draw_rectangle[3])
+          ],
+          "score": [
+            {
+              "status": "unscored",
+              "point": None
+            }
+            for i in range(len(dict_load_picture["answer"]))
           ]
         }
       )
@@ -559,6 +574,218 @@ class SubWindow:
       self.index_selected_question = len(dict_answer_area["questions"]) - 1
 
     reload_listbox_question()
+
+  @sub_window_loop
+  def score_answer(self):
+    if not self.check_dir_exist():
+      tkinter.messagebox.showinfo(
+        "設定を確認して下さい", 
+        f"試験一覧の［編集］ボタンをクリックして, 試験の設定を確認して下さい. \n\n「解答欄の位置を指定」を終了します. "
+      )
+      return "break"
+    self.parent.winfo_screenwidth()
+    self.window.geometry("1600x1000+0+0")
+    with open("config.json", "r", encoding="utf-8") as f:
+      dict_config = json.load(f)
+    dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+    path_dir = dict_project["path_dir"]
+    path_json_answer_area = dict_project["path_dir"] + "/.temp_saiten/answer_area.json"
+    path_file_model_answer = dict_project["path_dir"] + "/.temp_saiten/model_answer/model_answer.png"
+    path_dir_of_answers = dict_project["path_dir"] + "/.temp_saiten/answer"
+    with open(path_json_answer_area, "r", encoding="utf-8") as f:
+      dict_answer_area = json.load(f)
+    list_path_file_answer = glob.glob(path_dir_of_answers + "/*")
+    
+    width_window = self.window.winfo_width()
+    height_window = self.window.winfo_height()
+    print(f"width_window: {width_window}")
+    print(f"height_window: {height_window}")
+
+    frame_list_question = tkinter.Frame(self.window, padx=10, pady=10, borderwidth=5)
+    frame_list_question.grid(column=0, row=0)
+    frame_score_question = tkinter.Frame(self.window, padx=10, pady=10)
+    frame_score_question.grid(column=1, row=0, sticky=tkinter.NW)
+
+    label_list_question = tkinter.Label(frame_list_question, text="設問一覧", height=2)
+    label_list_question.grid(column=0, row=0)
+    listbox_question = tkinter.Listbox(frame_list_question)
+    listbox_question.grid(column=0, row=1)
+
+    frame_btn_operate = tkinter.Frame(frame_score_question, background="#bfbfbf")
+    frame_btn_operate.grid(column=0, row=0, sticky="we")
+    frame_list_frame_canvas_answer = tkinter.Frame(frame_score_question)
+    frame_list_frame_canvas_answer.grid(column=0, row=1)
+
+    frame_bar_top = tkinter.Frame(frame_btn_operate, height=5, background="#bfbfbf")
+    frame_bar_top.grid(column=0, row=0, sticky="we")
+    frame_btn_scoring = tkinter.Frame(frame_btn_operate, height=5)
+    frame_btn_scoring.grid(column=0, row=1, padx=5, sticky="w")
+    frame_bar_bottom = tkinter.Frame(frame_btn_operate, height=5, background="#bfbfbf")
+    frame_bar_bottom.grid(column=0, row=2, sticky="we")
+
+    frame_label_btn_scoring = tkinter.Label(frame_btn_scoring, width=20, text="採点する：")
+    frame_border_btn_scoring_unscored = tkinter.Frame(frame_btn_scoring, background="gray")
+    frame_border_btn_scoring_correct = tkinter.Frame(frame_btn_scoring, background="green")
+    frame_border_btn_scoring_partial = tkinter.Frame(frame_btn_scoring, background="orange")
+    frame_border_btn_scoring_hold = tkinter.Frame(frame_btn_scoring, background="blue")
+    frame_border_btn_scoring_incorrect = tkinter.Frame(frame_btn_scoring, background="red")
+    frame_label_btn_scoring.grid(column=0, row=0)
+    frame_border_btn_scoring_unscored.grid(column=1, row=0)
+    frame_border_btn_scoring_correct.grid(column=2, row=0)
+    frame_border_btn_scoring_partial.grid(column=3, row=0)
+    frame_border_btn_scoring_hold.grid(column=4, row=0)
+    frame_border_btn_scoring_incorrect.grid(column=5, row=0)
+    btn_scoring_unscored = tkinter.Button(frame_border_btn_scoring_unscored, width=15, text="未採点 (A)")
+    btn_scoring_correct = tkinter.Button(frame_border_btn_scoring_correct, width=15, text="正答 (D)")
+    btn_scoring_partial = tkinter.Button(frame_border_btn_scoring_partial, width=15, text="部分点 (F)")
+    btn_scoring_hold = tkinter.Button(frame_border_btn_scoring_hold, width=15, text="保留 (J)")
+    btn_scoring_incorrect = tkinter.Button(frame_border_btn_scoring_incorrect, width=15, text="誤答 (K)")
+    btn_scoring_unscored.pack(padx=4, pady=4)
+    btn_scoring_correct.pack(padx=4, pady=4)
+    btn_scoring_partial.pack(padx=4, pady=4)
+    btn_scoring_hold.pack(padx=4, pady=4)
+    btn_scoring_incorrect.pack(padx=4, pady=4)
+
+    frame_bar = tkinter.Frame(frame_btn_scoring, height=5, background="#bfbfbf")
+    frame_bar.grid(column=0, row=1, columnspan=6, sticky="we")
+
+    frame_label_checkbotton_show = tkinter.Label(frame_btn_scoring, width=20, text="表示する答案を選択：")
+    frame_border_checkbutton_show_unscored = tkinter.Frame(frame_btn_scoring, background="gray")
+    frame_border_checkbutton_show_correct = tkinter.Frame(frame_btn_scoring, background="green")
+    frame_border_checkbutton_show_partial = tkinter.Frame(frame_btn_scoring, background="orange")
+    frame_border_checkbutton_show_hold = tkinter.Frame(frame_btn_scoring, background="blue")
+    frame_border_checkbutton_show_incorrect = tkinter.Frame(frame_btn_scoring, background="red")
+    frame_label_checkbotton_show.grid(column=0, row=2, sticky="we")
+    frame_border_checkbutton_show_unscored.grid(column=1, row=2, sticky="we")
+    frame_border_checkbutton_show_correct.grid(column=2, row=2, sticky="we")
+    frame_border_checkbutton_show_partial.grid(column=3, row=2, sticky="we")
+    frame_border_checkbutton_show_hold.grid(column=4, row=2, sticky="we")
+    frame_border_checkbutton_show_incorrect.grid(column=5, row=2, sticky="we")
+    checkbutton_show_unscored = tkinter.Checkbutton(frame_border_checkbutton_show_unscored, width=12, text="未採点 (Ctrl + A)")
+    checkbutton_show_correct = tkinter.Checkbutton(frame_border_checkbutton_show_correct, width=12, text="正答 (Ctrl + D)")
+    checkbutton_show_partial = tkinter.Checkbutton(frame_border_checkbutton_show_partial, width=12, text="部分点 (Ctrl + F)")
+    checkbutton_show_hold = tkinter.Checkbutton(frame_border_checkbutton_show_hold, width=12, text="保留 (Ctrl + J)")
+    checkbutton_show_incorrect = tkinter.Checkbutton(frame_border_checkbutton_show_incorrect, width=12, text="誤答 (Ctrl + K)")
+    checkbutton_show_unscored.pack(padx=4, pady=4)
+    checkbutton_show_correct.pack(padx=4, pady=4)
+    checkbutton_show_partial.pack(padx=4, pady=4)
+    checkbutton_show_hold.pack(padx=4, pady=4)
+    checkbutton_show_incorrect.pack(padx=4, pady=4)
+    checkbutton_show_unscored.pack(padx=4, pady=4)
+
+    frame_border_btn_reload_answer = tkinter.Frame(frame_btn_scoring, background="cyan")
+    frame_border_btn_reload_answer.grid(column=6, row=0, rowspan=3, sticky="ns")
+    btn_reload_answer = tkinter.Button(frame_border_btn_reload_answer, width=20, height=3, text="再読み込み (R)")
+    btn_reload_answer.grid(column=0, row=0, padx=4, pady=4)
+
+    self.scoring_model_images = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
+    self.list_path_file_answer = []
+    self.list_scoring_images = []
+    for path_file_answer in list_path_file_answer:
+      if os.path.splitext(path_file_answer)[1] == ".png":
+        self.list_path_file_answer.append(path_file_answer)
+        self.list_scoring_images.append(PIL.ImageTk.PhotoImage(file=path_file_answer))
+
+    self.index_selected_scoring_question = 0
+    for question in dict_answer_area["questions"]:
+      if question["type"] == "設問":
+        name_question = "設問"
+        if question["daimon"] is not None:
+          name_question += " - " + str(question["daimon"])
+        if question["shomon"] is not None:
+          name_question += " - " + str(question["shomon"])
+        if question["shimon"] is not None:
+          name_question += " - " + str(question["shimon"])
+        listbox_question.insert(tkinter.END, name_question)
+
+    def repack_frame_canvas_answer():
+      with open("config.json", "r", encoding="utf-8") as f:
+        dict_config = json.load(f)
+      dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+      path_dir = dict_project["path_dir"]
+      path_json_answer_area = path_dir + "/.temp_saiten/answer_area.json"
+      path_dir_of_answers = path_dir + "/.temp_saiten/answer"
+      path_file_model_answer = path_dir + "/.temp_saiten/model_answer/model_answer.png"
+      list_path_file_answer = glob.glob(path_dir_of_answers + "/*")
+      path_dir_of_answers = path_dir + "/.temp_saiten/answer"
+      with open(path_json_answer_area, "r", encoding="utf-8") as f:
+        dict_answer_area = json.load(f)
+
+      if self.index_selected_scoring_question is None:
+        pass
+      else:
+        self.window.update_idletasks()
+        width_window = self.window.winfo_width()
+        height_window = self.window.winfo_height()
+        print(f"width_window: {width_window}")
+        print(f"height_window: {height_window}")
+
+        listbox_question.configure(height=height_window // 21 - 1)
+        frame_list_question.update_idletasks()
+        frame_btn_operate.update_idletasks()
+        width_frame_list_question = frame_list_question.winfo_width()
+        height_frame_btn_operate = frame_btn_operate.winfo_height()
+        print(f"width_frame_list_question: {width_frame_list_question}")
+        print(f"height_frame_btn_operate: {height_frame_btn_operate}")
+
+        width_canvas = dict_answer_area["questions"][self.index_selected_scoring_question]["area"][2] - dict_answer_area["questions"][self.index_selected_scoring_question]["area"][0]
+        height_canvas = dict_answer_area["questions"][self.index_selected_scoring_question]["area"][3] - dict_answer_area["questions"][self.index_selected_scoring_question]["area"][1]      
+
+        len_column_position_of_answer = (width_window - width_frame_list_question) // (width_canvas + 20)
+        len_row_position_of_answer = (height_window - 150) // (height_canvas + 40)
+
+        int_column_position_of_answer = 1
+        int_row_position_of_answer = 0
+        for index_path_file_answer, path_file_answer in enumerate(self.list_path_file_answer):
+          self.list_frame_border_frame_canvas_question[index_path_file_answer].grid(column=int_column_position_of_answer , row=int_row_position_of_answer, padx=2, pady=2)
+          self.list_frame_canvas_question[index_path_file_answer].grid(padx=2, pady=2)
+          self.list_canvas_question[index_path_file_answer].grid(column=0, row=0, columnspan=2, padx=2, pady=2)
+          self.list_entry_score[index_path_file_answer].grid(column=0, row=1, sticky="e")
+          self.list_label_entry_score[index_path_file_answer].grid(column=1, row=1, sticky="w")
+          int_column_position_of_answer += 1
+          if int_column_position_of_answer == len_column_position_of_answer:
+            int_column_position_of_answer = 0
+            int_row_position_of_answer += 1
+          if int_row_position_of_answer == len_row_position_of_answer:
+            break
+
+    def reload_frame_canvas_answer():
+      frame_list_frame_canvas_answer.grid_forget()
+      frame_list_frame_canvas_answer.grid(column=0, row=1)
+      for canvas_question in self.list_frame_border_frame_canvas_question:
+        canvas_question.destroy()
+      self.list_frame_border_frame_canvas_question = []
+      self.list_frame_canvas_question = []
+      self.list_canvas_question = []
+      self.list_label_entry_score = []
+      self.list_entry_score = []
+      width_canvas = dict_answer_area["questions"][self.index_selected_scoring_question]["area"][2] - dict_answer_area["questions"][self.index_selected_scoring_question]["area"][0]
+      height_canvas = dict_answer_area["questions"][self.index_selected_scoring_question]["area"][3] - dict_answer_area["questions"][self.index_selected_scoring_question]["area"][1]
+      
+      for index_path_file_answer, path_file_answer in enumerate(self.list_path_file_answer):
+        self.list_frame_border_frame_canvas_question.append(tkinter.Frame(frame_list_frame_canvas_answer, background="red"))
+        self.list_frame_canvas_question.append(tkinter.Frame(self.list_frame_border_frame_canvas_question[-1]))
+        self.list_canvas_question.append(tkinter.Canvas(self.list_frame_canvas_question[-1], width=width_canvas, height=height_canvas))
+        self.list_canvas_question[index_path_file_answer].create_image(
+          -1 * dict_answer_area["questions"][self.index_selected_scoring_question]["area"][0], 
+          -1 * dict_answer_area["questions"][self.index_selected_scoring_question]["area"][1], 
+          image=self.list_scoring_images[index_path_file_answer], 
+          anchor="nw",
+          tags="answer"
+        )
+        self.list_entry_score.append(tkinter.Entry(self.list_frame_canvas_question[-1], width=5, justify="right"))
+        self.list_label_entry_score.append(tkinter.Label(self.list_frame_canvas_question[-1], width=3, text="点", justify="left"))
+      repack_frame_canvas_answer()
+
+    def selected_scoring_question(*args, **kwargs):
+      print(listbox_question.curselection())
+      self.index_selected_scoring_question = listbox_question.curselection()[0]
+      reload_frame_canvas_answer()
+
+    listbox_question.bind("<<ListboxSelect>>", selected_scoring_question)
+    self.list_frame_border_frame_canvas_question = []
+    self.list_canvas_question = []
+    reload_frame_canvas_answer()
 
 class MainFrame(tkinter.Frame):
   def __init__(self, root):
@@ -814,9 +1041,6 @@ class MainFrame(tkinter.Frame):
           dict_answer_area["questions"][index_question]["haiten"] = sheet_haiten.cell(index_question + 2, 6).value
       with open(path_dir + "/.temp_saiten/answer_area.json", "w", encoding="utf-8") as f:
         json.dump(dict_answer_area, f, indent=2)
-      message_sample = ""
-      for i in range(1000):
-        message_sample += "ああああああああああ"
       tkinter.messagebox.showinfo(
         "配点を読み込みました",
         "読み込んだ内容は保存し, 配点.xlsx は削除しました. \n"
@@ -831,7 +1055,7 @@ class MainFrame(tkinter.Frame):
     tkinter.Button(frame_operate, text="配点を\n入力する", command=self.make_xlsx, width=9, height=2).grid(column=0, row=1, sticky="WE")
     tkinter.Button(frame_operate, text="配点を\n読み込む", command=self.read_xlsx, width=9, height=2).grid(column=1, row=1, sticky="WE")
     tkinter.Frame(frame_operate, width=20, height=25).grid(column=0, row=2, columnspan=2)
-    tkinter.Button(frame_operate, text="一括採点する", command=nothing_to_do, width=20, height=2).grid(column=0, row=3, columnspan=2)
+    tkinter.Button(frame_operate, text="一括採点する", command=self.sub_window.score_answer, width=20, height=2).grid(column=0, row=3, columnspan=2)
     tkinter.Frame(frame_operate, width=20, height=25).grid(column=0, row=4, columnspan=2)
     tkinter.Button(frame_operate, text="書き出す", command=nothing_to_do, width=20, height=2).grid(column=0, row=5, columnspan=2)
     tkinter.Button(frame_operate, text="終了", command=self.root.destroy, width=20, height=2).grid(column=0, row=6, columnspan=2)  
