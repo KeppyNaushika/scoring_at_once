@@ -114,7 +114,6 @@ class SubWindow:
       )
       return False
     if not os.path.splitext(path_file)[1] in [".jpeg", ".jpg", ".png"]:
-      print(os.path.splitext(path_file)[1])
       tkinter.messagebox.showwarning(
         "ファイルの拡張子が対応しません", 
         f"指定されたファイルの拡張子が jpeg, jpg, png 以外であったため, ファイルを開きませんでした. \n"
@@ -602,8 +601,8 @@ class SubWindow:
     
     width_window = self.window.winfo_width()
     height_window = self.window.winfo_height()
-    print(f"width_window: {width_window}")
-    print(f"height_window: {height_window}")
+    # print(f"width_window: {width_window}")
+    # print(f"height_window: {height_window}")
 
     frame_list_question = tkinter.Frame(self.window, padx=10, pady=10, borderwidth=5)
     frame_list_question.grid(column=0, row=0)
@@ -734,7 +733,9 @@ class SubWindow:
     def repack_chosen_frame_canvas_answer(self):
       with open(path_json_answer_area, "r", encoding="utf-8") as f:
         dict_answer_area = json.load(f)
-      for index_relation_table_position_to_index_answersheet, ((int_column_position_of_answer, int_row_position_of_answer), index_scoring_answersheet) in enumerate(self.relation_table_position_to_index_answersheet):
+      label_show_page.configure(text=f"{self.index_pages_relation_table_position_to_index_answersheet + 1} 頁 / {len(self.pages_relation_table_position_to_index_answersheet)} 頁")
+      for index_relation_table_position_to_index_answersheet, ((int_column_position_of_answer, int_row_position_of_answer), index_scoring_answersheet) in enumerate(self.pages_relation_table_position_to_index_answersheet[
+        self.index_pages_relation_table_position_to_index_answersheet]):
         if dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["status"] == "unscored":
           background_frame = "gray"
         elif dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["status"] == "correct":
@@ -745,21 +746,23 @@ class SubWindow:
           background_frame = "blue"
         elif dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["status"] == "incorrect":
           background_frame = "red"
-        if index_relation_table_position_to_index_answersheet == self.selected_index_relation_table_position_to_index_answersheet:
-          background_frame = "cyan"
-          self.index_selected_scoring_answersheet = index_scoring_answersheet
         self.list_frame_border_frame_canvas_question[index_scoring_answersheet].configure(background=background_frame)
         self.list_frame_border_frame_canvas_question[index_scoring_answersheet].grid(column=int_column_position_of_answer , row=int_row_position_of_answer, padx=2, pady=2)
+        self.list_frame_canvas_question[index_scoring_answersheet].configure(background="white")
+        self.list_label_entry_score[index_scoring_answersheet].configure(background="white")
+        if index_relation_table_position_to_index_answersheet == self.index_selected_relation_table_position_to_index_answersheet:
+          self.list_frame_canvas_question[index_scoring_answersheet].configure(background="cyan")
+          self.list_label_entry_score[index_scoring_answersheet].configure(background="cyan")
         self.list_frame_canvas_question[index_scoring_answersheet].grid(padx=3, pady=3)
         self.list_canvas_question[index_scoring_answersheet].grid(column=0, row=0, columnspan=2, padx=1, pady=1)
         self.list_entry_score[index_scoring_answersheet].grid(column=0, row=1, sticky="e")
         self.list_label_entry_score[index_scoring_answersheet].grid(column=1, row=1, sticky="w")
-        int_column_position_of_answer += 1
-        if int_column_position_of_answer == self.len_column_position_of_answer:
-          int_column_position_of_answer = 0
-          int_row_position_of_answer += 1
-        if int_row_position_of_answer == self.len_row_position_of_answer:
-          break
+        # int_column_position_of_answer += 1
+        # if int_column_position_of_answer == self.len_column_position_of_answer:
+        #   int_column_position_of_answer = 0
+        #   int_row_position_of_answer += 1
+        # if int_row_position_of_answer == self.len_row_position_of_answer:
+        #   break
 
     def choose_to_show_frame_canvas_answer(self):
       with open("config.json", "r", encoding="utf-8") as f:
@@ -775,7 +778,7 @@ class SubWindow:
         dict_answer_area = json.load(f)
 
       if self.index_selected_scoring_question is None:
-        pass
+        self.index_pages_relation_table_position_to_index_answersheet = None
       else:
         self.window.update_idletasks()
         width_window = self.window.winfo_width()
@@ -801,20 +804,22 @@ class SubWindow:
         int_column_position_of_answer = 1
         int_row_position_of_answer = 0
 
-        self.selected_index_relation_table_position_to_index_answersheet = 0
-        self.relation_table_position_to_index_answersheet = []
+        self.pages_relation_table_position_to_index_answersheet = [[]]
         for index_scoring_answersheet, scoring_answersheet in enumerate(dict_answer_area["questions"][self.index_selected_scoring_question]["score"]):
           if self.booleanVar_checkbutton_show[scoring_answersheet["status"]].get():
-            self.relation_table_position_to_index_answersheet.append(((int_column_position_of_answer, int_row_position_of_answer), index_scoring_answersheet))
+            self.pages_relation_table_position_to_index_answersheet[-1].append(((int_column_position_of_answer, int_row_position_of_answer), index_scoring_answersheet))
             int_column_position_of_answer += 1
             if int_column_position_of_answer == self.len_column_position_of_answer:
               int_column_position_of_answer = 0
               int_row_position_of_answer += 1
-            if int_row_position_of_answer == self.len_row_position_of_answer:
-              break
+            if int_row_position_of_answer == self.len_row_position_of_answer and index_scoring_answersheet != len(dict_answer_area["questions"][self.index_selected_scoring_question]["score"]) - 1:
+              self.pages_relation_table_position_to_index_answersheet.append([])
+              int_column_position_of_answer = 1
+              int_row_position_of_answer = 0
+        self.index_selected_relation_table_position_to_index_answersheet = 0
         repack_chosen_frame_canvas_answer(self)
 
-    def reload_frame_canvas_answer(*args, **kwargs):
+    def reload_frame_canvas_answer(self, *args, **kwargs):
       with open("config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
@@ -850,12 +855,12 @@ class SubWindow:
       if len(dict_answer_area["questions"][self.index_selected_scoring_question]) == 0:
         self.index_selected_column_position_of_answer = None
         self.index_selected_row_position_of_answer = None
+        self.index_selected_column_position_of_answer = None
       else:
         self.index_selected_column_position_of_answer = 1
         self.index_selected_row_position_of_answer = 0
-      self.index_selected_scoring_answersheet = None
-
-      ### 削除予定
+        self.index_selected_scoring_answersheet = 0
+      self.index_pages_relation_table_position_to_index_answersheet = 0
 
       for index_scoring_answersheet, scoring_answersheet in enumerate(dict_answer_area["questions"][self.index_selected_scoring_question]["score"]):
         self.list_frame_border_frame_canvas_question.append(tkinter.Frame(frame_list_frame_canvas_answer)) #, background=background_frame))
@@ -870,6 +875,7 @@ class SubWindow:
         )
         self.list_entry_score.append(tkinter.Entry(self.list_frame_canvas_question[-1], width=5, justify="right"))
         self.list_label_entry_score.append(tkinter.Label(self.list_frame_canvas_question[-1], width=3, text="点", justify="left"))
+      
       choose_to_show_frame_canvas_answer(self)
 
     def selected_scoring_question(*args, **kwargs):
@@ -878,36 +884,53 @@ class SubWindow:
       reload_frame_canvas_answer(self)
 
     def move_selected_question_answersheet(direction: str, *args, **kwargs):
-      print(self.selected_index_relation_table_position_to_index_answersheet)
-      print(self.relation_table_position_to_index_answersheet)
-      if direction == "up":
-        if self.selected_index_relation_table_position_to_index_answersheet == 0:
-          self.selected_index_relation_table_position_to_index_answersheet = len(self.relation_table_position_to_index_answersheet) - 1
-        else:
-          self.selected_index_relation_table_position_to_index_answersheet -= self.len_column_position_of_answer
-          if self.selected_index_relation_table_position_to_index_answersheet < 0:
-            self.selected_index_relation_table_position_to_index_answersheet = 0
-      elif direction == "down":
-        if self.selected_index_relation_table_position_to_index_answersheet == len(self.relation_table_position_to_index_answersheet) - 1:
-          self.selected_index_relation_table_position_to_index_answersheet = 0
-        else:
-          self.selected_index_relation_table_position_to_index_answersheet += self.len_column_position_of_answer
-          if self.selected_index_relation_table_position_to_index_answersheet > len(self.relation_table_position_to_index_answersheet) - 1:
-            self.selected_index_relation_table_position_to_index_answersheet = len(self.relation_table_position_to_index_answersheet) - 1
-      elif direction == "next":
-        self.selected_index_relation_table_position_to_index_answersheet += 1
-        if self.selected_index_relation_table_position_to_index_answersheet == len(self.relation_table_position_to_index_answersheet):
-          self.selected_index_relation_table_position_to_index_answersheet = 0
-      elif direction == "back":
-        self.selected_index_relation_table_position_to_index_answersheet -= 1
-        if self.selected_index_relation_table_position_to_index_answersheet == -1:
-          self.selected_index_relation_table_position_to_index_answersheet = len(self.relation_table_position_to_index_answersheet) - 1
-      print(self.selected_index_relation_table_position_to_index_answersheet)
-      print(len(self.relation_table_position_to_index_answersheet))
-      repack_chosen_frame_canvas_answer(self)
+      if direction in ["up", "down", "next", "back"]:
+        if direction == "up":
+          if self.index_selected_relation_table_position_to_index_answersheet == 0:
+            self.index_selected_relation_table_position_to_index_answersheet = len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1
+          else:
+            self.index_selected_relation_table_position_to_index_answersheet -= self.len_column_position_of_answer
+            if self.index_selected_relation_table_position_to_index_answersheet < 0:
+              self.index_selected_relation_table_position_to_index_answersheet = 0
+        elif direction == "down":
+          if self.index_selected_relation_table_position_to_index_answersheet == len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1:
+            self.index_selected_relation_table_position_to_index_answersheet = 0
+          else:
+            self.index_selected_relation_table_position_to_index_answersheet += self.len_column_position_of_answer
+            if self.index_selected_relation_table_position_to_index_answersheet > len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1:
+              self.index_selected_relation_table_position_to_index_answersheet = len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1
+        elif direction == "next":
+          self.index_selected_relation_table_position_to_index_answersheet += 1
+          if self.index_selected_relation_table_position_to_index_answersheet == len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]):
+            self.index_selected_relation_table_position_to_index_answersheet = 0
+        elif direction == "back":
+          self.index_selected_relation_table_position_to_index_answersheet -= 1
+          if self.index_selected_relation_table_position_to_index_answersheet == -1:
+            self.index_selected_relation_table_position_to_index_answersheet = len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1
+        self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet][self.index_selected_relation_table_position_to_index_answersheet][1]
+        repack_chosen_frame_canvas_answer(self)
+      else:
+        for index_relation_table_position_to_index_answersheet, ((int_column_position_of_answer, int_row_position_of_answer), index_scoring_answersheet) in enumerate(self.pages_relation_table_position_to_index_answersheet[
+          self.index_pages_relation_table_position_to_index_answersheet]):
+          self.list_frame_border_frame_canvas_question[index_scoring_answersheet].grid_forget()  
+          self.list_frame_canvas_question[index_scoring_answersheet].grid_forget()
+          self.list_canvas_question[index_scoring_answersheet].grid_forget()
+          self.list_entry_score[index_scoring_answersheet].grid_forget()
+          self.list_label_entry_score[index_scoring_answersheet].grid_forget()
+        if direction == "page_back":
+          if self.index_pages_relation_table_position_to_index_answersheet > 0:
+            self.index_pages_relation_table_position_to_index_answersheet -= 1
+            self.index_selected_relation_table_position_to_index_answersheet = 0
+        elif direction == "page_next":
+          if self.index_pages_relation_table_position_to_index_answersheet < len(self.pages_relation_table_position_to_index_answersheet) - 1:
+            self.index_pages_relation_table_position_to_index_answersheet += 1
+            self.index_selected_relation_table_position_to_index_answersheet = 0
+        self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet][self.index_selected_relation_table_position_to_index_answersheet][1]
+        self.index_selected_relation_table_position_to_index_answersheet = 0
+        repack_chosen_frame_canvas_answer(self)
 
     def score_selected_question_answersheet(status: str, event):
-      print(self.index_selected_scoring_answersheet)
+      self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet][self.index_selected_relation_table_position_to_index_answersheet][1]
       if self.index_selected_scoring_answersheet is not None:
         with open(path_json_answer_area, "r", encoding="utf-8") as f:
           dict_answer_area = json.load(f)
@@ -918,21 +941,48 @@ class SubWindow:
           dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["point"] = dict_answer_area["questions"][self.index_selected_scoring_question]["haiten"]
         elif status in ["incorrect"]:
           dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["point"] = 0      
-        print(dict_answer_area)
+        # print(dict_answer_area)
         with open(path_json_answer_area, "w", encoding="utf-8") as f:
           json.dump(dict_answer_area, f, indent=2)
         move_selected_question_answersheet("next")
 
     frame_border_btn_reload_answer = tkinter.Frame(frame_btn_scoring, background="cyan")
-    frame_border_btn_reload_answer.grid(column=6, row=0, rowspan=3, sticky="ns")
-    btn_reload_answer = tkinter.Button(
-      frame_border_btn_reload_answer, 
-      width=20, height=3, 
-      text="再読み込み (R)",
-      command=reload_frame_canvas_answer
-    )
-    btn_reload_answer.grid(column=0, row=0, padx=4, pady=4)
+    frame_border_btn_reload_answer.grid(column=6, row=0)
+    btn_reload_answer = tkinter.Button(frame_border_btn_reload_answer, width=20, height=1, text="再読み込み (R)", command=functools.partial(reload_frame_canvas_answer, self))
+    btn_reload_answer.grid(column=0, row=0, padx=4, pady=4, sticky="wens")
+    frame_bar_between_btn_reload_and_show_page = tkinter.Frame(frame_btn_scoring, background="gray")
+    frame_bar_between_btn_reload_and_show_page.grid(column=6, row=1, sticky="wens")
+    frame_border_label_show_page = tkinter.Frame(frame_btn_scoring, background="gray")
+    frame_border_label_show_page.grid(column=6, row=2, padx=4, pady=4)
+    label_show_page = tkinter.Label(frame_border_label_show_page, width=20)
+    label_show_page.grid(column=0, row=0)
 
+    frame_border_btn_move_answer_page_back = tkinter.Frame(frame_btn_scoring, background="black")
+    frame_border_btn_move_answer_up = tkinter.Frame(frame_btn_scoring, background="black")
+    frame_border_btn_move_answer_page_next = tkinter.Frame(frame_btn_scoring, background="black")
+    frame_border_btn_move_answer_bar = tkinter.Frame(frame_btn_scoring, background="black")
+    frame_border_btn_move_answer_back = tkinter.Frame(frame_btn_scoring, background="black")
+    frame_border_btn_move_answer_down = tkinter.Frame(frame_btn_scoring, background="black")
+    frame_border_btn_move_answer_next = tkinter.Frame(frame_btn_scoring, background="black")
+    frame_border_btn_move_answer_page_back.grid(column=7, row=0)
+    frame_border_btn_move_answer_up.grid(column=8, row=0)
+    frame_border_btn_move_answer_page_next.grid(column=9, row=0)
+    frame_border_btn_move_answer_bar.grid(column=7, row=1, columnspan=3, sticky="wens")
+    frame_border_btn_move_answer_back.grid(column=7, row=2)
+    frame_border_btn_move_answer_down.grid(column=8, row=2)
+    frame_border_btn_move_answer_next.grid(column=9, row=2)
+    btn_move_answer_page_back = tkinter.Button(frame_border_btn_move_answer_page_back, width=12, text="前頁 (Shift + A)", command=functools.partial(move_selected_question_answersheet, "page_back"))
+    btn_move_answer_up = tkinter.Button(frame_border_btn_move_answer_up, width=12, text="上へ (W)", command=functools.partial(move_selected_question_answersheet, "up"))
+    btn_move_answer_page_next = tkinter.Button(frame_border_btn_move_answer_page_next, width=12, text="後頁 (Shift + D)", command=functools.partial(move_selected_question_answersheet, "page_next"))
+    btn_move_answer_back = tkinter.Button(frame_border_btn_move_answer_back, width=12, text="左へ (A)", command=functools.partial(move_selected_question_answersheet, "back"))
+    btn_move_answer_down = tkinter.Button(frame_border_btn_move_answer_down, width=12, text="下へ (S)", command=functools.partial(move_selected_question_answersheet, "down"))
+    btn_move_answer_next = tkinter.Button(frame_border_btn_move_answer_next, width=12, text="右へ (D)", command=functools.partial(move_selected_question_answersheet, "next"))
+    btn_move_answer_page_back.grid(column=0, row=0, padx=4, pady=4)
+    btn_move_answer_up.grid(column=0, row=0, padx=4, pady=4)
+    btn_move_answer_page_next.grid(column=0, row=0, padx=4, pady=4)
+    btn_move_answer_back.grid(column=0, row=0, padx=4, pady=4)
+    btn_move_answer_down.grid(column=0, row=0, padx=4, pady=4)
+    btn_move_answer_next.grid(column=0, row=0, padx=4, pady=4)
     listbox_question.bind("<<ListboxSelect>>", selected_scoring_question)
     
     self.frame_border_frame_canvas_model_answer = tkinter.Frame(frame_list_frame_canvas_answer, background="black")
@@ -940,8 +990,8 @@ class SubWindow:
     self.list_canvas_question = []
 
     
-    self.window.bind("r", reload_frame_canvas_answer)
-    reload_frame_canvas_answer()
+    self.window.bind("r", functools.partial(reload_frame_canvas_answer, self))
+    reload_frame_canvas_answer(self)
 
     def toggle_booleanVar_checkbutton_show(status, event):
       self.booleanVar_checkbutton_show[status].set(not self.booleanVar_checkbutton_show[status].get())
@@ -951,6 +1001,8 @@ class SubWindow:
     self.window.bind("s", functools.partial(move_selected_question_answersheet, "down")) # 下へ
     self.window.bind("a", functools.partial(move_selected_question_answersheet, "back")) # 右へ
     self.window.bind("d", functools.partial(move_selected_question_answersheet, "next")) # 左へ
+    self.window.bind("A", functools.partial(move_selected_question_answersheet, "page_back")) # 右へ
+    self.window.bind("D", functools.partial(move_selected_question_answersheet, "page_next")) # 左へ
     self.window.bind("q", functools.partial(score_selected_question_answersheet, "unscored")) # 未採点
     self.window.bind("e", functools.partial(score_selected_question_answersheet, "correct")) # 正答
     self.window.bind("f", functools.partial(score_selected_question_answersheet, "partial")) # 部分点
@@ -961,11 +1013,6 @@ class SubWindow:
     self.window.bind("<Control-f>", functools.partial(toggle_booleanVar_checkbutton_show, "partial"))
     self.window.bind("<Control-j>", functools.partial(toggle_booleanVar_checkbutton_show, "hold"))
     self.window.bind("<Control-o>", functools.partial(toggle_booleanVar_checkbutton_show, "incorrect"))
-    self.window.bind("Return", nothing_to_do)
-    self.window.bind("<Shift-Return>", nothing_to_do)
-    # self.window.bind("Space", nothing_to_do)
-    # self.window.bind("<Shift-Space>", nothing_to_do)
-    # self.window.bind("", nothing_to_do)
 
 
 class MainFrame(tkinter.Frame):
@@ -1291,7 +1338,7 @@ def check_on_run():
       "Accept the terms? - 規約に同意しますか？",
       "Copyright(c) 2022 KeppyNaushika\n\n"
       + "This software is released under the GNU Affero General Public License v3.0, see LICENSE. \n\n"
-      + "このソフトウェアは, GNU Affro General Public License version3 の下, 提供されています. \n\n"
+      + "このソフトウェアは, GNU Affero General Public License version3 の下, 提供されています. \n\n"
       + "ライセンスを遵守する限り, 商用利用, 変更, 頒布, 特許利用, 私的利用が認められますが, "
       + "利用にあたって開発者は責任を負いませんしいかなる保証も提供しません. \n\n"
       + "同梱されている LICENSE をお読みいただき, 同意される場合は［はい］をクリックして下さい. \n\n"
