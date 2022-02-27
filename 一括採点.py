@@ -11,7 +11,6 @@
 #                                                   #
 #####################################################
 
-import functools
 import tkinter
 import tkinter.filedialog
 import tkinter.font
@@ -25,16 +24,16 @@ import openpyxl
 import openpyxl.styles
 import openpyxl.worksheet.datavalidation
 
+import functools
 import glob
 import json
 import os
 import subprocess
 
-from sqlalchemy import column
 
-def nothing_to_do():
+def nothing_to_do(*args, **kwargs):
   tkinter.messagebox.showinfo(
-    "未実装", "ｱﾋｬﾋｬﾋｬﾋｬﾋｬ(ﾟ∀ﾟ(ﾟ∀ﾟ(ﾟ∀ﾟ(ﾟ∀ﾟ)ﾟ∀ﾟ)ﾟ∀ﾟ)ﾟ∀ﾟ)ｱﾋｬﾋｬﾋｬﾋｬ\nｱﾋｬﾋｬﾋｬﾋｬﾋｬ(ﾟ∀ﾟ(ﾟ∀ﾟ(ﾟ∀ﾟ(ﾟ∀ﾟ)ﾟ∀ﾟ)ﾟ∀ﾟ)ﾟ∀ﾟ)ｱﾋｬﾋｬﾋｬﾋｬ\nｱﾋｬﾋｬﾋｬﾋｬﾋｬ(ﾟ∀ﾟ(ﾟ∀ﾟ(ﾟ∀ﾟ(ﾟ∀ﾟ)ﾟ∀ﾟ)ﾟ∀ﾟ)ﾟ∀ﾟ)ｱﾋｬﾋｬﾋｬﾋｬ\n"
+    "未実装", "この機能は現在実装されておりません"
   )
 
 # class: 子ウインドウ:
@@ -580,6 +579,25 @@ class SubWindow:
 
   @sub_window_loop
   def score_answer(self):
+    def help_score_answer(**kwargs):
+      tkinter.messagebox.showinfo(
+        "使い方",
+        "［解答欄の位置を指定］で指定した解答欄ごとに各答案用紙が切り取られ, 設問ごとに採点することができます. \n"
+        + "採点する設問は左の設問一覧から選びます. \n\n"
+        + "水色 (cyan) で塗られた答案用紙が現在選択されています. \n"
+        + "この状態で, ［E］を押すとこの答案のこの設問は「正答」となり, 採点データが保存されます. \n"
+        + "採点すると自動的に次の問題が選択され, 採点を続けることができます. \n"
+        + "ページに表示されている全部の答案の採点が終わったら［R］を押して答案を再読み込みします. \n"
+        + "「表示する答案を選択：」でチェックボックスにチェックが入っている条件で再読み込みされ, 全ての答案の採点が終わるまで繰り返します. \n\n"
+        + "選択されている答案は WASD キーで変更できます. \n"
+        + "誤った採点を上書きするとき等にお使い下さい. \n\n"
+        + "数字キー (0, 1, …) を押すと, 部分点採点モードになり, 部分点として記録できます. \n"
+        + "BackSpace キーを押すと, 部分点を削除できます. \n"
+        + "［F］または［J］で「部分点」または「保留」として登録して下さい. \n"
+        + "採点基準が曖昧である等、後から一括で再採点したい場合等に「保留」をお使い下さい. \n\n"
+        + "未採点, 正答, 誤答のいずれかとして採点すると, 部分点情報は削除されます. 予めご了承下さい. "
+      )
+
     if not self.check_dir_exist():
       tkinter.messagebox.showinfo(
         "設定を確認して下さい", 
@@ -613,6 +631,10 @@ class SubWindow:
     label_list_question.grid(column=0, row=0)
     listbox_question = tkinter.Listbox(frame_list_question)
     listbox_question.grid(column=0, row=1)
+    btn_help = tkinter.Button(frame_list_question, width=20, text="ヘルプ", command=help_score_answer)
+    btn_help.grid(column=0, row=2)
+    btn_quit = tkinter.Button(frame_list_question, width=20, text="戻る", command=self.this_window_close)
+    btn_quit.grid(column=0, row=3)
 
     frame_btn_operate = tkinter.Frame(frame_score_question, background="#bfbfbf")
     frame_btn_operate.grid(column=0, row=0, sticky="we")
@@ -626,7 +648,7 @@ class SubWindow:
     frame_bar_bottom = tkinter.Frame(frame_btn_operate, height=5, background="#bfbfbf")
     frame_bar_bottom.grid(column=0, row=2, sticky="we")
 
-    frame_label_btn_scoring = tkinter.Label(frame_btn_scoring, width=20, text="採点する：")
+    frame_label_btn_scoring = tkinter.Label(frame_btn_scoring, width=12, text="採点する：")
     frame_border_btn_scoring_unscored = tkinter.Frame(frame_btn_scoring, background="gray")
     frame_border_btn_scoring_correct = tkinter.Frame(frame_btn_scoring, background="green")
     frame_border_btn_scoring_partial = tkinter.Frame(frame_btn_scoring, background="orange")
@@ -659,7 +681,7 @@ class SubWindow:
       "hold": tkinter.BooleanVar(value=False),
       "incorrect": tkinter.BooleanVar(value=False),
     }
-    frame_label_checkbotton_show = tkinter.Label(frame_btn_scoring, width=20, text="表示する答案を選択：")
+    frame_label_checkbotton_show = tkinter.Label(frame_btn_scoring, width=12, text="表示する\n答案を選択：")
     frame_border_checkbutton_show_unscored = tkinter.Frame(frame_btn_scoring, background="gray")
     frame_border_checkbutton_show_correct = tkinter.Frame(frame_btn_scoring, background="green")
     frame_border_checkbutton_show_partial = tkinter.Frame(frame_btn_scoring, background="orange")
@@ -736,16 +758,34 @@ class SubWindow:
       label_show_page.configure(text=f"{self.index_pages_relation_table_position_to_index_answersheet + 1} 頁 / {len(self.pages_relation_table_position_to_index_answersheet)} 頁")
       for index_relation_table_position_to_index_answersheet, ((int_column_position_of_answer, int_row_position_of_answer), index_scoring_answersheet) in enumerate(self.pages_relation_table_position_to_index_answersheet[
         self.index_pages_relation_table_position_to_index_answersheet]):
+        self.list_entry_score[index_scoring_answersheet].configure(state="normal")
         if dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["status"] == "unscored":
           background_frame = "gray"
+          self.list_entry_score[index_scoring_answersheet].delete(0, tkinter.END)
+          self.list_entry_score[index_scoring_answersheet].insert(0, "未採")
         elif dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["status"] == "correct":
           background_frame = "green"
+          self.list_entry_score[index_scoring_answersheet].delete(0, tkinter.END)
+          if dict_answer_area["questions"][self.index_selected_scoring_question]["haiten"] is None:
+            self.list_entry_score[index_scoring_answersheet].insert(0, "配")
+          else:
+            self.list_entry_score[index_scoring_answersheet].insert(0, str(dict_answer_area["questions"][self.index_selected_scoring_question]["haiten"]))
         elif dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["status"] == "partial":
           background_frame = "yellow"
+          self.list_entry_score[index_scoring_answersheet].delete(0, tkinter.END)
+          if dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["point"] is not None:
+            self.list_entry_score[index_scoring_answersheet].insert(0, str(dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["point"]))
         elif dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["status"] == "hold":
           background_frame = "blue"
+          self.list_entry_score[index_scoring_answersheet].delete(0, tkinter.END)
+          if dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["point"] is not None:
+            self.list_entry_score[index_scoring_answersheet].insert(0, str(dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["point"]))
         elif dict_answer_area["questions"][self.index_selected_scoring_question]["score"][index_scoring_answersheet]["status"] == "incorrect":
           background_frame = "red"
+          self.list_entry_score[index_scoring_answersheet].configure(state="normal")
+          self.list_entry_score[index_scoring_answersheet].delete(0, tkinter.END)
+          self.list_entry_score[index_scoring_answersheet].insert(0, "0")
+        self.list_entry_score[index_scoring_answersheet].configure(state="readonly")
         self.list_frame_border_frame_canvas_question[index_scoring_answersheet].configure(background=background_frame)
         self.list_frame_border_frame_canvas_question[index_scoring_answersheet].grid(column=int_column_position_of_answer , row=int_row_position_of_answer, padx=2, pady=2)
         self.list_frame_canvas_question[index_scoring_answersheet].configure(background="white")
@@ -784,7 +824,7 @@ class SubWindow:
         width_window = self.window.winfo_width()
         height_window = self.window.winfo_height()
 
-        listbox_question.configure(height=height_window // 21 - 1)
+        listbox_question.configure(height=height_window // 21 - 5)
         frame_list_question.update_idletasks()
         frame_btn_operate.update_idletasks()
         width_frame_list_question = frame_list_question.winfo_width()
@@ -851,7 +891,12 @@ class SubWindow:
         anchor="nw",
         tags="answer"
       )
-      self.label_model_answer = tkinter.Label(self.frame_canvas_model_answer, text=f"模範解答: {dict_answer_area['questions'][self.index_selected_scoring_question]['haiten']}点")
+      self.label_model_answer = tkinter.Label(self.frame_canvas_model_answer)
+      if dict_answer_area['questions'][self.index_selected_scoring_question]['haiten'] is None:
+        self.label_model_answer.configure(text=f"模範解答: 未配点")
+      else:
+        self.label_model_answer.configure(text=f"模範解答: {dict_answer_area['questions'][self.index_selected_scoring_question]['haiten']}点")
+      
       if len(dict_answer_area["questions"][self.index_selected_scoring_question]) == 0:
         self.index_selected_column_position_of_answer = None
         self.index_selected_row_position_of_answer = None
@@ -929,32 +974,41 @@ class SubWindow:
         self.index_selected_relation_table_position_to_index_answersheet = 0
         repack_chosen_frame_canvas_answer(self)
 
-    def score_selected_question_answersheet(status: str, event):
+    def score_selected_question_answersheet(value: str, event):
       self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet][self.index_selected_relation_table_position_to_index_answersheet][1]
       if self.index_selected_scoring_answersheet is not None:
         with open(path_json_answer_area, "r", encoding="utf-8") as f:
           dict_answer_area = json.load(f)
-        dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["status"] = status
-        if status in ["unscored"]:
+        if value in ["unscored", "correct", "partial", "hold", "incorrect"]:
+          dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["status"] = value
+        else:
+          dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["status"] = "partial"
+        if value in ["unscored", "correct", "incorrect"]:
           dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["point"] = None
-        elif status in ["correct"]:
-          dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["point"] = dict_answer_area["questions"][self.index_selected_scoring_question]["haiten"]
-        elif status in ["incorrect"]:
-          dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["point"] = 0      
-        # print(dict_answer_area)
+        elif value in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+          if dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["point"] is None:
+            dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["point"] = int(value)
+          else:
+            dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["point"] *= 10
+            dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["point"] += int(value)
+        elif value in ["backspace"]:
+          dict_answer_area["questions"][self.index_selected_scoring_question]["score"][self.index_selected_scoring_answersheet]["point"] = None
         with open(path_json_answer_area, "w", encoding="utf-8") as f:
           json.dump(dict_answer_area, f, indent=2)
-        move_selected_question_answersheet("next")
+        if value in ["unscored", "correct", "partial", "hold", "incorrect"]:
+          move_selected_question_answersheet("next")
+        else:
+          repack_chosen_frame_canvas_answer(self)
 
     frame_border_btn_reload_answer = tkinter.Frame(frame_btn_scoring, background="cyan")
     frame_border_btn_reload_answer.grid(column=6, row=0)
-    btn_reload_answer = tkinter.Button(frame_border_btn_reload_answer, width=20, height=1, text="再読み込み (R)", command=functools.partial(reload_frame_canvas_answer, self))
+    btn_reload_answer = tkinter.Button(frame_border_btn_reload_answer, width=15, height=1, text="再読み込み (R)", command=functools.partial(reload_frame_canvas_answer, self))
     btn_reload_answer.grid(column=0, row=0, padx=4, pady=4, sticky="wens")
     frame_bar_between_btn_reload_and_show_page = tkinter.Frame(frame_btn_scoring, background="gray")
     frame_bar_between_btn_reload_and_show_page.grid(column=6, row=1, sticky="wens")
     frame_border_label_show_page = tkinter.Frame(frame_btn_scoring, background="gray")
     frame_border_label_show_page.grid(column=6, row=2, padx=4, pady=4)
-    label_show_page = tkinter.Label(frame_border_label_show_page, width=20)
+    label_show_page = tkinter.Label(frame_border_label_show_page, width=15)
     label_show_page.grid(column=0, row=0)
 
     frame_border_btn_move_answer_page_back = tkinter.Frame(frame_btn_scoring, background="black")
@@ -1008,6 +1062,17 @@ class SubWindow:
     self.window.bind("f", functools.partial(score_selected_question_answersheet, "partial")) # 部分点
     self.window.bind("j", functools.partial(score_selected_question_answersheet, "hold")) # 保留
     self.window.bind("o", functools.partial(score_selected_question_answersheet, "incorrect")) # 誤答
+    self.window.bind("0", functools.partial(score_selected_question_answersheet, "0"))
+    self.window.bind("1", functools.partial(score_selected_question_answersheet, "1"))
+    self.window.bind("2", functools.partial(score_selected_question_answersheet, "2"))
+    self.window.bind("3", functools.partial(score_selected_question_answersheet, "3"))
+    self.window.bind("4", functools.partial(score_selected_question_answersheet, "4"))
+    self.window.bind("5", functools.partial(score_selected_question_answersheet, "5"))
+    self.window.bind("6", functools.partial(score_selected_question_answersheet, "6"))
+    self.window.bind("7", functools.partial(score_selected_question_answersheet, "7"))
+    self.window.bind("8", functools.partial(score_selected_question_answersheet, "8"))
+    self.window.bind("9", functools.partial(score_selected_question_answersheet, "9"))
+    self.window.bind("<BackSpace>", functools.partial(score_selected_question_answersheet, "backspace"))
     self.window.bind("<Control-q>", functools.partial(toggle_booleanVar_checkbutton_show, "unscored"))
     self.window.bind("<Control-e>", functools.partial(toggle_booleanVar_checkbutton_show, "correct"))
     self.window.bind("<Control-f>", functools.partial(toggle_booleanVar_checkbutton_show, "partial"))
