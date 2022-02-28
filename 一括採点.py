@@ -740,9 +740,10 @@ class SubWindow:
       if os.path.splitext(path_file_answer)[1] == ".png":
         # self.list_path_file_answer.append(path_file_answer)
         self.list_scoring_images.append(PIL.ImageTk.PhotoImage(file=path_file_answer))
-
+    
     self.index_selected_scoring_question = 0
-    for question in dict_answer_area["questions"]:
+    self.relation_index_scoring_question_to_index_question = []
+    for index_question, question in enumerate(dict_answer_area["questions"]):
       if question["type"] == "設問":
         name_question = "設問"
         if question["daimon"] is not None:
@@ -752,6 +753,7 @@ class SubWindow:
         if question["shimon"] is not None:
           name_question += " - " + str(question["shimon"])
         listbox_question.insert(tkinter.END, name_question)
+        self.relation_index_scoring_question_to_index_question.append(index_question)
     listbox_question.select_set(self.index_selected_scoring_question)
 
     def repack_chosen_frame_canvas_answer(self):
@@ -920,7 +922,7 @@ class SubWindow:
       choose_to_show_frame_canvas_answer(self)
 
     def selected_scoring_question(*args, **kwargs):
-      self.index_selected_scoring_question = listbox_question.curselection()[0]
+      self.index_selected_scoring_question = self.relation_index_scoring_question_to_index_question[listbox_question.curselection()[0]]
       reload_frame_canvas_answer(self)
 
     def move_selected_question_answersheet(direction: str, *args, **kwargs):
