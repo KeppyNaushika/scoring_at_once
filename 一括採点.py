@@ -755,6 +755,7 @@ class SubWindow:
         listbox_question.insert(tkinter.END, name_question)
         self.relation_index_scoring_question_to_index_question.append(index_question)
     listbox_question.select_set(self.index_selected_scoring_question)
+    self.index_selected_scoring_question = self.relation_index_scoring_question_to_index_question[0]
 
     def repack_chosen_frame_canvas_answer(self):
       with open(path_json_answer_area, "r", encoding="utf-8") as f:
