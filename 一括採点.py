@@ -11,6 +11,7 @@
 #                                                   #
 #####################################################
 
+import datetime
 import tkinter
 import tkinter.filedialog
 import tkinter.font
@@ -21,6 +22,7 @@ import PIL.Image
 import PIL.ImageTk
 
 import openpyxl
+import openpyxl.drawing.image
 import openpyxl.styles
 import openpyxl.worksheet.datavalidation
 
@@ -56,7 +58,7 @@ class SubWindow:
       if dict_config["index_projects_in_listbox"] is not None:
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
         path_dir    : str = dict_project["path_dir"]
-        if os.path.exists(path_dir + "/.temp_saiten/配点.xlsx"):
+        if os.path.exists(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx"):
           bool_del_xlsx = tkinter.messagebox.askokcancel(
             "配点ファイルが存在しています", 
             "配点ファイルに入力した情報を保存するには, ［配点を読み込む］をクリックする必要があります. \n"
@@ -68,7 +70,7 @@ class SubWindow:
             return None
           else:
             try:
-              os.remove(path_dir + "/.temp_saiten/配点.xlsx")
+              os.remove(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx")
             except PermissionError:
               tkinter.messagebox.showerror(
                 "ファイルを削除できません",
@@ -133,12 +135,14 @@ class SubWindow:
         json.dump(dict_answer_area, f, indent=2)
     if not os.path.exists(path_dir + "/.temp_saiten/model_answer"):
       os.mkdir(path_dir + "/.temp_saiten/model_answer")
+    if not os.path.exists(path_dir + "/.temp_saiten/answer"):
+      os.mkdir(path_dir + "/.temp_saiten/answer")
+    if not os.path.exists(path_dir + "/.temp_saiten/make_xlsx"):
+      os.mkdir(path_dir + "/.temp_saiten/make_xlsx")
     if not os.path.exists(path_dir + "/.temp_saiten/model_answer/model_answer.png"):
       if os.path.splitext(path_file)[1] in [".jpeg", ".jpg", ".png"]:
         img = PIL.Image.open(path_file)
         img.save(path_dir + "/.temp_saiten/model_answer/model_answer.png")
-    if not os.path.exists(path_dir + "/.temp_saiten/answer"):
-      os.mkdir(path_dir + "/.temp_saiten/answer")
     list_path_in_file_dir = [path.replace("\\", "/") for path in glob.glob(path_dir + "/*")]
     if os.path.exists(path_dir + "/.temp_saiten/load_picture.json"):
       with open(path_dir + "/.temp_saiten/load_picture.json", "r", encoding="utf-8") as f:
@@ -619,8 +623,6 @@ class SubWindow:
     
     width_window = self.window.winfo_width()
     height_window = self.window.winfo_height()
-    # print(f"width_window: {width_window}")
-    # print(f"height_window: {height_window}")
 
     frame_list_question = tkinter.Frame(self.window, padx=10, pady=10, borderwidth=5)
     frame_list_question.grid(column=0, row=0)
@@ -797,12 +799,6 @@ class SubWindow:
         self.list_canvas_question[index_scoring_answersheet].grid(column=0, row=0, columnspan=2, padx=1, pady=1)
         self.list_entry_score[index_scoring_answersheet].grid(column=0, row=1, sticky="e")
         self.list_label_entry_score[index_scoring_answersheet].grid(column=1, row=1, sticky="w")
-        # int_column_position_of_answer += 1
-        # if int_column_position_of_answer == self.len_column_position_of_answer:
-        #   int_column_position_of_answer = 0
-        #   int_row_position_of_answer += 1
-        # if int_row_position_of_answer == self.len_row_position_of_answer:
-        #   break
 
     def choose_to_show_frame_canvas_answer(self):
       with open("config.json", "r", encoding="utf-8") as f:
@@ -924,55 +920,55 @@ class SubWindow:
       choose_to_show_frame_canvas_answer(self)
 
     def selected_scoring_question(*args, **kwargs):
-      print(listbox_question.curselection())
       self.index_selected_scoring_question = listbox_question.curselection()[0]
       reload_frame_canvas_answer(self)
 
     def move_selected_question_answersheet(direction: str, *args, **kwargs):
-      if direction in ["up", "down", "next", "back"]:
-        if direction == "up":
-          if self.index_selected_relation_table_position_to_index_answersheet == 0:
-            self.index_selected_relation_table_position_to_index_answersheet = len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1
-          else:
-            self.index_selected_relation_table_position_to_index_answersheet -= self.len_column_position_of_answer
-            if self.index_selected_relation_table_position_to_index_answersheet < 0:
-              self.index_selected_relation_table_position_to_index_answersheet = 0
-        elif direction == "down":
-          if self.index_selected_relation_table_position_to_index_answersheet == len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1:
-            self.index_selected_relation_table_position_to_index_answersheet = 0
-          else:
-            self.index_selected_relation_table_position_to_index_answersheet += self.len_column_position_of_answer
-            if self.index_selected_relation_table_position_to_index_answersheet > len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1:
+      if len(self.pages_relation_table_position_to_index_answersheet[0]) > 0:
+        if direction in ["up", "down", "next", "back"]:
+          if direction == "up":
+            if self.index_selected_relation_table_position_to_index_answersheet == 0:
               self.index_selected_relation_table_position_to_index_answersheet = len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1
-        elif direction == "next":
-          self.index_selected_relation_table_position_to_index_answersheet += 1
-          if self.index_selected_relation_table_position_to_index_answersheet == len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]):
-            self.index_selected_relation_table_position_to_index_answersheet = 0
-        elif direction == "back":
-          self.index_selected_relation_table_position_to_index_answersheet -= 1
-          if self.index_selected_relation_table_position_to_index_answersheet == -1:
-            self.index_selected_relation_table_position_to_index_answersheet = len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1
-        self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet][self.index_selected_relation_table_position_to_index_answersheet][1]
-        repack_chosen_frame_canvas_answer(self)
-      else:
-        for index_relation_table_position_to_index_answersheet, ((int_column_position_of_answer, int_row_position_of_answer), index_scoring_answersheet) in enumerate(self.pages_relation_table_position_to_index_answersheet[
-          self.index_pages_relation_table_position_to_index_answersheet]):
-          self.list_frame_border_frame_canvas_question[index_scoring_answersheet].grid_forget()  
-          self.list_frame_canvas_question[index_scoring_answersheet].grid_forget()
-          self.list_canvas_question[index_scoring_answersheet].grid_forget()
-          self.list_entry_score[index_scoring_answersheet].grid_forget()
-          self.list_label_entry_score[index_scoring_answersheet].grid_forget()
-        if direction == "page_back":
-          if self.index_pages_relation_table_position_to_index_answersheet > 0:
-            self.index_pages_relation_table_position_to_index_answersheet -= 1
-            self.index_selected_relation_table_position_to_index_answersheet = 0
-        elif direction == "page_next":
-          if self.index_pages_relation_table_position_to_index_answersheet < len(self.pages_relation_table_position_to_index_answersheet) - 1:
-            self.index_pages_relation_table_position_to_index_answersheet += 1
-            self.index_selected_relation_table_position_to_index_answersheet = 0
-        self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet][self.index_selected_relation_table_position_to_index_answersheet][1]
-        self.index_selected_relation_table_position_to_index_answersheet = 0
-        repack_chosen_frame_canvas_answer(self)
+            else:
+              self.index_selected_relation_table_position_to_index_answersheet -= self.len_column_position_of_answer
+              if self.index_selected_relation_table_position_to_index_answersheet < 0:
+                self.index_selected_relation_table_position_to_index_answersheet = 0
+          elif direction == "down":
+            if self.index_selected_relation_table_position_to_index_answersheet == len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1:
+              self.index_selected_relation_table_position_to_index_answersheet = 0
+            else:
+              self.index_selected_relation_table_position_to_index_answersheet += self.len_column_position_of_answer
+              if self.index_selected_relation_table_position_to_index_answersheet > len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1:
+                self.index_selected_relation_table_position_to_index_answersheet = len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1
+          elif direction == "next":
+            self.index_selected_relation_table_position_to_index_answersheet += 1
+            if self.index_selected_relation_table_position_to_index_answersheet == len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]):
+              self.index_selected_relation_table_position_to_index_answersheet = 0
+          elif direction == "back":
+            self.index_selected_relation_table_position_to_index_answersheet -= 1
+            if self.index_selected_relation_table_position_to_index_answersheet == -1:
+              self.index_selected_relation_table_position_to_index_answersheet = len(self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet]) - 1
+          self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet][self.index_selected_relation_table_position_to_index_answersheet][1]
+          repack_chosen_frame_canvas_answer(self)
+        else:
+          for index_relation_table_position_to_index_answersheet, ((int_column_position_of_answer, int_row_position_of_answer), index_scoring_answersheet) in enumerate(self.pages_relation_table_position_to_index_answersheet[
+            self.index_pages_relation_table_position_to_index_answersheet]):
+            self.list_frame_border_frame_canvas_question[index_scoring_answersheet].grid_forget()  
+            self.list_frame_canvas_question[index_scoring_answersheet].grid_forget()
+            self.list_canvas_question[index_scoring_answersheet].grid_forget()
+            self.list_entry_score[index_scoring_answersheet].grid_forget()
+            self.list_label_entry_score[index_scoring_answersheet].grid_forget()
+          if direction == "page_back":
+            if self.index_pages_relation_table_position_to_index_answersheet > 0:
+              self.index_pages_relation_table_position_to_index_answersheet -= 1
+              self.index_selected_relation_table_position_to_index_answersheet = 0
+          elif direction == "page_next":
+            if self.index_pages_relation_table_position_to_index_answersheet < len(self.pages_relation_table_position_to_index_answersheet) - 1:
+              self.index_pages_relation_table_position_to_index_answersheet += 1
+              self.index_selected_relation_table_position_to_index_answersheet = 0
+          self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet][self.index_selected_relation_table_position_to_index_answersheet][1]
+          self.index_selected_relation_table_position_to_index_answersheet = 0
+          repack_chosen_frame_canvas_answer(self)
 
     def score_selected_question_answersheet(value: str, event):
       self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet][self.index_selected_relation_table_position_to_index_answersheet][1]
@@ -1190,7 +1186,9 @@ class MainFrame(tkinter.Frame):
     tkinter.messagebox.showinfo(
       "配点を入力します",
       "配点の入力は, 本ソフトウェア上ではなく Excel 等の表計算ソフトウェアを使用して行います. \n\n"
-      + "配点を登録するために 配点.xlsx ファイルを作成して開きます. "
+      + "配点を登録するために 名簿と配点の入力.xlsx ファイルを作成して開きます. \n\n"
+      + "作成には数十秒かかる場合があります. \n"
+      + "自動的に Excel が起動するまで操作しないで下さい. "
     )
     with open("config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
@@ -1198,7 +1196,9 @@ class MainFrame(tkinter.Frame):
     path_dir = dict_project["path_dir"]
     with open(path_dir + "/.temp_saiten/answer_area.json") as f:
       dict_answer_area = json.load(f)
-      if os.path.exists(path_dir + "/.temp_saiten/配点.xlsx"):
+    with open(path_dir + "/.temp_saiten/load_picture.json") as f:
+      dict_load_picture = json.load(f)
+      if os.path.exists(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx"):
         bool_del_xlsx = tkinter.messagebox.askokcancel(
           "配点ファイルが存在しています", 
           "配点ファイルに入力した情報を保存するには, ［配点を読み込む］をクリックする必要があります. \n"
@@ -1215,11 +1215,74 @@ class MainFrame(tkinter.Frame):
         "解答欄の位置が指定されていません. \n"
         + "［解答欄の位置を指定］をクリックして解答欄の位置を指定してから, もう一度お試し下さい. "
       )
-      return      
-    workbook_haiten = openpyxl.Workbook()
-    workbook_haiten.remove(workbook_haiten["Sheet"])
-    workbook_haiten.create_sheet(title="配点登録")
-    sheet_haiten = workbook_haiten["配点登録"]
+      return
+    if os.path.exists(path_dir + "/.temp_saiten/meibo.json"):
+      with open(path_dir + "/.temp_saiten/meibo.json", "r", encoding="utf-8") as f:
+        list_meibo = json.load(f)
+    else:
+      list_meibo = []
+    for i in range(len(dict_load_picture["answer"]) - len(list_meibo)):
+      list_meibo.append(
+        {
+          "学年": "",
+          "学級": "",
+          "出席番号": "",
+          "氏名": "",
+          "生徒番号": ""
+        }
+      )
+    with open(path_dir + "/.temp_saiten/meibo.json", "w", encoding="utf-8") as f:
+      json.dump(list_meibo, f, indent=2)
+    
+    workbook_import = openpyxl.Workbook()
+    workbook_import.remove(workbook_import["Sheet"])
+    workbook_import.create_sheet(title="名簿登録")
+    sheet_meibo = workbook_import["名簿登録"]
+    sheet_meibo.freeze_panes = ("B2")
+    sheet_meibo.cell(1, 1).value = "答案番号"
+    sheet_meibo.row_dimensions[1].height = 40
+    for index_row in range(len(list_meibo)):
+      sheet_meibo.cell(index_row + 2, 1).value = index_row
+      sheet_meibo.row_dimensions[index_row + 2].height = 30
+    for index_column, key in enumerate(["学年", "学級", "出席番号", "氏名", "生徒番号"]):
+      sheet_meibo.cell(1, index_column + 2).value = key
+      if key in ["学年", "学級", "出席番号"]:
+        sheet_meibo.column_dimensions[openpyxl.utils.cell.get_column_letter(index_column + 2)].width = 10
+      else:
+        sheet_meibo.column_dimensions[openpyxl.utils.cell.get_column_letter(index_column + 2)].width = 20
+      for index_row in range(len(list_meibo)):
+        sheet_meibo.cell(index_row + 2, index_column + 2).value = list_meibo[index_row][key]
+        if index_column + 2 in [2, 4]:
+          color_background = "bfffff"
+        elif index_column + 2 in [3]:
+          color_background = "cccccc"
+        elif index_column + 2 in [5]:
+          color_background = "ffbfbf"
+        elif index_column + 2 in [6]:
+          color_background = "ffdfdf"          
+        sheet_meibo.cell(index_row + 2, index_column + 2).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor=color_background)
+        sheet_meibo.cell(index_row + 2, index_column + 2).protection = openpyxl.styles.Protection(locked=False)
+    list_add_images = []
+    index_column += 2
+    for str_type in ["氏名", "生徒番号"]:
+      for question in dict_answer_area["questions"]:
+        if question["type"] == str_type:
+          index_column += 1
+          list_add_images.append([])
+          sheet_meibo.cell(1, index_column).value = f"({str_type})"
+          for index_meibo, meibo in enumerate(list_meibo):
+            list_add_images[-1].append(PIL.Image.open(f"{path_dir}/.temp_saiten/answer/{index_meibo}.png"))
+            list_add_images[-1][-1] = list_add_images[-1][-1].crop((question["area"][0], question["area"][1], question["area"][2], question["area"][3]))
+            height_image = 40
+            width_image = list_add_images[-1][-1].width * 40 // list_add_images[-1][-1].height
+            list_add_images[-1][-1] = list_add_images[-1][-1].resize((width_image, height_image))
+            list_add_images[-1][-1].save(f"{path_dir}/.temp_saiten/make_xlsx/{index_column}_{index_meibo}.png")
+            list_add_images[-1][-1] = openpyxl.drawing.image.Image(f"{path_dir}/.temp_saiten/make_xlsx/{index_column}_{index_meibo}.png")
+            sheet_meibo.add_image(list_add_images[-1][-1], f"{openpyxl.utils.get_column_letter(index_column)}{index_meibo + 2}")
+          sheet_meibo.column_dimensions[openpyxl.utils.get_column_letter(index_column)].width = width_image / 8
+    workbook_import.create_sheet(title="配点登録")
+    sheet_haiten = workbook_import["配点登録"]
+    sheet_haiten.cell(1, 1).value = "枠番号"
     sheet_haiten.cell(1, 2).value = "種類"
     sheet_haiten.cell(1, 3).value = "大問"
     sheet_haiten.cell(1, 4).value = "小問"
@@ -1229,7 +1292,10 @@ class MainFrame(tkinter.Frame):
     border_up_down = openpyxl.styles.Border(top=side, bottom=side)
     datavalidation_whole = openpyxl.worksheet.datavalidation.DataValidation(type="whole")
     datavalidation_textlength10 = openpyxl.worksheet.datavalidation.DataValidation(type="textLength", operator="lessThanOrEqual", formula1=10)
+    
+    sheet_haiten.row_dimensions[1].height = 22.5
     for index_question, question in enumerate(dict_answer_area["questions"]):
+      sheet_haiten.row_dimensions[index_question + 2].height = 22.5
       sheet_haiten.cell(index_question + 2, 1).value = index_question
       sheet_haiten.cell(index_question + 2, 1).border = border_up_down
       sheet_haiten.cell(index_question + 2, 2).value = question["type"]
@@ -1268,6 +1334,28 @@ class MainFrame(tkinter.Frame):
         sheet_haiten.cell(index_question + 2, 6).fill = openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
     sheet_haiten.cell(index_question + 3, 5).value = "配点合計"
     sheet_haiten.cell(index_question + 3, 6).value = f"=SUMIF(B2:B{index_question + 2}, \"設問\", F2:F{index_question + 2})"
+    for sheet in workbook_import.worksheets:
+      for row in sheet.rows:
+        for cell in row:
+          cell.font = openpyxl.styles.fonts.Font(size=11, name="Meiryo UI")
+          cell.alignment = openpyxl.styles.alignment.Alignment(horizontal="center", vertical="center")
+
+    sheet_meibo.protection.selectLockedCells   = True  # ロックされたセルの選択
+    sheet_meibo.protection.selectUnlockedCells = False # ロックされていないセルの選択
+    sheet_meibo.protection.formatCells         = True  # セルの書式設定
+    sheet_meibo.protection.formatColumns       = True  # 列の書式設定
+    sheet_meibo.protection.formatRows          = True  # 行の書式設定
+    sheet_meibo.protection.insertColumns       = True  # 列の挿入
+    sheet_meibo.protection.insertRows          = True  # 行の挿入
+    sheet_meibo.protection.insertHyperlinks    = True  # ハイパーリンクの挿入
+    sheet_meibo.protection.deleteColumns       = True  # 列の削除
+    sheet_meibo.protection.deleteRows          = True  # 行の削除
+    sheet_meibo.protection.sort                = True  # 並べ替え
+    sheet_meibo.protection.autoFilter          = True  # フィルター
+    sheet_meibo.protection.pivotTables         = True  # ピボットテーブルレポート
+    sheet_meibo.protection.objects             = True  # オブジェクトの編集
+    sheet_meibo.protection.scenarios           = True  # シナリオの編集
+    sheet_meibo.protection.enable()
     sheet_haiten.protection.selectLockedCells   = True  # ロックされたセルの選択
     sheet_haiten.protection.selectUnlockedCells = False # ロックされていないセルの選択
     sheet_haiten.protection.formatCells         = True  # セルの書式設定
@@ -1281,13 +1369,13 @@ class MainFrame(tkinter.Frame):
     sheet_haiten.protection.sort                = True  # 並べ替え
     sheet_haiten.protection.autoFilter          = True  # フィルター
     sheet_haiten.protection.pivotTables         = True  # ピボットテーブルレポート
-    sheet_haiten.protection.objects             = False # オブジェクトの編集
+    sheet_haiten.protection.objects             = True  # オブジェクトの編集
     sheet_haiten.protection.scenarios           = True  # シナリオの編集
     sheet_haiten.protection.enable()
-    workbook_haiten.security.lockStructure = True
+    workbook_import.security.lockStructure = True
 
     try:
-      workbook_haiten.save(path_dir + "/.temp_saiten/配点.xlsx")
+      workbook_import.save(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx")
     except PermissionError:
       tkinter.messagebox.showerror(
         "ファイルを保存できません",
@@ -1296,7 +1384,7 @@ class MainFrame(tkinter.Frame):
         + "Excel を終了して, もう一度お試し下さい. "
       )
     else:
-      os.startfile(path_dir + "/.temp_saiten/配点.xlsx")
+      os.startfile(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx")
 
   def read_xlsx(self):
     with open("config.json", "r", encoding="utf-8") as f:
@@ -1305,16 +1393,18 @@ class MainFrame(tkinter.Frame):
     path_dir = dict_project["path_dir"]
     with open(path_dir + "/.temp_saiten/answer_area.json") as f:
       dict_answer_area = json.load(f)
-    if not os.path.exists(path_dir + "/.temp_saiten/配点.xlsx"):
+    with open(path_dir + "/.temp_saiten/meibo.json", "r", encoding="utf-8") as f:
+      list_meibo = json.load(f)
+    if not os.path.exists(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx"):
       tkinter.messagebox.showerror(
         "ファイルが見つかりません",
-        "配点.xlsx が見つかりません. \n"
+        "名簿と配点の入力.xlsx が見つかりません. \n"
         + "［配点を入力する］をクリックして, ファイルを生成し, 配点を入力して保存して下さい. "
       )
     else:
       try:
-        workbook_haiten = openpyxl.load_workbook(path_dir + "/.temp_saiten/配点.xlsx")
-        os.remove(path_dir + "/.temp_saiten/配点.xlsx")
+        workbook_import = openpyxl.load_workbook(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx", data_only=True)
+        os.remove(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx")
       except PermissionError:
         tkinter.messagebox.showerror(
           "ファイルを操作できません",
@@ -1323,7 +1413,14 @@ class MainFrame(tkinter.Frame):
           + "Excel を終了して, もう一度お試し下さい. "
         )
         return
-      sheet_haiten = workbook_haiten["配点登録"]
+      sheet_meibo = workbook_import["名簿登録"]
+      for index_meibo in range(len(list_meibo)):
+        list_meibo[index_meibo]["学年"] = sheet_meibo.cell(index_meibo + 2, 2).value
+        list_meibo[index_meibo]["学級"] = sheet_meibo.cell(index_meibo + 2, 3).value
+        list_meibo[index_meibo]["出席番号"] = sheet_meibo.cell(index_meibo + 2, 4).value
+        list_meibo[index_meibo]["生徒番号"] = sheet_meibo.cell(index_meibo + 2, 5).value
+        list_meibo[index_meibo]["氏名"] = sheet_meibo.cell(index_meibo + 2, 6).value
+      sheet_haiten = workbook_import["配点登録"]
       for index_question in range(len(dict_answer_area["questions"])):
         dict_answer_area["questions"][index_question]["daimon"] = sheet_haiten.cell(index_question + 2, 3).value
         dict_answer_area["questions"][index_question]["shomon"] = sheet_haiten.cell(index_question + 2, 4).value
@@ -1332,11 +1429,13 @@ class MainFrame(tkinter.Frame):
           dict_answer_area["questions"][index_question]["haiten"] = None
         else:
           dict_answer_area["questions"][index_question]["haiten"] = sheet_haiten.cell(index_question + 2, 6).value
+      with open(path_dir + "/.temp_saiten/meibo.json", "w", encoding="utf-8") as f:
+        json.dump(list_meibo, f, indent=2)
       with open(path_dir + "/.temp_saiten/answer_area.json", "w", encoding="utf-8") as f:
         json.dump(dict_answer_area, f, indent=2)
       tkinter.messagebox.showinfo(
         "配点を読み込みました",
-        "読み込んだ内容は保存し, 配点.xlsx は削除しました. \n"
+        "読み込んだ内容は保存し, 名簿と配点の入力.xlsx は削除しました. \n"
         + "再び配点を編集するには, ［配点を入力する］をクリックして下さい. \n"
       )
 
@@ -1345,8 +1444,8 @@ class MainFrame(tkinter.Frame):
     frame_operate = tkinter.Frame(self)
     frame_operate.grid(column=1, row=0, padx=10, pady=10)
     tkinter.Button(frame_operate, text="解答欄の位置を指定", command=self.sub_window.select_area, width=20, height=2).grid(column=0, row=0, columnspan=2)
-    tkinter.Button(frame_operate, text="配点を\n入力する", command=self.make_xlsx, width=9, height=2).grid(column=0, row=1, sticky="WE")
-    tkinter.Button(frame_operate, text="配点を\n読み込む", command=self.read_xlsx, width=9, height=2).grid(column=1, row=1, sticky="WE")
+    tkinter.Button(frame_operate, text="名簿/配点を\nExcel で入力", command=self.make_xlsx, width=9, height=2).grid(column=0, row=1, sticky="WE")
+    tkinter.Button(frame_operate, text="名簿/配点を\n読み込む", command=self.read_xlsx, width=9, height=2).grid(column=1, row=1, sticky="WE")
     tkinter.Frame(frame_operate, width=20, height=25).grid(column=0, row=2, columnspan=2)
     tkinter.Button(frame_operate, text="一括採点する", command=self.sub_window.score_answer, width=20, height=2).grid(column=0, row=3, columnspan=2)
     tkinter.Frame(frame_operate, width=20, height=25).grid(column=0, row=4, columnspan=2)
