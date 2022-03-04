@@ -1678,11 +1678,10 @@ class MainFrame(tkinter.Frame):
     tuple_columnrange_shoukei = (7 + 1, 6 + 1 + len(list_daimon))
     tuple_columnrange_question = (7 + 1 + len(list_daimon), 6 + 1 + len(list_daimon) + len([question for question in dict_answer_area["questions"] if question["type"] == "設問"]))
 
-    ###################################################
     for sheet in [workbook_result_scoring["点数一覧"], workbook_result_scoring["正誤一覧"]]:
 
       # 表全体の書式設定 (中央揃え / フォント)
-      set_style(sheet[f"B2:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 6)}{tuple_rowrange_meibo[1]}"])
+      set_style(sheet[f"B2:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 4)}{tuple_rowrange_meibo[1]}"])
       sheet.row_dimensions[1].height = 5 * 3 / 4
       sheet.column_dimensions["A"].width = 5 / 8
       sheet.column_dimensions["B"].width = 60 / 8
@@ -1690,6 +1689,7 @@ class MainFrame(tkinter.Frame):
       sheet.column_dimensions["D"].width = 60 / 8
       sheet.column_dimensions["E"].width = 80 / 8
       sheet.column_dimensions["F"].width = 80 / 8
+      sheet.freeze_panes = "G7"
 
       # row: 2-6 
       ### column B-F
@@ -1723,7 +1723,7 @@ class MainFrame(tkinter.Frame):
       ### column: 各大問ごとの小計点
       for index_daimon, daimon in enumerate(list_daimon):
         sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)].width = 50 / 8
-        sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=2).value = str(daimon)
+        sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=2).value = daimon
         if sheet.title == "点数一覧":
           sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=3).value = "小"
           sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=4).value = "計"
@@ -1740,6 +1740,23 @@ class MainFrame(tkinter.Frame):
         sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=3).value = tuple_question[1]
         sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=4).value = tuple_question[2]
         sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=5).value = tuple_question[3]
+
+      ### 順位, 生徒番号, 氏名
+      sheet.cell(column=tuple_columnrange_question[1] + 1, row=2).value = "学"
+      sheet.cell(column=tuple_columnrange_question[1] + 1, row=3).value = "年"
+      sheet.cell(column=tuple_columnrange_question[1] + 1, row=4).value = "順"
+      sheet.cell(column=tuple_columnrange_question[1] + 1, row=5).value = "位"
+      sheet.cell(column=tuple_columnrange_question[1] + 2, row=2).value = "学"
+      sheet.cell(column=tuple_columnrange_question[1] + 2, row=3).value = "級"
+      sheet.cell(column=tuple_columnrange_question[1] + 2, row=4).value = "順"
+      sheet.cell(column=tuple_columnrange_question[1] + 2, row=5).value = "位"
+      sheet.cell(column=tuple_columnrange_question[1] + 3, row=6).value = "生徒番号"
+      sheet.cell(column=tuple_columnrange_question[1] + 4, row=6).value = "氏名"
+      sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 1)].width = 30 / 8
+      sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 2)].width = 30 / 8
+      sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 3)].width = 80 / 8
+      sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 4)].width = 80 / 8
+      sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 5)].width = 5 / 8
 
       # row: 学年平均点 / 学年正答率
       for index_name_gakunen, name_gakunen in enumerate(list_name_gakunen):
@@ -1761,6 +1778,10 @@ class MainFrame(tkinter.Frame):
           for index_tuple_question, tuple_question in enumerate(list_tuple_question):
             sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = f"=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[1]}, \"○\", $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})/COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})"
             sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakunen[0] + index_name_gakunen).number_format = "[=1]1;.000"
+        sheet.cell(column=tuple_columnrange_question[1] + 1, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
+        sheet.cell(column=tuple_columnrange_question[1] + 2, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
+        sheet.cell(column=tuple_columnrange_question[1] + 3, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
+        sheet.cell(column=tuple_columnrange_question[1] + 4, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
 
       # row: 学級平均点 / 学級平均正答数
       for index_tuple_gakkyuu, tuple_gakkyuu in enumerate(list_tuple_gakkyuu):
@@ -1785,6 +1806,10 @@ class MainFrame(tkinter.Frame):
           for index_tuple_question, tuple_question in enumerate(list_tuple_question):
             sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = f"=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[1]}, \"○\", $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})/COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
             sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).number_format = "[=1]1;.000"
+        sheet.cell(column=tuple_columnrange_question[1] + 1, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
+        sheet.cell(column=tuple_columnrange_question[1] + 2, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
+        sheet.cell(column=tuple_columnrange_question[1] + 3, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
+        sheet.cell(column=tuple_columnrange_question[1] + 4, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
 
       # row: 名簿
       for index_meibo, meibo in enumerate(list_meibo):
@@ -1811,7 +1836,11 @@ class MainFrame(tkinter.Frame):
           ### 設問
           for index_tuple_question in range(len(list_tuple_question)):
             sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_meibo[0] + index_meibo).value = list_list_score_status[index_meibo][index_tuple_question]
-      
+        sheet.cell(column=tuple_columnrange_question[1] + 1, row=tuple_rowrange_meibo[0] + index_meibo).value = f"=COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_meibo[0] + index_meibo}, $G${tuple_rowrange_meibo[0]}:$G${tuple_rowrange_meibo[1]}, \">\"&$G{tuple_rowrange_meibo[0] + index_meibo}) + 1"
+        sheet.cell(column=tuple_columnrange_question[1] + 2, row=tuple_rowrange_meibo[0] + index_meibo).value = f"=COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_meibo[0] + index_meibo}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_meibo[0] + index_meibo}, $G${tuple_rowrange_meibo[0]}:$G${tuple_rowrange_meibo[1]}, \">\"&$G{tuple_rowrange_meibo[0] + index_meibo}) + 1"
+        sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=tuple_columnrange_question[1] + 3).value = meibo["生徒番号"]
+        sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=tuple_columnrange_question[1] + 4).value = meibo["氏名"]
+
     path_workbook_result_scoring = tkinter.filedialog.asksaveasfile(
       parent=self.root,
       title = "採点データを名前を付けて保存",
