@@ -1320,19 +1320,19 @@ class SubWindow:
       for index_list_score, list_score in enumerate(list_list_score):
         list_list_score_point.append([])
         list_list_score_status.append([])
-        for score in list_score:
+        for index_score, score in enumerate(list_score):
           if score["status"] == "unscored":
             list_list_score_point[-1].append("")
             list_list_score_status[-1].append(f"-")
           elif score["status"] == "correct":
-            list_list_score_point[-1].append(list_tuple_question[index_list_score][3])
+            list_list_score_point[-1].append(list_tuple_question[index_score][3])
             list_list_score_status[-1].append(f"○")
           elif score["status"] == "partial":
             list_list_score_point[-1].append(score["point"])
             list_list_score_status[-1].append(f"△{score['point']}")
           elif score["status"] == "hold":
             list_list_score_point[-1].append(score["point"])
-            list_list_score_status[-1].append(f"？{list_tuple_question[index_list_score][3]}")
+            list_list_score_status[-1].append(f"？{list_tuple_question[index_score][3]}")
           elif score["status"] == "incorrect":
             list_list_score_point[-1].append(0)
             list_list_score_status[-1].append(f"×")
