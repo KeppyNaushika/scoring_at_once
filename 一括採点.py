@@ -18,8 +18,9 @@ import tkinter.messagebox
 
 import PIL
 import PIL.Image
+import PIL.ImageDraw
+import PIL.ImageFont
 import PIL.ImageTk
-from click import command
 
 import openpyxl
 import openpyxl.drawing.image
@@ -30,6 +31,7 @@ import openpyxl.worksheet.views
 
 import functools
 import glob
+import img2pdf
 import json
 import os
 import subprocess
@@ -1575,7 +1577,7 @@ class SubWindow:
       booleanvar_correct_symbol.set(value=dict_project["export"]["symbol"]["correct"])
       booleanvar_partial_symbol.set(value=dict_project["export"]["symbol"]["partial"])
       booleanvar_hold_symbol.set(value=dict_project["export"]["symbol"]["hold"])
-      booleanvar_incorrect_point.set(value=dict_project["export"]["point"]["incorrect"])
+      booleanvar_incorrect_symbol.set(value=dict_project["export"]["symbol"]["incorrect"])
       booleanvar_unscored_point.set(value=dict_project["export"]["point"]["unscored"])
       booleanvar_correct_point.set(value=dict_project["export"]["point"]["correct"])
       booleanvar_partial_point.set(value=dict_project["export"]["point"]["partial"])
@@ -1664,7 +1666,6 @@ class SubWindow:
             canvas.create_text(position_x, position_y, text=0, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
 
     def set_position(symbol_or_point, key_property, position, *args):
-      print(symbol_or_point, key_property, position)
       with open("config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       if key_property in ["position"]:
@@ -1680,8 +1681,7 @@ class SubWindow:
       elif key_property in ["x", "y", "size"]:
         if position == "":
           position = "0"
-        print(position)
-        if position.isdecimal():
+        if position in [str(i) for i in range(-10000, 10000)]:
           if dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property] == int(position):
             return True
           else:
@@ -1691,21 +1691,201 @@ class SubWindow:
             preview_export_picture()
             return True
         else:
-          booleanvar_unscored_symbol.set(value=dict_project["export"]["symbol"]["unscored"])
-          booleanvar_correct_symbol.set(value=dict_project["export"]["symbol"]["correct"])
-          booleanvar_partial_symbol.set(value=dict_project["export"]["symbol"]["partial"])
-          booleanvar_hold_symbol.set(value=dict_project["export"]["symbol"]["hold"])
-          booleanvar_incorrect_point.set(value=dict_project["export"]["point"]["incorrect"])
-          booleanvar_unscored_point.set(value=dict_project["export"]["point"]["unscored"])
-          booleanvar_correct_point.set(value=dict_project["export"]["point"]["correct"])
-          booleanvar_partial_point.set(value=dict_project["export"]["point"]["partial"])
-          booleanvar_hold_point.set(value=dict_project["export"]["point"]["hold"])
-          booleanvar_incorrect_point.set(value=dict_project["export"]["point"]["incorrect"])
-          with open("config.json", "w", encoding="utf-8") as f:
-            json.dump(dict_config, f, indent=2)
-          preview_export_picture()
           return False
 
+    def set_position_ex1(*args):
+      with open("config.json", "r", encoding="utf-8") as f:
+        dict_config = json.load(f)
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["position"] = "w"
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["x"] = 0
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["y"] = 0
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["size"] = 60
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["unscored"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["correct"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["partial"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["hold"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["incorrect"] = True
+      entry_symbol_x.delete(0, tkinter.END)
+      entry_symbol_y.delete(0, tkinter.END)
+      entry_symbol_size.delete(0, tkinter.END)
+      entry_symbol_x.insert(0, 0)
+      entry_symbol_y.insert(0, 0)
+      entry_symbol_size.insert(0, 60)
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["position"] = "w"
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["x"] = 0
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["y"] = 0
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["size"] = 15
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["unscored"] = False
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["correct"] = False
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["partial"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["hold"] = False
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["incorrect"] = False
+      entry_point_x.delete(0, tkinter.END)
+      entry_point_y.delete(0, tkinter.END)
+      entry_point_size.delete(0, tkinter.END)
+      entry_point_x.insert(0, 0)
+      entry_point_y.insert(0, 0)
+      entry_point_size.insert(0, 15)
+      with open("config.json", "w", encoding="utf-8") as f:
+        json.dump(dict_config, f, indent=2)
+      preview_export_picture()
+
+    def set_position_ex2(*args):
+      with open("config.json", "r", encoding="utf-8") as f:
+        dict_config = json.load(f)
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["position"] = "c"
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["x"] = 0
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["y"] = 0
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["size"] = 60
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["unscored"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["correct"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["partial"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["hold"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["incorrect"] = True
+      entry_symbol_x.delete(0, tkinter.END)
+      entry_symbol_y.delete(0, tkinter.END)
+      entry_symbol_size.delete(0, tkinter.END)
+      entry_symbol_x.insert(0, 0)
+      entry_symbol_y.insert(0, 0)
+      entry_symbol_size.insert(0, 60)
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["position"] = "se"
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["x"] = -10
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["y"] = -10
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["size"] = 10
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["unscored"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["correct"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["partial"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["hold"] = True
+      dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["point"]["incorrect"] = True
+      entry_point_x.delete(0, tkinter.END)
+      entry_point_y.delete(0, tkinter.END)
+      entry_point_size.delete(0, tkinter.END)
+      entry_point_x.insert(0, -10)
+      entry_point_y.insert(0, -10)
+      entry_point_size.insert(0, 10)
+      with open("config.json", "w", encoding="utf-8") as f:
+        json.dump(dict_config, f, indent=2)
+      preview_export_picture()
+
+    def export_pdf():
+      with open("config.json", "r", encoding="utf-8") as f:
+        dict_config = json.load(f)
+      dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+      path_dir = dict_project["path_dir"]
+      path_json_answer_area = dict_project["path_dir"] + "/.temp_saiten/answer_area.json"
+      path_json_meibo = dict_project["path_dir"] + "/.temp_saiten/meibo.json"
+      path_file_model_answer = dict_project["path_dir"] + "/.temp_saiten/model_answer/model_answer.png"
+      path_dir_of_answers = dict_project["path_dir"] + "/.temp_saiten/answer"
+      with open(path_json_answer_area, "r", encoding="utf-8") as f:
+        dict_answer_area = json.load(f)
+      with open(path_json_meibo, "r", encoding="utf-8") as f:
+        list_meibo = json.load(f)
+      if not os.path.exists(f"{path_dir}/.temp_saiten/output"):
+        os.mkdir(f"{path_dir}/.temp_saiten/output")
+      
+      self.list_image_answersheet = []
+      self.dict_image_scoring_symbol_resized["tranceparent_unscored"] = self.dict_image_scoring_symbol_resized["tranceparent_unscored"].convert("RGBA")
+      self.dict_image_scoring_symbol_resized["tranceparent_correct"] = self.dict_image_scoring_symbol_resized["tranceparent_correct"].convert("RGBA")
+      self.dict_image_scoring_symbol_resized["tranceparent_partial"] = self.dict_image_scoring_symbol_resized["tranceparent_partial"].convert("RGBA")
+      self.dict_image_scoring_symbol_resized["tranceparent_hold"] = self.dict_image_scoring_symbol_resized["tranceparent_hold"].convert("RGBA")
+      self.dict_image_scoring_symbol_resized["tranceparent_incorrect"] = self.dict_image_scoring_symbol_resized["tranceparent_incorrect"].convert("RGBA")
+      for index_meibo, meibo in enumerate(list_meibo):
+        self.image_answersheet = PIL.Image.open(f"{path_dir_of_answers}/{index_meibo}.png").convert("RGBA")
+        for question in dict_answer_area["questions"]:
+          if question["type"] == "設問":
+            if dict_project["export"]["symbol"]["position"] == "nw":
+              position_x = question["area"][0] + dict_project["export"]["symbol"]["x"]
+              position_y = question["area"][1] + dict_project["export"]["symbol"]["y"]
+            elif dict_project["export"]["symbol"]["position"] == "n":
+              position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["symbol"]["x"]
+              position_y = question["area"][1] + dict_project["export"]["symbol"]["y"]
+            elif dict_project["export"]["symbol"]["position"] == "ne":
+              position_x = question["area"][2] + dict_project["export"]["symbol"]["x"]
+              position_y = question["area"][1] + dict_project["export"]["symbol"]["y"]
+            elif dict_project["export"]["symbol"]["position"] == "w":
+              position_x = question["area"][0] + dict_project["export"]["symbol"]["x"]
+              position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["symbol"]["y"]
+            elif dict_project["export"]["symbol"]["position"] == "c":
+              position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["symbol"]["x"]
+              position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["symbol"]["y"]
+            elif dict_project["export"]["symbol"]["position"] == "e":
+              position_x = question["area"][2] + dict_project["export"]["symbol"]["x"]
+              position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["symbol"]["y"]
+            elif dict_project["export"]["symbol"]["position"] == "sw":
+              position_x = question["area"][0] + dict_project["export"]["symbol"]["x"]
+              position_y = question["area"][3] + dict_project["export"]["symbol"]["y"]
+            elif dict_project["export"]["symbol"]["position"] == "s":
+              position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["symbol"]["x"]
+              position_y = question["area"][3] + dict_project["export"]["symbol"]["y"]
+            elif dict_project["export"]["symbol"]["position"] == "se":
+              position_x = question["area"][2] + dict_project["export"]["symbol"]["x"]
+              position_y = question["area"][3] + dict_project["export"]["symbol"]["y"]
+            position_x -= dict_project["export"]["symbol"]["size"] // 2
+            position_y -= dict_project["export"]["symbol"]["size"] // 2
+            self.image_clear = PIL.Image.new("RGBA", self.image_answersheet.size, (255, 255, 255, 0))
+            if question["score"][index_meibo]["status"] == "unscored" and booleanvar_unscored_symbol.get():
+              self.image_clear.paste(self.dict_image_scoring_symbol_resized["tranceparent_unscored"], (position_x, position_y))
+            elif question["score"][index_meibo]["status"] == "correct" and booleanvar_correct_symbol.get():
+              self.image_clear.paste(self.dict_image_scoring_symbol_resized["tranceparent_correct"], (position_x, position_y))
+            elif question["score"][index_meibo]["status"] == "partial" and booleanvar_partial_symbol.get():
+              self.image_clear.paste(self.dict_image_scoring_symbol_resized["tranceparent_partial"], (position_x, position_y))
+            elif question["score"][index_meibo]["status"] == "hold" and booleanvar_hold_symbol.get():
+              self.image_clear.paste(self.dict_image_scoring_symbol_resized["tranceparent_hold"], (position_x, position_y))
+            elif question["score"][index_meibo]["status"] == "incorrect" and booleanvar_incorrect_symbol.get():
+              self.image_clear.paste(self.dict_image_scoring_symbol_resized["tranceparent_incorrect"], (position_x, position_y))
+            self.image_answersheet = PIL.Image.alpha_composite(self.image_answersheet, self.image_clear)
+        for question in dict_answer_area["questions"]:
+          if question["type"] == "設問":
+            if dict_project["export"]["point"]["position"] == "nw":
+              position_x = question["area"][0] + dict_project["export"]["point"]["x"]
+              position_y = question["area"][1] + dict_project["export"]["point"]["y"]
+            elif dict_project["export"]["point"]["position"] == "n":
+              position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["point"]["x"]
+              position_y = question["area"][1] + dict_project["export"]["point"]["y"]
+            elif dict_project["export"]["point"]["position"] == "ne":
+              position_x = question["area"][2] + dict_project["export"]["point"]["x"]
+              position_y = question["area"][1] + dict_project["export"]["point"]["y"]
+            elif dict_project["export"]["point"]["position"] == "w":
+              position_x = question["area"][0] + dict_project["export"]["point"]["x"]
+              position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["point"]["y"]
+            elif dict_project["export"]["point"]["position"] == "c":
+              position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["point"]["x"]
+              position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["point"]["y"]
+            elif dict_project["export"]["point"]["position"] == "e":
+              position_x = question["area"][2] + dict_project["export"]["point"]["x"]
+              position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["point"]["y"]
+            elif dict_project["export"]["point"]["position"] == "sw":
+              position_x = question["area"][0] + dict_project["export"]["point"]["x"]
+              position_y = question["area"][3] + dict_project["export"]["point"]["y"]
+            elif dict_project["export"]["point"]["position"] == "s":
+              position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["point"]["x"]
+              position_y = question["area"][3] + dict_project["export"]["point"]["y"]
+            elif dict_project["export"]["point"]["position"] == "se":
+              position_x = question["area"][2] + dict_project["export"]["point"]["x"]
+              position_y = question["area"][3] + dict_project["export"]["point"]["y"]
+            position_x -= dict_project["export"]["point"]["size"] // 2
+            position_y -= dict_project["export"]["point"]["size"] // 2
+            if question["score"][index_meibo]["status"] == "unscored" and booleanvar_unscored_point.get():
+              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(0), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+            elif question["score"][index_meibo]["status"] == "correct" and booleanvar_correct_point.get():
+              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(question["haiten"]), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+            elif question["score"][index_meibo]["status"] == "partial" and booleanvar_partial_point.get():
+              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(question["score"][index_meibo]["point"]), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+            elif question["score"][index_meibo]["status"] == "hold" and booleanvar_hold_point.get():
+              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(question["score"][index_meibo]["point"]), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+            elif question["score"][index_meibo]["status"] == "incorrect" and booleanvar_incorrect_point.get():
+              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(0), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+        self.image_answersheet.save(f"{path_dir}/.temp_saiten/output/{index_meibo}.png")
+      
+      path_pdf = tkinter.filedialog.asksaveasfile(
+        parent=self.window,
+        title="採点済答案画像の出力",
+        filetypes=[("PDF ドキュメント", ".pdf")],
+        defaultextension="pdf"
+      )
+      if path_pdf is not None:
+        with open(path_pdf.name, "wb") as f:
+          f.write(img2pdf.convert([PIL.Image.open(f"{path_dir}/.temp_saiten/output/{index_meibo}.png").filename for index_meibo, meibo in enumerate(list_meibo)]))
 
     with open("config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
@@ -1861,13 +2041,13 @@ class SubWindow:
     chackbtn_incorrect_point = tkinter.Checkbutton(frame_btn_point, text="誤答に0を表示", anchor=tkinter.W, variable=booleanvar_incorrect_point, command=functools.partial(set_position, "point", "incorrect", None))
     chackbtn_incorrect_point.grid(column=0, row=11, columnspan=3, sticky="we", padx=3)
 
-    btn_ex1 = tkinter.Button(frame_btn_other, width=6, text="例1")
+    btn_ex1 = tkinter.Button(frame_btn_other, width=6, text="例1", command=set_position_ex1)
     btn_ex1.grid(column=0, row=0)
-    btn_ex2 = tkinter.Button(frame_btn_other, width=6, text="例2")
+    btn_ex2 = tkinter.Button(frame_btn_other, width=6, text="例2", command=set_position_ex2)
     btn_ex2.grid(column=1, row=0)
-    btn_ex3 = tkinter.Button(frame_btn_other, width=6, text="例3")
+    btn_ex3 = tkinter.Button(frame_btn_other, width=6, text="例3", command=nothing_to_do)
     btn_ex3.grid(column=2, row=0)
-    btn_export_picture = tkinter.Button(frame_btn_other, width=21, text="採点済答案画像の出力", bg="#ffbfbf")
+    btn_export_picture = tkinter.Button(frame_btn_other, width=21, text="採点済答案画像の出力", bg="#ffbfbf", command=export_pdf)
     btn_export_picture.grid(column=0, row=1, columnspan=3)
     btn_export_xlsx = tkinter.Button(frame_btn_other, width=21, text="採点結果一覧表(.xlsx)の出力", bg="#bfffbf", command=export_list_xlsx)
     btn_export_xlsx.grid(column=0, row=2, columnspan=3)
