@@ -19,6 +19,7 @@ import tkinter.messagebox
 import PIL
 import PIL.Image
 import PIL.ImageTk
+from click import command
 
 import openpyxl
 import openpyxl.drawing.image
@@ -230,7 +231,31 @@ class SubWindow:
         {
           "name": str_name,
           "path_dir": str_path_dir,
-          "path_file": str_path_file
+          "path_file": str_path_file,
+          "export": {
+            "symbol": {
+              "position": "c",
+              "x": 0,
+              "y": 0,
+              "size": 0,
+              "unscored": True,
+              "correct": True,
+              "partial": True,
+              "hold": True,
+              "incorrect": True
+            },
+            "point": {
+              "position": "c",
+              "x": 0,
+              "y": 0,
+              "size": 0,
+              "unscored": True,
+              "correct": True,
+              "partial": True,
+              "hold": True,
+              "incorrect": True
+            }
+          }
         }
       )
       dict_config["index_projects_in_listbox"] = len(dict_config["projects"]) - 1
@@ -1079,6 +1104,799 @@ class SubWindow:
     self.window.bind("<Control-j>", functools.partial(toggle_booleanVar_checkbutton_show, "hold"))
     self.window.bind("<Control-o>", functools.partial(toggle_booleanVar_checkbutton_show, "incorrect"))
 
+  @sub_window_loop
+  def export(self):
+    def export_list_xlsx():
+      ### この関数いろいろダメです。信用しないで下さい。
+      def set_style(table_cells: list[list[openpyxl.cell.cell.Cell]], *, internal_border=True, left_side_thin=True, right_side_thin=True) -> None:
+        for index_rows, rows in enumerate(table_cells):
+          for index_column, cell in enumerate(rows):
+            cell.alignment = openpyxl.styles.alignment.Alignment(horizontal="center", vertical="center")
+            cell.font = openpyxl.styles.Font(size=11, name="Meiryo UI")
+            if internal_border: # 内側あり
+              if index_column == 0 and left_side_thin: 
+                cell.border = openpyxl.styles.borders.Border(
+                  top=openpyxl.styles.Side(style="thin", color="000000"),
+                  bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                  left=openpyxl.styles.Side(style="thin", color="000000"),
+                  right=openpyxl.styles.Side(style="hair", color="000000")
+                )
+              elif index_column == len(rows) - 1 and right_side_thin:
+                  cell.border = openpyxl.styles.borders.Border(
+                    top=openpyxl.styles.Side(style="thin", color="000000"),
+                    bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                    left=openpyxl.styles.Side(style="hair", color="000000"),
+                    right=openpyxl.styles.Side(style="thin", color="000000")
+                  )
+              else: 
+                cell.border = openpyxl.styles.borders.Border(
+                  top=openpyxl.styles.Side(style="thin", color="000000"),
+                  bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                  left=openpyxl.styles.Side(style="hair", color="000000"),
+                  right=openpyxl.styles.Side(style="hair", color="000000")
+                )
+            else: # 内側なし
+              if index_rows == 0: # 最上行
+                if len(rows) == 1:
+                  if left_side_thin: 
+                    if right_side_thin:
+                      cell.border = openpyxl.styles.borders.Border(
+                        top=openpyxl.styles.Side(style="thin", color="000000"),
+                        left=openpyxl.styles.Side(style="thin", color="000000"),
+                        right=openpyxl.styles.Side(style="thin", color="000000")
+                      )
+                    else:
+                      cell.border = openpyxl.styles.borders.Border(
+                        top=openpyxl.styles.Side(style="thin", color="000000"),
+                        left=openpyxl.styles.Side(style="thin", color="000000"),
+                        right=openpyxl.styles.Side(style="hair", color="000000")
+                      )
+                  else:
+                    if right_side_thin:
+                      cell.border = openpyxl.styles.borders.Border(
+                        top=openpyxl.styles.Side(style="thin", color="000000"),
+                        left=openpyxl.styles.Side(style="hair", color="000000"),
+                        right=openpyxl.styles.Side(style="thin", color="000000")
+                      )
+                    else:
+                      cell.border = openpyxl.styles.borders.Border(
+                        top=openpyxl.styles.Side(style="thin", color="000000"),
+                        left=openpyxl.styles.Side(style="hair", color="000000"),
+                        right=openpyxl.styles.Side(style="hair", color="000000")
+                      )
+                elif index_column == 0:
+                  if left_side_thin: 
+                    cell.border = openpyxl.styles.borders.Border(
+                      top=openpyxl.styles.Side(style="thin", color="000000"),
+                      left=openpyxl.styles.Side(style="thin", color="000000")
+                    )
+                  else:
+                    cell.border = openpyxl.styles.borders.Border(
+                      top=openpyxl.styles.Side(style="thin", color="000000"),
+                      left=openpyxl.styles.Side(style="hair", color="000000")
+                    )
+                elif index_column == len(rows) - 1:
+                  if right_side_thin: 
+                    cell.border = openpyxl.styles.borders.Border(
+                      top=openpyxl.styles.Side(style="thin", color="000000"),
+                      right=openpyxl.styles.Side(style="thin", color="000000")
+                    )
+                  else:
+                    cell.border = openpyxl.styles.borders.Border(
+                      top=openpyxl.styles.Side(style="thin", color="000000"),
+                      right=openpyxl.styles.Side(style="hair", color="000000")
+                    )
+                else:
+                  cell.border = openpyxl.styles.borders.Border(
+                    top=openpyxl.styles.Side(style="thin", color="000000")
+                  )
+              elif index_rows == len(table_cells) - 1: # 最下行
+                if len(rows) == 1:
+                  if left_side_thin: 
+                    if right_side_thin:
+                      cell.border = openpyxl.styles.borders.Border(
+                        bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                        left=openpyxl.styles.Side(style="thin", color="000000"),
+                        right=openpyxl.styles.Side(style="thin", color="000000")
+                      )
+                    else:
+                      cell.border = openpyxl.styles.borders.Border(
+                        bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                        left=openpyxl.styles.Side(style="thin", color="000000"),
+                        right=openpyxl.styles.Side(style="hair", color="000000")
+                      )
+                  else:
+                    if right_side_thin:
+                      cell.border = openpyxl.styles.borders.Border(
+                        bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                        left=openpyxl.styles.Side(style="hair", color="000000"),
+                        right=openpyxl.styles.Side(style="thin", color="000000")
+                      )
+                    else:
+                      cell.border = openpyxl.styles.borders.Border(
+                        bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                        left=openpyxl.styles.Side(style="hair", color="000000"),
+                        right=openpyxl.styles.Side(style="hair", color="000000")
+                      )
+                elif index_column == 0:
+                  if left_side_thin: 
+                    cell.border = openpyxl.styles.borders.Border(
+                      bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                      left=openpyxl.styles.Side(style="thin", color="000000")
+                    )
+                  else:
+                    cell.border = openpyxl.styles.borders.Border(
+                      bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                      left=openpyxl.styles.Side(style="hair", color="000000")
+                    )
+                elif index_column == len(rows) - 1:
+                  if right_side_thin: 
+                    cell.border = openpyxl.styles.borders.Border(
+                      bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                      right=openpyxl.styles.Side(style="thin", color="000000")
+                    )
+                  else:
+                    cell.border = openpyxl.styles.borders.Border(
+                      bottom=openpyxl.styles.Side(style="thin", color="000000"),
+                      right=openpyxl.styles.Side(style="hair", color="000000")
+                    )
+                else:
+                  cell.border = openpyxl.styles.borders.Border(
+                    bottom=openpyxl.styles.Side(style="thin", color="000000")
+                  )
+              else: # 中行
+                if len(rows) == 1:
+                  if left_side_thin: 
+                    if right_side_thin:
+                      cell.border = openpyxl.styles.borders.Border(
+                        left=openpyxl.styles.Side(style="thin", color="000000"),
+                        right=openpyxl.styles.Side(style="thin", color="000000")
+                      )
+                    else:
+                      cell.border = openpyxl.styles.borders.Border(
+                        left=openpyxl.styles.Side(style="thin", color="000000"),
+                        right=openpyxl.styles.Side(style="hair", color="000000")
+                      )
+                  else:
+                    if right_side_thin:
+                      cell.border = openpyxl.styles.borders.Border(
+                        left=openpyxl.styles.Side(style="hair", color="000000"),
+                        right=openpyxl.styles.Side(style="thin", color="000000")
+                      )
+                    else:
+                      cell.border = openpyxl.styles.borders.Border(
+                        left=openpyxl.styles.Side(style="hair", color="000000"),
+                        right=openpyxl.styles.Side(style="hair", color="000000")
+                      )
+                elif index_column == 0:
+                  if left_side_thin: 
+                    cell.border = openpyxl.styles.borders.Border(
+                      left=openpyxl.styles.Side(style="thin", color="000000")
+                    )
+                  else:
+                    cell.border = openpyxl.styles.borders.Border(
+                      left=openpyxl.styles.Side(style="hair", color="000000")
+                    )
+                elif index_column == len(rows) - 1:
+                  if right_side_thin: 
+                    cell.border = openpyxl.styles.borders.Border(
+                      right=openpyxl.styles.Side(style="thin", color="000000")
+                    )
+                  else:
+                    cell.border = openpyxl.styles.borders.Border(
+                      right=openpyxl.styles.Side(style="hair", color="000000")
+                    )
+                else:
+                  cell.border = openpyxl.styles.borders.Border()
+      
+      with open("config.json", "r", encoding="utf-8") as f:
+        dict_config = json.load(f)
+      dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+      path_dir = dict_project["path_dir"]
+      with open(path_dir + "/.temp_saiten/answer_area.json", "r", encoding="utf-8") as f:
+        dict_answer_area = json.load(f)
+      with open(path_dir + "/.temp_saiten/load_picture.json", "r", encoding="utf-8") as f:
+        dict_load_picture = json.load(f)
+      with open(path_dir + "/.temp_saiten/meibo.json", "r", encoding="utf-8") as f:
+        list_meibo = json.load(f)
+      
+      workbook_result_scoring = openpyxl.Workbook()
+      workbook_result_scoring.remove(workbook_result_scoring["Sheet"])
+      workbook_result_scoring.create_sheet(title="点数一覧")
+      workbook_result_scoring.create_sheet(title="正誤一覧")
+      list_daimon = list(set([question["daimon"] for question in dict_answer_area["questions"] if question["type"] == "設問"]))
+      list_daimon.sort()
+      list_name_gakunen = list(set([meibo["学年"] for meibo in list_meibo]))
+      list_tuple_gakkyuu = list(set([(meibo["学年"], meibo["学級"]) for meibo in list_meibo]))
+      list_tuple_gakkyuu.sort(key=lambda x:(x[0], x[1]))
+      # workbook_result_scoring["点数一覧"].views.SheetView(showGridLines=False) # 目盛線を非表示
+      # 答案用紙ごとのスコアのリスト
+      list_list_score = [[dict_answer_area["questions"][index_question]["score"][index_answersheet] for index_question in range(len(dict_answer_area["questions"])) if dict_answer_area["questions"][index_question]["type"] == "設問"] for index_answersheet in range(len(list_meibo))]
+      list_tuple_question = [(question["daimon"], question["shomon"], question["shimon"], question["haiten"]) for question in dict_answer_area["questions"] if question["type"] == "設問"]
+      list_list_score_point = []
+      list_list_score_status = []
+      for index_list_score, list_score in enumerate(list_list_score):
+        list_list_score_point.append([])
+        list_list_score_status.append([])
+        for score in list_score:
+          if score["status"] == "unscored":
+            list_list_score_point[-1].append("")
+            list_list_score_status[-1].append(f"-")
+          elif score["status"] == "correct":
+            list_list_score_point[-1].append(list_tuple_question[index_list_score][3])
+            list_list_score_status[-1].append(f"○")
+          elif score["status"] == "partial":
+            list_list_score_point[-1].append(score["point"])
+            list_list_score_status[-1].append(f"△{score['point']}")
+          elif score["status"] == "hold":
+            list_list_score_point[-1].append(score["point"])
+            list_list_score_status[-1].append(f"？{list_tuple_question[index_list_score][3]}")
+          elif score["status"] == "incorrect":
+            list_list_score_point[-1].append(0)
+            list_list_score_status[-1].append(f"×")
+      tuple_rowrange_gakunen = (7, 6 + len(list_name_gakunen))
+      tuple_rowrange_gakkyuu = (7 + len(list_name_gakunen), 6 + len(list_name_gakunen) + len(list_tuple_gakkyuu))
+      tuple_rowrange_meibo = (7 + len(list_name_gakunen) + len(list_tuple_gakkyuu), 6 + len(list_name_gakunen) + len(list_tuple_gakkyuu) + len(list_meibo))
+      tuple_columnrange_goukei = (7, 6 + 1)
+      tuple_columnrange_shoukei = (7 + 1, 6 + 1 + len(list_daimon))
+      tuple_columnrange_question = (7 + 1 + len(list_daimon), 6 + 1 + len(list_daimon) + len([question for question in dict_answer_area["questions"] if question["type"] == "設問"]))
+
+      for sheet in [workbook_result_scoring["点数一覧"], workbook_result_scoring["正誤一覧"]]:
+
+        # 表全体の書式設定 (中央揃え / フォント)
+        set_style(sheet[f"B2:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 4)}{tuple_rowrange_meibo[1]}"])
+        sheet.row_dimensions[1].height = 5 * 3 / 4
+        sheet.column_dimensions["A"].width = 5 / 8
+        sheet.column_dimensions["B"].width = 60 / 8
+        sheet.column_dimensions["C"].width = 60 / 8
+        sheet.column_dimensions["D"].width = 60 / 8
+        sheet.column_dimensions["E"].width = 80 / 8
+        sheet.column_dimensions["F"].width = 80 / 8
+        sheet.freeze_panes = "G7"
+
+        # row: 2-6 
+        ### column B-F
+        sheet["B3"].value = dict_project["name"]
+        sheet["B4"].value = f"採点結果 - {sheet.title}"
+        set_style(sheet["B2:E5"], internal_border=False, right_side_thin=False)
+        for rows in sheet["B2:E5"]:
+          for cell in rows:
+            cell.alignment = openpyxl.styles.Alignment(horizontal="centerContinuous")
+        sheet["F2"].value = "大問"
+        sheet["F3"].value = "小問"
+        sheet["F4"].value = "枝問"
+        sheet["F5"].value = "配点"
+
+        sheet["B6"].value = "学年"
+        sheet["C6"].value = "学級"
+        sheet["D6"].value = "出席番号"
+        sheet["E6"].value = "生徒番号"
+        sheet["F6"].value = "氏名"
+
+        ### column: 合計得点
+        sheet["G2"].value = "合"
+        sheet["G3"].value = "計"
+        if sheet.title == "点数一覧":
+          sheet["G4"].value = "得"
+          sheet["G5"].value = "点"
+        else:
+          sheet["G4"].value = "設問"
+          sheet["G5"].value = "正答数"
+        set_style(sheet[f"G2:G5"], internal_border=False, left_side_thin=False, right_side_thin=False)
+        ### column: 各大問ごとの小計点
+        for index_daimon, daimon in enumerate(list_daimon):
+          sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)].width = 50 / 8
+          sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=2).value = daimon
+          if sheet.title == "点数一覧":
+            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=3).value = "小"
+            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=4).value = "計"
+            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=5).value = "点"
+          else:
+            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=3).value = "小計"
+            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=4).value = "設問"
+            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=5).value = "正答数"
+          set_style(sheet[f"{openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}2:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}5"], internal_border=False, left_side_thin=False, right_side_thin=False)
+        ### column: 各設問の 大問 / 小問 / 枝問 / 配点
+        for index_tuple_question, tuple_question in enumerate(list_tuple_question):
+          sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)].width = 40 / 8
+          sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=2).value = tuple_question[0]
+          sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=3).value = tuple_question[1]
+          sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=4).value = tuple_question[2]
+          sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=5).value = tuple_question[3]
+
+        ### 順位, 生徒番号, 氏名
+        sheet.cell(column=tuple_columnrange_question[1] + 1, row=2).value = "学"
+        sheet.cell(column=tuple_columnrange_question[1] + 1, row=3).value = "年"
+        sheet.cell(column=tuple_columnrange_question[1] + 1, row=4).value = "順"
+        sheet.cell(column=tuple_columnrange_question[1] + 1, row=5).value = "位"
+        sheet.cell(column=tuple_columnrange_question[1] + 2, row=2).value = "学"
+        sheet.cell(column=tuple_columnrange_question[1] + 2, row=3).value = "級"
+        sheet.cell(column=tuple_columnrange_question[1] + 2, row=4).value = "順"
+        sheet.cell(column=tuple_columnrange_question[1] + 2, row=5).value = "位"
+        sheet.cell(column=tuple_columnrange_question[1] + 3, row=6).value = "生徒番号"
+        sheet.cell(column=tuple_columnrange_question[1] + 4, row=6).value = "氏名"
+        sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 1)].width = 30 / 8
+        sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 2)].width = 30 / 8
+        sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 3)].width = 80 / 8
+        sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 4)].width = 80 / 8
+        sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 5)].width = 5 / 8
+
+        # row: 学年平均点 / 学年正答率
+        for index_name_gakunen, name_gakunen in enumerate(list_name_gakunen):
+          sheet.cell(row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=2).value = name_gakunen
+          for index_column in [2, 3, 4, 5, 6]:
+            sheet.cell(row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=index_column).alignment = openpyxl.styles.Alignment(horizontal="centerContinuous")
+          if sheet.title == "点数一覧":
+            sheet.cell(row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=3).value = "学年平均点"
+            for index_column in [index_column + 7 for index_column in range(1 + len(list_daimon) + len(list_tuple_question))]:
+              sheet.cell(column=index_column, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = f"=AVERAGEIFS({openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[1]}, $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})"
+              sheet.cell(column=index_column, row=tuple_rowrange_gakunen[0] + index_name_gakunen).number_format = "0.0"
+          else:
+            sheet.cell(row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=3).value = "学年正答率"
+            sheet.cell(column=7, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = f"=AVERAGE(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakunen[0] + index_name_gakunen}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakunen[0] + index_name_gakunen})"
+            sheet.cell(column=7, row=tuple_rowrange_gakunen[0] + index_name_gakunen).number_format = "[=1]1;.000"
+            for index_daimon, daimon in enumerate(list_daimon):
+              sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakunen[0] + index_name_gakunen}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakunen[0] + index_name_gakunen}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
+              sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_gakunen[0] + index_name_gakunen).number_format = "[=1]1;.000"
+            for index_tuple_question, tuple_question in enumerate(list_tuple_question):
+              sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = f"=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[1]}, \"○\", $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})/COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})"
+              sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakunen[0] + index_name_gakunen).number_format = "[=1]1;.000"
+          sheet.cell(column=tuple_columnrange_question[1] + 1, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
+          sheet.cell(column=tuple_columnrange_question[1] + 2, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
+          sheet.cell(column=tuple_columnrange_question[1] + 3, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
+          sheet.cell(column=tuple_columnrange_question[1] + 4, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
+
+        # row: 学級平均点 / 学級平均正答数
+        for index_tuple_gakkyuu, tuple_gakkyuu in enumerate(list_tuple_gakkyuu):
+          sheet.cell(row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=2).value = tuple_gakkyuu[0]
+          sheet.cell(row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=3).value = tuple_gakkyuu[1]
+          if sheet.title == "点数一覧":
+            sheet.cell(row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=4).value = "学級平均点"
+          else:
+            sheet.cell(row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=4).value = "学級正答率"
+          for index_column in [3, 4, 5, 6]:
+            sheet.cell(row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=index_column).alignment = openpyxl.styles.Alignment(horizontal="centerContinuous")
+          if sheet.title == "点数一覧":
+            for index_column in [index_column + 7 for index_column in range(1 + len(list_daimon) + len(list_tuple_question))]:
+              sheet.cell(column=index_column, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[0]}:${openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[1]}, $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
+              sheet.cell(column=index_column, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).number_format = "0.0"
+          else:
+            sheet.cell(column=7, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = f"=AVERAGE(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
+            sheet.cell(column=7, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).number_format = "[=1]1;.000"
+            for index_daimon, daimon in enumerate(list_daimon):
+              sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
+              sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).number_format = "[=1]1;.000"
+            for index_tuple_question, tuple_question in enumerate(list_tuple_question):
+              sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = f"=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[1]}, \"○\", $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})/COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
+              sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).number_format = "[=1]1;.000"
+          sheet.cell(column=tuple_columnrange_question[1] + 1, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
+          sheet.cell(column=tuple_columnrange_question[1] + 2, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
+          sheet.cell(column=tuple_columnrange_question[1] + 3, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
+          sheet.cell(column=tuple_columnrange_question[1] + 4, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
+
+        # row: 名簿
+        for index_meibo, meibo in enumerate(list_meibo):
+          sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=2).value = meibo["学年"]
+          sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=3).value = meibo["学級"]
+          sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=4).value = meibo["出席番号"]
+          sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=5).value = meibo["生徒番号"]
+          sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=6).value = meibo["氏名"]
+          if sheet.title == "点数一覧":
+            ### column: 合計得点
+            sheet.cell(column=tuple_columnrange_goukei[0], row=tuple_rowrange_meibo[0] + index_meibo).value = f"=SUM({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}${tuple_rowrange_meibo[0] + index_meibo}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}${tuple_rowrange_meibo[0] + index_meibo})"
+            ### column: 各大問ごとの小計点
+            for index_daimon, daimon in enumerate(list_daimon):
+              sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_meibo[0] + index_meibo).value = f"=SUMIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_meibo[0] + index_meibo}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_meibo[0] + index_meibo}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
+            ### 各設問
+            for index_tuple_question in range(len(list_tuple_question)):
+              sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_meibo[0] + index_meibo).value = list_list_score_point[index_meibo][index_tuple_question]
+          else:
+            ### column: 合計正答設問数
+            sheet.cell(column=tuple_columnrange_goukei[0], row=tuple_rowrange_meibo[0] + index_meibo).value = f"=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}${tuple_rowrange_meibo[0] + index_meibo}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}${tuple_rowrange_meibo[0] + index_meibo}, \"○\")"
+            ### column: 各大問ごとの小計正答設問数
+            for index_daimon, daimon in enumerate(list_daimon):
+              sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_meibo[0] + index_meibo).value = f"=COUNTIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_meibo[0] + index_meibo}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_meibo[0] + index_meibo}, \"○\", ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
+            ### 設問
+            for index_tuple_question in range(len(list_tuple_question)):
+              sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_meibo[0] + index_meibo).value = list_list_score_status[index_meibo][index_tuple_question]
+          sheet.cell(column=tuple_columnrange_question[1] + 1, row=tuple_rowrange_meibo[0] + index_meibo).value = f"=COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_meibo[0] + index_meibo}, $G${tuple_rowrange_meibo[0]}:$G${tuple_rowrange_meibo[1]}, \">\"&$G{tuple_rowrange_meibo[0] + index_meibo}) + 1"
+          sheet.cell(column=tuple_columnrange_question[1] + 2, row=tuple_rowrange_meibo[0] + index_meibo).value = f"=COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_meibo[0] + index_meibo}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_meibo[0] + index_meibo}, $G${tuple_rowrange_meibo[0]}:$G${tuple_rowrange_meibo[1]}, \">\"&$G{tuple_rowrange_meibo[0] + index_meibo}) + 1"
+          sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=tuple_columnrange_question[1] + 3).value = meibo["生徒番号"]
+          sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=tuple_columnrange_question[1] + 4).value = meibo["氏名"]
+
+      path_workbook_result_scoring = tkinter.filedialog.asksaveasfile(
+        parent=self.window,
+        title = "採点データを名前を付けて保存",
+        filetypes=[("Excel スプレッドシート", ".xlsx")],
+        defaultextension="xlsx"
+      )
+      try:
+        workbook_result_scoring.save(path_workbook_result_scoring.name)
+      except PermissionError:
+        tkinter.messagebox.showerror(
+          "ファイルを保存できません",
+          "ファイルを保存できませんでした. \n"
+          + "ファイルを開いていませんか？\n"
+          + "Excel を終了して, もう一度お試し下さい. "
+        )
+
+    def preview_export_picture():
+      with open("config.json", "r", encoding="utf-8") as f:
+        dict_config = json.load(f)
+      dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+      path_dir = dict_project["path_dir"]
+      path_json_answer_area = dict_project["path_dir"] + "/.temp_saiten/answer_area.json"
+      path_file_model_answer = dict_project["path_dir"] + "/.temp_saiten/model_answer/model_answer.png"
+      path_dir_of_answers = dict_project["path_dir"] + "/.temp_saiten/answer"
+      with open(path_json_answer_area, "r", encoding="utf-8") as f:
+        dict_answer_area = json.load(f)
+
+      canvas.delete("saiten")
+
+      size = dict_project["export"]["symbol"]["size"]
+      self.dict_image_scoring_symbol = {
+        "unscored": PIL.Image.open(os.path.dirname(__file__) + "/assets/unscored.png"),
+        "correct": PIL.Image.open(os.path.dirname(__file__) + "/assets/correct.png"),
+        "partial": PIL.Image.open(os.path.dirname(__file__) + "/assets/partial.png"),
+        "hold": PIL.Image.open(os.path.dirname(__file__) + "/assets/hold.png"),
+        "incorrect": PIL.Image.open(os.path.dirname(__file__) + "/assets/incorrect.png"),
+        "tranceparent_unscored": PIL.Image.open(os.path.dirname(__file__) + "/assets/tranceparent_unscored.png"),
+        "tranceparent_correct": PIL.Image.open(os.path.dirname(__file__) + "/assets/tranceparent_correct.png"),
+        "tranceparent_partial": PIL.Image.open(os.path.dirname(__file__) + "/assets/tranceparent_partial.png"),
+        "tranceparent_hold": PIL.Image.open(os.path.dirname(__file__) + "/assets/tranceparent_hold.png"),
+        "tranceparent_incorrect": PIL.Image.open(os.path.dirname(__file__) + "/assets/tranceparent_incorrect.png")
+      }
+      self.dict_image_scoring_symbol_resized = {
+        "unscored": self.dict_image_scoring_symbol["unscored"].resize((size, size)),
+        "correct": self.dict_image_scoring_symbol["correct"].resize((size, size)),
+        "partial": self.dict_image_scoring_symbol["partial"].resize((size, size)),
+        "hold": self.dict_image_scoring_symbol["hold"].resize((size, size)),
+        "incorrect": self.dict_image_scoring_symbol["incorrect"].resize((size, size)),
+        "tranceparent_unscored": self.dict_image_scoring_symbol["tranceparent_unscored"].resize((size, size)),
+        "tranceparent_correct": self.dict_image_scoring_symbol["tranceparent_correct"].resize((size, size)),
+        "tranceparent_partial": self.dict_image_scoring_symbol["tranceparent_partial"].resize((size, size)),
+        "tranceparent_hold": self.dict_image_scoring_symbol["tranceparent_hold"].resize((size, size)),
+        "tranceparent_incorrect": self.dict_image_scoring_symbol["tranceparent_incorrect"].resize((size, size))
+      }
+      self.dict_imagetk_scoring_symbol = {
+        "unscored": PIL.ImageTk.PhotoImage(image=self.dict_image_scoring_symbol_resized["unscored"]),
+        "correct": PIL.ImageTk.PhotoImage(image=self.dict_image_scoring_symbol_resized["correct"]),
+        "partial": PIL.ImageTk.PhotoImage(image=self.dict_image_scoring_symbol_resized["partial"]),
+        "hold": PIL.ImageTk.PhotoImage(image=self.dict_image_scoring_symbol_resized["hold"]),
+        "incorrect": PIL.ImageTk.PhotoImage(image=self.dict_image_scoring_symbol_resized["incorrect"]),
+        "tranceparent_unscored": PIL.ImageTk.PhotoImage(image=self.dict_image_scoring_symbol_resized["tranceparent_unscored"]),
+        "tranceparent_correct": PIL.ImageTk.PhotoImage(image=self.dict_image_scoring_symbol_resized["tranceparent_correct"]),
+        "tranceparent_partial": PIL.ImageTk.PhotoImage(image=self.dict_image_scoring_symbol_resized["tranceparent_partial"]),
+        "tranceparent_hold": PIL.ImageTk.PhotoImage(image=self.dict_image_scoring_symbol_resized["tranceparent_hold"]),
+        "tranceparent_incorrect": PIL.ImageTk.PhotoImage(image=self.dict_image_scoring_symbol_resized["tranceparent_incorrect"])
+      }
+      index_setsumon = 0
+      booleanvar_unscored_symbol.set(value=dict_project["export"]["symbol"]["unscored"])
+      booleanvar_correct_symbol.set(value=dict_project["export"]["symbol"]["correct"])
+      booleanvar_partial_symbol.set(value=dict_project["export"]["symbol"]["partial"])
+      booleanvar_hold_symbol.set(value=dict_project["export"]["symbol"]["hold"])
+      booleanvar_incorrect_point.set(value=dict_project["export"]["point"]["incorrect"])
+      booleanvar_unscored_point.set(value=dict_project["export"]["point"]["unscored"])
+      booleanvar_correct_point.set(value=dict_project["export"]["point"]["correct"])
+      booleanvar_partial_point.set(value=dict_project["export"]["point"]["partial"])
+      booleanvar_hold_point.set(value=dict_project["export"]["point"]["hold"])
+      booleanvar_incorrect_point.set(value=dict_project["export"]["point"]["incorrect"])
+      for question in dict_answer_area["questions"]:
+        if question["type"] == "設問":
+          index_setsumon += 1
+          if dict_project["export"]["symbol"]["position"] == "nw":
+            position_x = question["area"][0] + dict_project["export"]["symbol"]["x"]
+            position_y = question["area"][1] + dict_project["export"]["symbol"]["y"]
+          elif dict_project["export"]["symbol"]["position"] == "n":
+            position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["symbol"]["x"]
+            position_y = question["area"][1] + dict_project["export"]["symbol"]["y"]
+          elif dict_project["export"]["symbol"]["position"] == "ne":
+            position_x = question["area"][2] + dict_project["export"]["symbol"]["x"]
+            position_y = question["area"][1] + dict_project["export"]["symbol"]["y"]
+          elif dict_project["export"]["symbol"]["position"] == "w":
+            position_x = question["area"][0] + dict_project["export"]["symbol"]["x"]
+            position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["symbol"]["y"]
+          elif dict_project["export"]["symbol"]["position"] == "c":
+            position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["symbol"]["x"]
+            position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["symbol"]["y"]
+          elif dict_project["export"]["symbol"]["position"] == "e":
+            position_x = question["area"][2] + dict_project["export"]["symbol"]["x"]
+            position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["symbol"]["y"]
+          elif dict_project["export"]["symbol"]["position"] == "sw":
+            position_x = question["area"][0] + dict_project["export"]["symbol"]["x"]
+            position_y = question["area"][3] + dict_project["export"]["symbol"]["y"]
+          elif dict_project["export"]["symbol"]["position"] == "s":
+            position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["symbol"]["x"]
+            position_y = question["area"][3] + dict_project["export"]["symbol"]["y"]
+          elif dict_project["export"]["symbol"]["position"] == "se":
+            position_x = question["area"][2] + dict_project["export"]["symbol"]["x"]
+            position_y = question["area"][3] + dict_project["export"]["symbol"]["y"]
+          if index_setsumon % 5 == 0 and booleanvar_unscored_symbol.get():
+            canvas.create_image(position_x, position_y, anchor="center", image=self.dict_imagetk_scoring_symbol["tranceparent_unscored"], tags="saiten")
+          elif index_setsumon % 5 == 1 and booleanvar_correct_symbol.get():
+            canvas.create_image(position_x, position_y, anchor="center", image=self.dict_imagetk_scoring_symbol["tranceparent_correct"], tags="saiten")
+          elif index_setsumon % 5 == 2 and booleanvar_partial_symbol.get():
+            canvas.create_image(position_x, position_y, anchor="center", image=self.dict_imagetk_scoring_symbol["tranceparent_partial"], tags="saiten")
+          elif index_setsumon % 5 == 3 and booleanvar_hold_symbol.get():
+            canvas.create_image(position_x, position_y, anchor="center", image=self.dict_imagetk_scoring_symbol["tranceparent_hold"], tags="saiten")
+          elif index_setsumon % 5 == 4 and booleanvar_incorrect_symbol.get():
+            canvas.create_image(position_x, position_y, anchor="center", image=self.dict_imagetk_scoring_symbol["tranceparent_incorrect"], tags="saiten")
+      index_setsumon = 0
+      for question in dict_answer_area["questions"]:
+        if question["type"] == "設問":
+          index_setsumon += 1
+          if dict_project["export"]["point"]["position"] == "nw":
+            position_x = question["area"][0] + dict_project["export"]["point"]["x"]
+            position_y = question["area"][1] + dict_project["export"]["point"]["y"]
+          elif dict_project["export"]["point"]["position"] == "n":
+            position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["point"]["x"]
+            position_y = question["area"][1] + dict_project["export"]["point"]["y"]
+          elif dict_project["export"]["point"]["position"] == "ne":
+            position_x = question["area"][2] + dict_project["export"]["point"]["x"]
+            position_y = question["area"][1] + dict_project["export"]["point"]["y"]
+          elif dict_project["export"]["point"]["position"] == "w":
+            position_x = question["area"][0] + dict_project["export"]["point"]["x"]
+            position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["point"]["y"]
+          elif dict_project["export"]["point"]["position"] == "c":
+            position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["point"]["x"]
+            position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["point"]["y"]
+          elif dict_project["export"]["point"]["position"] == "e":
+            position_x = question["area"][2] + dict_project["export"]["point"]["x"]
+            position_y = (question["area"][1] + question["area"][3]) // 2 + dict_project["export"]["point"]["y"]
+          elif dict_project["export"]["point"]["position"] == "sw":
+            position_x = question["area"][0] + dict_project["export"]["point"]["x"]
+            position_y = question["area"][3] + dict_project["export"]["point"]["y"]
+          elif dict_project["export"]["point"]["position"] == "s":
+            position_x = (question["area"][0] + question["area"][2]) // 2 + dict_project["export"]["point"]["x"]
+            position_y = question["area"][3] + dict_project["export"]["point"]["y"]
+          elif dict_project["export"]["point"]["position"] == "se":
+            position_x = question["area"][2] + dict_project["export"]["point"]["x"]
+            position_y = question["area"][3] + dict_project["export"]["point"]["y"]
+          if index_setsumon % 5 == 0 and booleanvar_unscored_point.get():
+            canvas.create_text(position_x, position_y, text=0, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
+          elif index_setsumon % 5 == 1 and booleanvar_correct_point.get():
+            canvas.create_text(position_x, position_y, text=question["haiten"], fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
+          elif index_setsumon % 5 == 2 and booleanvar_partial_point.get():
+            canvas.create_text(position_x, position_y, text=question["haiten"] // 2, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
+          elif index_setsumon % 5 == 3 and booleanvar_hold_point.get():
+            canvas.create_text(position_x, position_y, text=question["haiten"] // 2, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
+          elif index_setsumon % 5 == 4 and booleanvar_incorrect_point.get():
+            canvas.create_text(position_x, position_y, text=0, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
+
+    def set_position(symbol_or_point, key_property, position, *args):
+      print(symbol_or_point, key_property, position)
+      with open("config.json", "r", encoding="utf-8") as f:
+        dict_config = json.load(f)
+      if key_property in ["position"]:
+        dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property] = position
+        with open("config.json", "w", encoding="utf-8") as f:
+          json.dump(dict_config, f, indent=2)
+        preview_export_picture()
+      elif key_property in ["unscored", "correct", "partial", "hold", "incorrect"]:
+        dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property] = not dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property]
+        with open("config.json", "w", encoding="utf-8") as f:
+          json.dump(dict_config, f, indent=2)
+        preview_export_picture()
+      elif key_property in ["x", "y", "size"]:
+        if position == "":
+          position = "0"
+        print(position)
+        if position.isdecimal():
+          if dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property] == int(position):
+            return True
+          else:
+            dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property] = int(position)
+            with open("config.json", "w", encoding="utf-8") as f:
+              json.dump(dict_config, f, indent=2)
+            preview_export_picture()
+            return True
+        else:
+          booleanvar_unscored_symbol.set(value=dict_project["export"]["symbol"]["unscored"])
+          booleanvar_correct_symbol.set(value=dict_project["export"]["symbol"]["correct"])
+          booleanvar_partial_symbol.set(value=dict_project["export"]["symbol"]["partial"])
+          booleanvar_hold_symbol.set(value=dict_project["export"]["symbol"]["hold"])
+          booleanvar_incorrect_point.set(value=dict_project["export"]["point"]["incorrect"])
+          booleanvar_unscored_point.set(value=dict_project["export"]["point"]["unscored"])
+          booleanvar_correct_point.set(value=dict_project["export"]["point"]["correct"])
+          booleanvar_partial_point.set(value=dict_project["export"]["point"]["partial"])
+          booleanvar_hold_point.set(value=dict_project["export"]["point"]["hold"])
+          booleanvar_incorrect_point.set(value=dict_project["export"]["point"]["incorrect"])
+          with open("config.json", "w", encoding="utf-8") as f:
+            json.dump(dict_config, f, indent=2)
+          preview_export_picture()
+          return False
+
+
+    with open("config.json", "r", encoding="utf-8") as f:
+      dict_config = json.load(f)
+    dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+    path_dir = dict_project["path_dir"]
+    path_json_answer_area = dict_project["path_dir"] + "/.temp_saiten/answer_area.json"
+    path_file_model_answer = dict_project["path_dir"] + "/.temp_saiten/model_answer/model_answer.png"
+    path_dir_of_answers = dict_project["path_dir"] + "/.temp_saiten/answer"
+    with open(path_json_answer_area, "r", encoding="utf-8") as f:
+      dict_answer_area = json.load(f)
+      
+    self.window.title("書き出し")
+    self.canvas_draw_rectangle = [0, 0, 0, 0]
+
+    frame_main = tkinter.Frame(self.window)
+    frame_main.grid(column=0, row=0)
+
+    frame_btn = tkinter.Frame(frame_main)
+    frame_btn.grid(column=0, row=0)
+    frame_picture = tkinter.Frame(frame_main)
+    frame_picture.grid(column=1, row=0)
+
+    frame_border_frame_btn_symbol = tkinter.Frame(frame_btn, bg="black")
+    frame_border_frame_btn_symbol.grid(column=0, row=0, padx=5, )
+    frame_border_frame_btn_point = tkinter.Frame(frame_btn, bg="black")
+    frame_border_frame_btn_point.grid(column=0, row=1, padx=5, )
+    frame_btn_symbol = tkinter.Frame(frame_border_frame_btn_symbol)
+    frame_btn_symbol.grid(column=0, row=0, padx=3, pady=3)
+    frame_btn_point = tkinter.Frame(frame_border_frame_btn_point)
+    frame_btn_point.grid(column=0, row=0, padx=3, pady=3)
+    frame_btn_other = tkinter.Frame(frame_btn)
+    frame_btn_other.grid(column=0, row=2, padx=3, pady=3)
+
+    label_btn_symbol = tkinter.Label(frame_btn_symbol, text="記号の位置指定")
+    label_btn_symbol.grid(row=0, column=0, columnspan=3, sticky="we")   
+    btn_set_symbol_nw = tkinter.Button(frame_btn_symbol, width=6, text="左上", command=functools.partial(set_position, "symbol", "position", "nw"))
+    btn_set_symbol_nw.grid(column=0, row=1)
+    btn_set_symbol_n  = tkinter.Button(frame_btn_symbol, width=6, text="上", command=functools.partial(set_position, "symbol", "position", "n"))
+    btn_set_symbol_n.grid(column=1, row=1)
+    btn_set_symbol_ne = tkinter.Button(frame_btn_symbol, width=6, text="右上", command=functools.partial(set_position, "symbol", "position", "ne"))
+    btn_set_symbol_ne.grid(column=2, row=1)
+    btn_set_symbol_w  = tkinter.Button(frame_btn_symbol, width=6, text="左", command=functools.partial(set_position, "symbol", "position", "w"))
+    btn_set_symbol_w.grid(column=0, row=2)
+    btn_set_symbol_c  = tkinter.Button(frame_btn_symbol, width=6, text="中央", command=functools.partial(set_position, "symbol", "position", "c"))
+    btn_set_symbol_c.grid(column=1, row=2)
+    btn_set_symbol_e  = tkinter.Button(frame_btn_symbol, width=6, text="右", command=functools.partial(set_position, "symbol", "position", "e"))
+    btn_set_symbol_e.grid(column=2, row=2)
+    btn_set_symbol_sw = tkinter.Button(frame_btn_symbol, width=6, text="左下", command=functools.partial(set_position, "symbol", "position", "sw"))
+    btn_set_symbol_sw.grid(column=0, row=3)
+    btn_set_symbol_s  = tkinter.Button(frame_btn_symbol, width=6, text="下", command=functools.partial(set_position, "symbol", "position", "s"))
+    btn_set_symbol_s.grid(column=1, row=3)
+    btn_set_symbol_se = tkinter.Button(frame_btn_symbol, width=6, text="右下", command=functools.partial(set_position, "symbol", "position", "se"))
+    btn_set_symbol_se.grid(column=2, row=3)
+    label_symbol_x = tkinter.Label(frame_btn_symbol, width=6, text="横位置")
+    label_symbol_x.grid(column=0, row=4)
+    position_symbol_x = tkinter.StringVar()
+    position_symbol_x.set(dict_project["export"]["symbol"]["x"])
+    entry_symbol_x = tkinter.Entry(frame_btn_symbol, width=5, justify=tkinter.CENTER)
+    entry_symbol_x.delete(0, tkinter.END)
+    entry_symbol_x.insert(0, position_symbol_x.get())
+    entry_symbol_x.grid(column=1,  row=4, columnspan=2, sticky="we")
+    label_symbol_move_y = tkinter.Label(frame_btn_symbol, width=6, text="縦位置")
+    label_symbol_move_y.grid(column=0, row=5)
+    position_symbol_y = tkinter.StringVar()
+    position_symbol_y.set(dict_project["export"]["symbol"]["y"])
+    entry_symbol_y = tkinter.Entry(frame_btn_symbol, width=5, justify=tkinter.CENTER)
+    entry_symbol_y.delete(0, tkinter.END)
+    entry_symbol_y.insert(0, position_symbol_y.get())
+    entry_symbol_y.grid(column=1,  row=5, columnspan=2, sticky="we")
+    label_symbol_size = tkinter.Label(frame_btn_symbol, width=6, text="大きさ")
+    label_symbol_size.grid(column=0, row=6)
+    position_symbol_size = tkinter.StringVar()
+    position_symbol_size.set(dict_project["export"]["symbol"]["size"])
+    entry_symbol_size = tkinter.Entry(frame_btn_symbol, width=5, justify=tkinter.CENTER)
+    entry_symbol_size.delete(0, tkinter.END)
+    entry_symbol_size.insert(0, position_symbol_size.get())
+    entry_symbol_size.grid(column=1,  row=6, columnspan=2, sticky="we")
+    booleanvar_unscored_symbol = tkinter.BooleanVar()
+    booleanvar_correct_symbol = tkinter.BooleanVar()
+    booleanvar_partial_symbol = tkinter.BooleanVar()
+    booleanvar_hold_symbol = tkinter.BooleanVar()
+    booleanvar_incorrect_symbol = tkinter.BooleanVar()
+    chackbtn_unscored_symbol = tkinter.Checkbutton(frame_btn_symbol, text="未採点に未を表示", anchor=tkinter.W, variable=booleanvar_unscored_symbol, command=functools.partial(set_position, "symbol", "unscored", None))
+    chackbtn_unscored_symbol.grid(column=0, row=7, columnspan=3, sticky="we", padx=3)
+    chackbtn_correct_symbol = tkinter.Checkbutton(frame_btn_symbol, text="正答に○を表示", anchor=tkinter.W, variable=booleanvar_correct_symbol, command=functools.partial(set_position, "symbol", "correct", None))
+    chackbtn_correct_symbol.grid(column=0, row=8, columnspan=3, sticky="we", padx=3)
+    chackbtn_partial_symbol = tkinter.Checkbutton(frame_btn_symbol, text="部分点に△を表示", anchor=tkinter.W, variable=booleanvar_partial_symbol, command=functools.partial(set_position, "symbol", "partial", None))
+    chackbtn_partial_symbol.grid(column=0, row=9, columnspan=3, sticky="we", padx=3)
+    chackbtn_hold_symbol = tkinter.Checkbutton(frame_btn_symbol, text="保留に？を表示", anchor=tkinter.W, variable=booleanvar_hold_symbol, command=functools.partial(set_position, "symbol", "hold", None))
+    chackbtn_hold_symbol.grid(column=0, row=10, columnspan=3, sticky="we", padx=3)
+    chackbtn_incorrect_symbol = tkinter.Checkbutton(frame_btn_symbol, text="誤答に×を表示", anchor=tkinter.W, variable=booleanvar_incorrect_symbol, command=functools.partial(set_position, "symbol", "incorrect", None))
+    chackbtn_incorrect_symbol.grid(column=0, row=11, columnspan=3, sticky="we", padx=3)
+
+    label_btn_point = tkinter.Label(frame_btn_point, text="点数の位置指定")
+    label_btn_point.grid(row=0, column=0, columnspan=3, sticky="we")   
+    btn_set_point_nw = tkinter.Button(frame_btn_point, width=6, text="左上", command=functools.partial(set_position, "point", "position", "nw"))
+    btn_set_point_nw.grid(column=0, row=1)
+    btn_set_point_n  = tkinter.Button(frame_btn_point, width=6, text="上", command=functools.partial(set_position, "point", "position", "n"))
+    btn_set_point_n.grid(column=1, row=1)
+    btn_set_point_ne = tkinter.Button(frame_btn_point, width=6, text="右上", command=functools.partial(set_position, "point", "position", "ne"))
+    btn_set_point_ne.grid(column=2, row=1)
+    btn_set_point_w  = tkinter.Button(frame_btn_point, width=6, text="左", command=functools.partial(set_position, "point", "position", "w"))
+    btn_set_point_w.grid(column=0, row=2)
+    btn_set_point_c  = tkinter.Button(frame_btn_point, width=6, text="中央", command=functools.partial(set_position, "point", "position", "c"))
+    btn_set_point_c.grid(column=1, row=2)
+    btn_set_point_e  = tkinter.Button(frame_btn_point, width=6, text="右", command=functools.partial(set_position, "point", "position", "e"))
+    btn_set_point_e.grid(column=2, row=2)
+    btn_set_point_sw = tkinter.Button(frame_btn_point, width=6, text="左下", command=functools.partial(set_position, "point", "position", "sw"))
+    btn_set_point_sw.grid(column=0, row=3)
+    btn_set_point_s  = tkinter.Button(frame_btn_point, width=6, text="下", command=functools.partial(set_position, "point", "position", "s"))
+    btn_set_point_s.grid(column=1, row=3)
+    btn_set_point_se = tkinter.Button(frame_btn_point, width=6, text="右下", command=functools.partial(set_position, "point", "position", "se"))
+    btn_set_point_se.grid(column=2, row=3)
+    label_point_x = tkinter.Label(frame_btn_point, width=6, text="横位置")
+    label_point_x.grid(column=0, row=4)
+    position_point_x = tkinter.StringVar()
+    position_point_x.set(dict_project["export"]["point"]["x"])
+    entry_point_x = tkinter.Entry(frame_btn_point, width=5, justify=tkinter.CENTER, validate="key", validatecommand=(self.window.register(set_position), "point", "x", "%P"))
+    entry_point_x.delete(0, tkinter.END)
+    entry_point_x.insert(0, position_point_x.get())
+    entry_point_x.grid(column=1,  row=4, columnspan=2, sticky="we")
+    label_point_move_y = tkinter.Label(frame_btn_point, width=6, text="縦位置")
+    label_point_move_y.grid(column=0, row=5)
+    position_point_y = tkinter.StringVar()
+    position_point_y.set(dict_project["export"]["point"]["y"])
+    entry_point_y = tkinter.Entry(frame_btn_point, width=5, justify=tkinter.CENTER, validate="key", validatecommand=(self.window.register(set_position), "point", "y", "%P"))
+    entry_point_y.delete(0, tkinter.END)
+    entry_point_y.insert(0, position_point_y.get())
+    entry_point_y.grid(column=1,  row=5, columnspan=2, sticky="we")
+    label_point_size = tkinter.Label(frame_btn_point, width=6, text="大きさ")
+    label_point_size.grid(column=0, row=6)
+    position_point_size = tkinter.StringVar()
+    position_point_size.set(dict_project["export"]["point"]["size"])
+    entry_point_size = tkinter.Entry(frame_btn_point, width=5, justify=tkinter.CENTER, validate="key", validatecommand=(self.window.register(set_position), "point", "size", "%P"))
+    entry_point_size.delete(0, tkinter.END)
+    entry_point_size.insert(0, position_point_size.get())
+    entry_point_size.grid(column=1,  row=6, columnspan=2, sticky="we")
+    label_point_size_frame_btn = tkinter.Frame(frame_border_frame_btn_point)
+    label_point_size_frame_btn.grid(column=1, row=6, columnspan=2, sticky="we")
+    booleanvar_unscored_point = tkinter.BooleanVar()
+    booleanvar_correct_point = tkinter.BooleanVar()
+    booleanvar_partial_point = tkinter.BooleanVar()
+    booleanvar_hold_point = tkinter.BooleanVar()
+    booleanvar_incorrect_point = tkinter.BooleanVar()
+    chackbtn_unscored_point = tkinter.Checkbutton(frame_btn_point, text="未採点に0を表示", anchor=tkinter.W, variable=booleanvar_unscored_point, command=functools.partial(set_position, "point", "unscored", None))
+    chackbtn_unscored_point.grid(column=0, row=7, columnspan=3, sticky="we", padx=3)
+    chackbtn_correct_point = tkinter.Checkbutton(frame_btn_point, text="正答に配点を表示", anchor=tkinter.W, variable=booleanvar_correct_point, command=functools.partial(set_position, "point", "correct", None))
+    chackbtn_correct_point.grid(column=0, row=8, columnspan=3, sticky="we", padx=3)
+    chackbtn_partial_point = tkinter.Checkbutton(frame_btn_point, text="部分点に点数を表示", anchor=tkinter.W, variable=booleanvar_partial_point, command=functools.partial(set_position, "point", "partial", None))
+    chackbtn_partial_point.grid(column=0, row=9, columnspan=3, sticky="we", padx=3)
+    chackbtn_hold_point = tkinter.Checkbutton(frame_btn_point, text="保留に点数を表示", anchor=tkinter.W, variable=booleanvar_hold_point, command=functools.partial(set_position, "point", "hold", None))
+    chackbtn_hold_point.grid(column=0, row=10, columnspan=3, sticky="we", padx=3)
+    chackbtn_incorrect_point = tkinter.Checkbutton(frame_btn_point, text="誤答に0を表示", anchor=tkinter.W, variable=booleanvar_incorrect_point, command=functools.partial(set_position, "point", "incorrect", None))
+    chackbtn_incorrect_point.grid(column=0, row=11, columnspan=3, sticky="we", padx=3)
+
+    btn_ex1 = tkinter.Button(frame_btn_other, width=6, text="例1")
+    btn_ex1.grid(column=0, row=0)
+    btn_ex2 = tkinter.Button(frame_btn_other, width=6, text="例2")
+    btn_ex2.grid(column=1, row=0)
+    btn_ex3 = tkinter.Button(frame_btn_other, width=6, text="例3")
+    btn_ex3.grid(column=2, row=0)
+    btn_export_picture = tkinter.Button(frame_btn_other, width=21, text="採点済答案画像の出力", bg="#ffbfbf")
+    btn_export_picture.grid(column=0, row=1, columnspan=3)
+    btn_export_xlsx = tkinter.Button(frame_btn_other, width=21, text="採点結果一覧表(.xlsx)の出力", bg="#bfffbf", command=export_list_xlsx)
+    btn_export_xlsx.grid(column=0, row=2, columnspan=3)
+    btn_help = tkinter.Button(frame_btn_other, width=21, text="ヘルプ", command=nothing_to_do)
+    btn_help.grid(column=0, row=3, columnspan=3)
+    btn_back = tkinter.Button(frame_btn_other, width=21, text="戻る", command=self.this_window_close)
+    btn_back.grid(column=0, row=4, columnspan=3)
+
+    frame_canvas = tkinter.Frame(frame_picture)
+    frame_canvas.pack()
+
+    canvas = tkinter.Canvas(frame_canvas, bg="black", width=567, height=800)
+    canvas.bind("<Control-MouseWheel>", lambda eve:canvas.xview_scroll(int(-eve.delta/120), 'units'))
+    canvas.bind("<MouseWheel>", lambda eve:canvas.yview_scroll(int(-eve.delta/120), 'units'))
+    self.tk_image_model_answer = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
+    canvas.create_image(0, 0, image=self.tk_image_model_answer, anchor="nw")
+    yscrollbar_canvas = tkinter.Scrollbar(frame_canvas, orient=tkinter.VERTICAL, command=canvas.yview)
+    xscrollbar_canvas = tkinter.Scrollbar(frame_canvas, orient=tkinter.HORIZONTAL, command=canvas.xview)
+    yscrollbar_canvas.pack(side="right", fill="y")
+    xscrollbar_canvas.pack(side="bottom", fill="x")
+    canvas.pack()
+    canvas.config(
+      xscrollcommand=xscrollbar_canvas.set,
+      yscrollcommand=yscrollbar_canvas.set,
+      scrollregion=(0, 0, self.tk_image_model_answer.width(), self.tk_image_model_answer.height())
+    )
+    preview_export_picture()
+    
+
 
 class MainFrame(tkinter.Frame):
   def __init__(self, root):
@@ -1443,420 +2261,6 @@ class MainFrame(tkinter.Frame):
         + "再び配点を編集するには, ［配点を入力する］をクリックして下さい. \n"
       )
 
-  def export(self):
-    ### この関数いろいろダメです。信用しないで下さい。
-    def set_style(table_cells: list[list[openpyxl.cell.cell.Cell]], *, internal_border=True, left_side_thin=True, right_side_thin=True) -> None:
-      for index_rows, rows in enumerate(table_cells):
-        for index_column, cell in enumerate(rows):
-          cell.alignment = openpyxl.styles.alignment.Alignment(horizontal="center", vertical="center")
-          cell.font = openpyxl.styles.Font(size=11, name="Meiryo UI")
-          if internal_border: # 内側あり
-            if index_column == 0 and left_side_thin: 
-              cell.border = openpyxl.styles.borders.Border(
-                top=openpyxl.styles.Side(style="thin", color="000000"),
-                bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                left=openpyxl.styles.Side(style="thin", color="000000"),
-                right=openpyxl.styles.Side(style="hair", color="000000")
-              )
-            elif index_column == len(rows) - 1 and right_side_thin:
-                cell.border = openpyxl.styles.borders.Border(
-                  top=openpyxl.styles.Side(style="thin", color="000000"),
-                  bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                  left=openpyxl.styles.Side(style="hair", color="000000"),
-                  right=openpyxl.styles.Side(style="thin", color="000000")
-                )
-            else: 
-              cell.border = openpyxl.styles.borders.Border(
-                top=openpyxl.styles.Side(style="thin", color="000000"),
-                bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                left=openpyxl.styles.Side(style="hair", color="000000"),
-                right=openpyxl.styles.Side(style="hair", color="000000")
-              )
-          else: # 内側なし
-            if index_rows == 0: # 最上行
-              if len(rows) == 1:
-                if left_side_thin: 
-                  if right_side_thin:
-                    cell.border = openpyxl.styles.borders.Border(
-                      top=openpyxl.styles.Side(style="thin", color="000000"),
-                      left=openpyxl.styles.Side(style="thin", color="000000"),
-                      right=openpyxl.styles.Side(style="thin", color="000000")
-                    )
-                  else:
-                    cell.border = openpyxl.styles.borders.Border(
-                      top=openpyxl.styles.Side(style="thin", color="000000"),
-                      left=openpyxl.styles.Side(style="thin", color="000000"),
-                      right=openpyxl.styles.Side(style="hair", color="000000")
-                    )
-                else:
-                  if right_side_thin:
-                    cell.border = openpyxl.styles.borders.Border(
-                      top=openpyxl.styles.Side(style="thin", color="000000"),
-                      left=openpyxl.styles.Side(style="hair", color="000000"),
-                      right=openpyxl.styles.Side(style="thin", color="000000")
-                    )
-                  else:
-                    cell.border = openpyxl.styles.borders.Border(
-                      top=openpyxl.styles.Side(style="thin", color="000000"),
-                      left=openpyxl.styles.Side(style="hair", color="000000"),
-                      right=openpyxl.styles.Side(style="hair", color="000000")
-                    )
-              elif index_column == 0:
-                if left_side_thin: 
-                  cell.border = openpyxl.styles.borders.Border(
-                    top=openpyxl.styles.Side(style="thin", color="000000"),
-                    left=openpyxl.styles.Side(style="thin", color="000000")
-                  )
-                else:
-                  cell.border = openpyxl.styles.borders.Border(
-                    top=openpyxl.styles.Side(style="thin", color="000000"),
-                    left=openpyxl.styles.Side(style="hair", color="000000")
-                  )
-              elif index_column == len(rows) - 1:
-                if right_side_thin: 
-                  cell.border = openpyxl.styles.borders.Border(
-                    top=openpyxl.styles.Side(style="thin", color="000000"),
-                    right=openpyxl.styles.Side(style="thin", color="000000")
-                  )
-                else:
-                  cell.border = openpyxl.styles.borders.Border(
-                    top=openpyxl.styles.Side(style="thin", color="000000"),
-                    right=openpyxl.styles.Side(style="hair", color="000000")
-                  )
-              else:
-                cell.border = openpyxl.styles.borders.Border(
-                  top=openpyxl.styles.Side(style="thin", color="000000")
-                )
-            elif index_rows == len(table_cells) - 1: # 最下行
-              if len(rows) == 1:
-                if left_side_thin: 
-                  if right_side_thin:
-                    cell.border = openpyxl.styles.borders.Border(
-                      bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                      left=openpyxl.styles.Side(style="thin", color="000000"),
-                      right=openpyxl.styles.Side(style="thin", color="000000")
-                    )
-                  else:
-                    cell.border = openpyxl.styles.borders.Border(
-                      bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                      left=openpyxl.styles.Side(style="thin", color="000000"),
-                      right=openpyxl.styles.Side(style="hair", color="000000")
-                    )
-                else:
-                  if right_side_thin:
-                    cell.border = openpyxl.styles.borders.Border(
-                      bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                      left=openpyxl.styles.Side(style="hair", color="000000"),
-                      right=openpyxl.styles.Side(style="thin", color="000000")
-                    )
-                  else:
-                    cell.border = openpyxl.styles.borders.Border(
-                      bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                      left=openpyxl.styles.Side(style="hair", color="000000"),
-                      right=openpyxl.styles.Side(style="hair", color="000000")
-                    )
-              elif index_column == 0:
-                if left_side_thin: 
-                  cell.border = openpyxl.styles.borders.Border(
-                    bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                    left=openpyxl.styles.Side(style="thin", color="000000")
-                  )
-                else:
-                  cell.border = openpyxl.styles.borders.Border(
-                    bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                    left=openpyxl.styles.Side(style="hair", color="000000")
-                  )
-              elif index_column == len(rows) - 1:
-                if right_side_thin: 
-                  cell.border = openpyxl.styles.borders.Border(
-                    bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                    right=openpyxl.styles.Side(style="thin", color="000000")
-                  )
-                else:
-                  cell.border = openpyxl.styles.borders.Border(
-                    bottom=openpyxl.styles.Side(style="thin", color="000000"),
-                    right=openpyxl.styles.Side(style="hair", color="000000")
-                  )
-              else:
-                cell.border = openpyxl.styles.borders.Border(
-                  bottom=openpyxl.styles.Side(style="thin", color="000000")
-                )
-            else: # 中行
-              if len(rows) == 1:
-                if left_side_thin: 
-                  if right_side_thin:
-                    cell.border = openpyxl.styles.borders.Border(
-                      left=openpyxl.styles.Side(style="thin", color="000000"),
-                      right=openpyxl.styles.Side(style="thin", color="000000")
-                    )
-                  else:
-                    cell.border = openpyxl.styles.borders.Border(
-                      left=openpyxl.styles.Side(style="thin", color="000000"),
-                      right=openpyxl.styles.Side(style="hair", color="000000")
-                    )
-                else:
-                  if right_side_thin:
-                    cell.border = openpyxl.styles.borders.Border(
-                      left=openpyxl.styles.Side(style="hair", color="000000"),
-                      right=openpyxl.styles.Side(style="thin", color="000000")
-                    )
-                  else:
-                    cell.border = openpyxl.styles.borders.Border(
-                      left=openpyxl.styles.Side(style="hair", color="000000"),
-                      right=openpyxl.styles.Side(style="hair", color="000000")
-                    )
-              elif index_column == 0:
-                if left_side_thin: 
-                  cell.border = openpyxl.styles.borders.Border(
-                    left=openpyxl.styles.Side(style="thin", color="000000")
-                  )
-                else:
-                  cell.border = openpyxl.styles.borders.Border(
-                    left=openpyxl.styles.Side(style="hair", color="000000")
-                  )
-              elif index_column == len(rows) - 1:
-                if right_side_thin: 
-                  cell.border = openpyxl.styles.borders.Border(
-                    right=openpyxl.styles.Side(style="thin", color="000000")
-                  )
-                else:
-                  cell.border = openpyxl.styles.borders.Border(
-                    right=openpyxl.styles.Side(style="hair", color="000000")
-                  )
-              else:
-                cell.border = openpyxl.styles.borders.Border()
-    
-    with open("config.json", "r", encoding="utf-8") as f:
-      dict_config = json.load(f)
-    dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
-    path_dir = dict_project["path_dir"]
-    with open(path_dir + "/.temp_saiten/answer_area.json", "r", encoding="utf-8") as f:
-      dict_answer_area = json.load(f)
-    with open(path_dir + "/.temp_saiten/load_picture.json", "r", encoding="utf-8") as f:
-      dict_load_picture = json.load(f)
-    with open(path_dir + "/.temp_saiten/meibo.json", "r", encoding="utf-8") as f:
-      list_meibo = json.load(f)
-    
-    workbook_result_scoring = openpyxl.Workbook()
-    workbook_result_scoring.remove(workbook_result_scoring["Sheet"])
-    workbook_result_scoring.create_sheet(title="点数一覧")
-    workbook_result_scoring.create_sheet(title="正誤一覧")
-    list_daimon = list(set([question["daimon"] for question in dict_answer_area["questions"] if question["type"] == "設問"]))
-    list_daimon.sort()
-    list_name_gakunen = list(set([meibo["学年"] for meibo in list_meibo]))
-    list_tuple_gakkyuu = list(set([(meibo["学年"], meibo["学級"]) for meibo in list_meibo]))
-    list_tuple_gakkyuu.sort(key=lambda x:(x[0], x[1]))
-    # workbook_result_scoring["点数一覧"].views.SheetView(showGridLines=False) # 目盛線を非表示
-    # 答案用紙ごとのスコアのリスト
-    list_list_score = [[dict_answer_area["questions"][index_question]["score"][index_answersheet] for index_question in range(len(dict_answer_area["questions"])) if dict_answer_area["questions"][index_question]["type"] == "設問"] for index_answersheet in range(len(list_meibo))]
-    list_tuple_question = [(question["daimon"], question["shomon"], question["shimon"], question["haiten"]) for question in dict_answer_area["questions"] if question["type"] == "設問"]
-    list_list_score_point = []
-    list_list_score_status = []
-    for index_list_score, list_score in enumerate(list_list_score):
-      list_list_score_point.append([])
-      list_list_score_status.append([])
-      for score in list_score:
-        if score["status"] == "unscored":
-          list_list_score_point[-1].append("")
-          list_list_score_status[-1].append(f"-")
-        elif score["status"] == "correct":
-          list_list_score_point[-1].append(list_tuple_question[index_list_score][3])
-          list_list_score_status[-1].append(f"○")
-        elif score["status"] == "partial":
-          list_list_score_point[-1].append(score["point"])
-          list_list_score_status[-1].append(f"△{score['point']}")
-        elif score["status"] == "hold":
-          list_list_score_point[-1].append(score["point"])
-          list_list_score_status[-1].append(f"？{list_tuple_question[index_list_score][3]}")
-        elif score["status"] == "incorrect":
-          list_list_score_point[-1].append(0)
-          list_list_score_status[-1].append(f"×")
-    tuple_rowrange_gakunen = (7, 6 + len(list_name_gakunen))
-    tuple_rowrange_gakkyuu = (7 + len(list_name_gakunen), 6 + len(list_name_gakunen) + len(list_tuple_gakkyuu))
-    tuple_rowrange_meibo = (7 + len(list_name_gakunen) + len(list_tuple_gakkyuu), 6 + len(list_name_gakunen) + len(list_tuple_gakkyuu) + len(list_meibo))
-    tuple_columnrange_goukei = (7, 6 + 1)
-    tuple_columnrange_shoukei = (7 + 1, 6 + 1 + len(list_daimon))
-    tuple_columnrange_question = (7 + 1 + len(list_daimon), 6 + 1 + len(list_daimon) + len([question for question in dict_answer_area["questions"] if question["type"] == "設問"]))
-
-    for sheet in [workbook_result_scoring["点数一覧"], workbook_result_scoring["正誤一覧"]]:
-
-      # 表全体の書式設定 (中央揃え / フォント)
-      set_style(sheet[f"B2:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 4)}{tuple_rowrange_meibo[1]}"])
-      sheet.row_dimensions[1].height = 5 * 3 / 4
-      sheet.column_dimensions["A"].width = 5 / 8
-      sheet.column_dimensions["B"].width = 60 / 8
-      sheet.column_dimensions["C"].width = 60 / 8
-      sheet.column_dimensions["D"].width = 60 / 8
-      sheet.column_dimensions["E"].width = 80 / 8
-      sheet.column_dimensions["F"].width = 80 / 8
-      sheet.freeze_panes = "G7"
-
-      # row: 2-6 
-      ### column B-F
-      sheet["B3"].value = dict_project["name"]
-      sheet["B4"].value = f"採点結果 - {sheet.title}"
-      set_style(sheet["B2:E5"], internal_border=False, right_side_thin=False)
-      for rows in sheet["B2:E5"]:
-        for cell in rows:
-          cell.alignment = openpyxl.styles.Alignment(horizontal="centerContinuous")
-      sheet["F2"].value = "大問"
-      sheet["F3"].value = "小問"
-      sheet["F4"].value = "枝問"
-      sheet["F5"].value = "配点"
-
-      sheet["B6"].value = "学年"
-      sheet["C6"].value = "学級"
-      sheet["D6"].value = "出席番号"
-      sheet["E6"].value = "生徒番号"
-      sheet["F6"].value = "氏名"
-
-      ### column: 合計得点
-      sheet["G2"].value = "合"
-      sheet["G3"].value = "計"
-      if sheet.title == "点数一覧":
-        sheet["G4"].value = "得"
-        sheet["G5"].value = "点"
-      else:
-        sheet["G4"].value = "設問"
-        sheet["G5"].value = "正答数"
-      set_style(sheet[f"G2:G5"], internal_border=False, left_side_thin=False, right_side_thin=False)
-      ### column: 各大問ごとの小計点
-      for index_daimon, daimon in enumerate(list_daimon):
-        sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)].width = 50 / 8
-        sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=2).value = daimon
-        if sheet.title == "点数一覧":
-          sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=3).value = "小"
-          sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=4).value = "計"
-          sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=5).value = "点"
-        else:
-          sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=3).value = "小計"
-          sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=4).value = "設問"
-          sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=5).value = "正答数"
-        set_style(sheet[f"{openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}2:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}5"], internal_border=False, left_side_thin=False, right_side_thin=False)
-      ### column: 各設問の 大問 / 小問 / 枝問 / 配点
-      for index_tuple_question, tuple_question in enumerate(list_tuple_question):
-        sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)].width = 40 / 8
-        sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=2).value = tuple_question[0]
-        sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=3).value = tuple_question[1]
-        sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=4).value = tuple_question[2]
-        sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=5).value = tuple_question[3]
-
-      ### 順位, 生徒番号, 氏名
-      sheet.cell(column=tuple_columnrange_question[1] + 1, row=2).value = "学"
-      sheet.cell(column=tuple_columnrange_question[1] + 1, row=3).value = "年"
-      sheet.cell(column=tuple_columnrange_question[1] + 1, row=4).value = "順"
-      sheet.cell(column=tuple_columnrange_question[1] + 1, row=5).value = "位"
-      sheet.cell(column=tuple_columnrange_question[1] + 2, row=2).value = "学"
-      sheet.cell(column=tuple_columnrange_question[1] + 2, row=3).value = "級"
-      sheet.cell(column=tuple_columnrange_question[1] + 2, row=4).value = "順"
-      sheet.cell(column=tuple_columnrange_question[1] + 2, row=5).value = "位"
-      sheet.cell(column=tuple_columnrange_question[1] + 3, row=6).value = "生徒番号"
-      sheet.cell(column=tuple_columnrange_question[1] + 4, row=6).value = "氏名"
-      sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 1)].width = 30 / 8
-      sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 2)].width = 30 / 8
-      sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 3)].width = 80 / 8
-      sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 4)].width = 80 / 8
-      sheet.column_dimensions[openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1] + 5)].width = 5 / 8
-
-      # row: 学年平均点 / 学年正答率
-      for index_name_gakunen, name_gakunen in enumerate(list_name_gakunen):
-        sheet.cell(row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=2).value = name_gakunen
-        for index_column in [2, 3, 4, 5, 6]:
-          sheet.cell(row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=index_column).alignment = openpyxl.styles.Alignment(horizontal="centerContinuous")
-        if sheet.title == "点数一覧":
-          sheet.cell(row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=3).value = "学年平均点"
-          for index_column in [index_column + 7 for index_column in range(1 + len(list_daimon) + len(list_tuple_question))]:
-            sheet.cell(column=index_column, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = f"=AVERAGEIFS({openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[1]}, $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})"
-            sheet.cell(column=index_column, row=tuple_rowrange_gakunen[0] + index_name_gakunen).number_format = "0.0"
-        else:
-          sheet.cell(row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=3).value = "学年正答率"
-          sheet.cell(column=7, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = f"=AVERAGE(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakunen[0] + index_name_gakunen}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakunen[0] + index_name_gakunen})"
-          sheet.cell(column=7, row=tuple_rowrange_gakunen[0] + index_name_gakunen).number_format = "[=1]1;.000"
-          for index_daimon, daimon in enumerate(list_daimon):
-            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakunen[0] + index_name_gakunen}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakunen[0] + index_name_gakunen}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
-            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_gakunen[0] + index_name_gakunen).number_format = "[=1]1;.000"
-          for index_tuple_question, tuple_question in enumerate(list_tuple_question):
-            sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = f"=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[1]}, \"○\", $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})/COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})"
-            sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakunen[0] + index_name_gakunen).number_format = "[=1]1;.000"
-        sheet.cell(column=tuple_columnrange_question[1] + 1, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
-        sheet.cell(column=tuple_columnrange_question[1] + 2, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
-        sheet.cell(column=tuple_columnrange_question[1] + 3, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
-        sheet.cell(column=tuple_columnrange_question[1] + 4, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = "-"
-
-      # row: 学級平均点 / 学級平均正答数
-      for index_tuple_gakkyuu, tuple_gakkyuu in enumerate(list_tuple_gakkyuu):
-        sheet.cell(row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=2).value = tuple_gakkyuu[0]
-        sheet.cell(row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=3).value = tuple_gakkyuu[1]
-        if sheet.title == "点数一覧":
-          sheet.cell(row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=4).value = "学級平均点"
-        else:
-          sheet.cell(row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=4).value = "学級正答率"
-        for index_column in [3, 4, 5, 6]:
-          sheet.cell(row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=index_column).alignment = openpyxl.styles.Alignment(horizontal="centerContinuous")
-        if sheet.title == "点数一覧":
-          for index_column in [index_column + 7 for index_column in range(1 + len(list_daimon) + len(list_tuple_question))]:
-            sheet.cell(column=index_column, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[0]}:${openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[1]}, $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
-            sheet.cell(column=index_column, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).number_format = "0.0"
-        else:
-          sheet.cell(column=7, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = f"=AVERAGE(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
-          sheet.cell(column=7, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).number_format = "[=1]1;.000"
-          for index_daimon, daimon in enumerate(list_daimon):
-            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
-            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).number_format = "[=1]1;.000"
-          for index_tuple_question, tuple_question in enumerate(list_tuple_question):
-            sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = f"=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[1]}, \"○\", $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})/COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
-            sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).number_format = "[=1]1;.000"
-        sheet.cell(column=tuple_columnrange_question[1] + 1, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
-        sheet.cell(column=tuple_columnrange_question[1] + 2, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
-        sheet.cell(column=tuple_columnrange_question[1] + 3, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
-        sheet.cell(column=tuple_columnrange_question[1] + 4, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu).value = "-"
-
-      # row: 名簿
-      for index_meibo, meibo in enumerate(list_meibo):
-        sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=2).value = meibo["学年"]
-        sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=3).value = meibo["学級"]
-        sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=4).value = meibo["出席番号"]
-        sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=5).value = meibo["生徒番号"]
-        sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=6).value = meibo["氏名"]
-        if sheet.title == "点数一覧":
-          ### column: 合計得点
-          sheet.cell(column=tuple_columnrange_goukei[0], row=tuple_rowrange_meibo[0] + index_meibo).value = f"=SUM({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}${tuple_rowrange_meibo[0] + index_meibo}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}${tuple_rowrange_meibo[0] + index_meibo})"
-          ### column: 各大問ごとの小計点
-          for index_daimon, daimon in enumerate(list_daimon):
-            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_meibo[0] + index_meibo).value = f"=SUMIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_meibo[0] + index_meibo}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_meibo[0] + index_meibo}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
-          ### 各設問
-          for index_tuple_question in range(len(list_tuple_question)):
-            sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_meibo[0] + index_meibo).value = list_list_score_point[index_meibo][index_tuple_question]
-        else:
-          ### column: 合計正答設問数
-          sheet.cell(column=tuple_columnrange_goukei[0], row=tuple_rowrange_meibo[0] + index_meibo).value = f"=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}${tuple_rowrange_meibo[0] + index_meibo}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}${tuple_rowrange_meibo[0] + index_meibo}, \"○\")"
-          ### column: 各大問ごとの小計正答設問数
-          for index_daimon, daimon in enumerate(list_daimon):
-            sheet.cell(column=tuple_columnrange_shoukei[0] + index_daimon, row=tuple_rowrange_meibo[0] + index_meibo).value = f"=COUNTIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_meibo[0] + index_meibo}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_meibo[0] + index_meibo}, \"○\", ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
-          ### 設問
-          for index_tuple_question in range(len(list_tuple_question)):
-            sheet.cell(column=tuple_columnrange_question[0] + index_tuple_question, row=tuple_rowrange_meibo[0] + index_meibo).value = list_list_score_status[index_meibo][index_tuple_question]
-        sheet.cell(column=tuple_columnrange_question[1] + 1, row=tuple_rowrange_meibo[0] + index_meibo).value = f"=COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_meibo[0] + index_meibo}, $G${tuple_rowrange_meibo[0]}:$G${tuple_rowrange_meibo[1]}, \">\"&$G{tuple_rowrange_meibo[0] + index_meibo}) + 1"
-        sheet.cell(column=tuple_columnrange_question[1] + 2, row=tuple_rowrange_meibo[0] + index_meibo).value = f"=COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_meibo[0] + index_meibo}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_meibo[0] + index_meibo}, $G${tuple_rowrange_meibo[0]}:$G${tuple_rowrange_meibo[1]}, \">\"&$G{tuple_rowrange_meibo[0] + index_meibo}) + 1"
-        sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=tuple_columnrange_question[1] + 3).value = meibo["生徒番号"]
-        sheet.cell(row=tuple_rowrange_meibo[0] + index_meibo, column=tuple_columnrange_question[1] + 4).value = meibo["氏名"]
-
-    path_workbook_result_scoring = tkinter.filedialog.asksaveasfile(
-      parent=self.root,
-      title = "採点データを名前を付けて保存",
-      filetypes=[("Excel スプレッドシート", ".xlsx")],
-      defaultextension="xlsx"
-    )
-    try:
-      workbook_result_scoring.save(path_workbook_result_scoring.name)
-    except PermissionError:
-      tkinter.messagebox.showerror(
-        "ファイルを保存できません",
-        "ファイルを保存できませんでした. \n"
-        + "ファイルを開いていませんか？\n"
-        + "Excel を終了して, もう一度お試し下さい. "
-      )
-
   # btn_left: 操作ボタン
   def btn_left(self):
     frame_operate = tkinter.Frame(self)
@@ -1867,7 +2271,7 @@ class MainFrame(tkinter.Frame):
     tkinter.Frame(frame_operate, width=20, height=25).grid(column=0, row=2, columnspan=2)
     tkinter.Button(frame_operate, text="一括採点する", command=self.sub_window.score_answer, width=20, height=2).grid(column=0, row=3, columnspan=2)
     tkinter.Frame(frame_operate, width=20, height=25).grid(column=0, row=4, columnspan=2)
-    tkinter.Button(frame_operate, text="書き出す", command=self.export, width=20, height=2).grid(column=0, row=5, columnspan=2)
+    tkinter.Button(frame_operate, text="書き出す", command=self.sub_window.export, width=20, height=2).grid(column=0, row=5, columnspan=2)
     tkinter.Button(frame_operate, text="終了", command=self.root.destroy, width=20, height=2).grid(column=0, row=6, columnspan=2)  
 
 def menu(root):
