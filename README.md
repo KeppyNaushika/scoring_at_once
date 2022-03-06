@@ -1,5 +1,6 @@
 # scoring_at_once
 一括採点
 
-開発中です. 致命的なバグが含まれている可能性があるため, 実行を推奨しません. 
-AGPL v3.0 ライセンスの下, 利用できます. 
+ダウンロードは https://github.com/KeppyNaushika/scoring_at_once/releases からしていただけます。
+質問は KeppyNaushika@gmail.com へ
+バグ報告は https://github.com/KeppyNaushika/scoring_at_once/issues までお願いします。
