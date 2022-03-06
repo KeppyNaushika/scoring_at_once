@@ -35,6 +35,7 @@ import img2pdf
 import json
 import os
 import subprocess
+import webbrowser
 
 
 def nothing_to_do(*args, **kwargs):
@@ -2455,29 +2456,37 @@ class MainFrame(tkinter.Frame):
     tkinter.Button(frame_operate, text="終了", command=self.root.destroy, width=20, height=2).grid(column=0, row=6, columnspan=2)  
 
 def menu(root):
+  def show_ver():
+    bool_openwebpage = tkinter.messagebox.askyesno(
+      "バージョン情報",
+      "一括採点 ver. a.1.0\n\nリリースページを開いて最新のソフトウェアを確認しますか？"
+    )
+    if bool_openwebpage:
+      webbrowser.open("https://github.com/KeppyNaushika/scoring_at_once/releases")
+
   menu_root = tkinter.Menu(root)
 
   menu_file = tkinter.Menu(menu_root, tearoff=0)
-  menu_file.add_command(label="新しく試験を追加")
-  menu_file.add_command(label="選択中の試験を編集")
-  menu_file.add_command(label="選択中の試験を削除")
-  menu_file.add_separator()
-  menu_file.add_command(label="構成設定をリセット")
-  menu_file.add_separator()
-  menu_file.add_command(label="終了")
+  # menu_file.add_command(label="新しく試験を追加")
+  # menu_file.add_command(label="選択中の試験を編集")
+  # menu_file.add_command(label="選択中の試験を削除")
+  # menu_file.add_separator()
+  # menu_file.add_command(label="構成設定をリセット")
+  # menu_file.add_separator()
+  # menu_file.add_command(label="終了")
 
-  menu_edit = tkinter.Menu(menu_root, tearoff=0)
-  menu_edit.add_command(label="選択中の試験の解答欄の位置を指定")
-  menu_edit.add_command(label="選択中の試験の配点を入力する")
-  menu_edit.add_command(label="選択中の試験の配点を読み込む")
-  menu_edit.add_command(label="選択中の試験を一括採点する")
+  # menu_edit = tkinter.Menu(menu_root, tearoff=0)
+  # menu_edit.add_command(label="選択中の試験の解答欄の位置を指定")
+  # menu_edit.add_command(label="選択中の試験の配点を入力する")
+  # menu_edit.add_command(label="選択中の試験の配点を読み込む")
+  # menu_edit.add_command(label="選択中の試験を一括採点する")
 
   menu_help = tkinter.Menu(menu_root, tearoff=0)
-  menu_help.add_command(label="ヘルプ")
-  menu_help.add_command(label="バージョン情報")
+  # menu_help.add_command(label="ヘルプ")
+  menu_help.add_command(label="バージョン情報", command=show_ver)
   
-  menu_root.add_cascade(label="ファイル", menu=menu_file)
-  menu_root.add_cascade(label="編集", menu=menu_edit)
+  # menu_root.add_cascade(label="ファイル", menu=menu_file)
+  # menu_root.add_cascade(label="編集", menu=menu_edit)
   menu_root.add_cascade(label="ヘルプ", menu=menu_help)
   root.config(menu=menu_root)
 
