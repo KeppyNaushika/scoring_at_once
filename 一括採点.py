@@ -1790,10 +1790,33 @@ class SubWindow:
       self.dict_image_scoring_symbol_resized["tranceparent_partial"] = self.dict_image_scoring_symbol_resized["tranceparent_partial"].convert("RGBA")
       self.dict_image_scoring_symbol_resized["tranceparent_hold"] = self.dict_image_scoring_symbol_resized["tranceparent_hold"].convert("RGBA")
       self.dict_image_scoring_symbol_resized["tranceparent_incorrect"] = self.dict_image_scoring_symbol_resized["tranceparent_incorrect"].convert("RGBA")
+      list_daimon = list(set([question["daimon"] for question in dict_answer_area["questions"]]))
+      list_daimon.remove(None)
+      list_daimon.sort()
+      self.image_suuji = {
+        "0": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/0.png"),
+        "1": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/1.png"),
+        "2": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/2.png"),
+        "3": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/3.png"),
+        "4": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/4.png"),
+        "5": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/5.png"),
+        "6": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/6.png"),
+        "7": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/7.png"),
+        "8": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/8.png"),
+        "9": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/9.png")
+      }
       for index_meibo, meibo in enumerate(list_meibo):
+        dict_shokei = {str(daimon): 0 for daimon in list_daimon}
+        for question in dict_answer_area["questions"]:
+          if question["type"] == "設問":
+            if question["score"][index_meibo]["status"] in ["correct"]:
+              dict_shokei[str(question["daimon"])] += question["haiten"]
+            if question["score"][index_meibo]["status"] in ["partial", "hold"]:
+              dict_shokei[str(question["daimon"])] += question["score"][index_meibo]["point"]
         self.image_answersheet = PIL.Image.open(f"{path_dir_of_answers}/{index_meibo}.png").convert("RGBA")
         for question in dict_answer_area["questions"]:
           if question["type"] == "設問":
+            # symbol
             if dict_project["export"]["symbol"]["position"] == "nw":
               position_x = question["area"][0] + dict_project["export"]["symbol"]["x"]
               position_y = question["area"][1] + dict_project["export"]["symbol"]["y"]
@@ -1835,8 +1858,7 @@ class SubWindow:
             elif question["score"][index_meibo]["status"] == "incorrect" and booleanvar_incorrect_symbol.get():
               self.image_clear.paste(self.dict_image_scoring_symbol_resized["tranceparent_incorrect"], (position_x, position_y))
             self.image_answersheet = PIL.Image.alpha_composite(self.image_answersheet, self.image_clear)
-        for question in dict_answer_area["questions"]:
-          if question["type"] == "設問":
+            # position
             if dict_project["export"]["point"]["position"] == "nw":
               position_x = question["area"][0] + dict_project["export"]["point"]["x"]
               position_y = question["area"][1] + dict_project["export"]["point"]["y"]
@@ -1876,6 +1898,25 @@ class SubWindow:
               PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(question["score"][index_meibo]["point"]), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
             elif question["score"][index_meibo]["status"] == "incorrect" and booleanvar_incorrect_point.get():
               PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(0), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+          elif question["type"] == "小計点":
+            if str(question["daimon"]) in dict_shokei.keys():
+              height_suuji = question["area"][3] - question["area"][1]
+              width_suuji = height_suuji * 3 // 5
+              for index_suuji, suuji in enumerate(str(dict_shokei[str(question["daimon"])])):
+                self.image_clear = PIL.Image.new("RGBA", self.image_answersheet.size, (255, 255, 255, 0))
+                self.image_suuji_resized = self.image_suuji[suuji].resize((width_suuji, height_suuji))
+                self.image_clear.paste(self.image_suuji_resized, (question["area"][0] + int(width_suuji * index_suuji * 0.65), question["area"][1]))
+                self.image_answersheet = PIL.Image.alpha_composite(self.image_answersheet, self.image_clear)
+            pass
+          elif question["type"] == "合計点":
+            height_suuji = question["area"][3] - question["area"][1]
+            width_suuji = height_suuji * 3 // 5
+            goukei = sum([dict_shokei[key] for key in dict_shokei.keys()])
+            for index_suuji, suuji in enumerate(str(goukei)):
+              self.image_clear = PIL.Image.new("RGBA", self.image_answersheet.size, (255, 255, 255, 0))
+              self.image_suuji_resized = self.image_suuji[suuji].resize((width_suuji, height_suuji))
+              self.image_clear.paste(self.image_suuji_resized, (question["area"][0] + int(width_suuji * index_suuji * .65), question["area"][1]))
+              self.image_answersheet = PIL.Image.alpha_composite(self.image_answersheet, self.image_clear)
         self.image_answersheet.save(f"{path_dir}/.temp_saiten/output/{index_meibo}.png")
       
       path_pdf = tkinter.filedialog.asksaveasfile(
