@@ -240,7 +240,7 @@ class SubWindow:
               "position": "c",
               "x": 0,
               "y": 0,
-              "size": 0,
+              "size": 60,
               "unscored": True,
               "correct": True,
               "partial": True,
@@ -251,7 +251,7 @@ class SubWindow:
               "position": "c",
               "x": 0,
               "y": 0,
-              "size": 0,
+              "size": 15,
               "unscored": True,
               "correct": True,
               "partial": True,
@@ -1680,9 +1680,14 @@ class SubWindow:
           json.dump(dict_config, f, indent=2)
         preview_export_picture()
       elif key_property in ["x", "y", "size"]:
+        if position == "-" and key_property in ["x", "y"]:
+          return True
         if position == "":
-          position = "0"
-        if position in [str(i) for i in range(-10000, 10000)]:
+          if key_property in ["x", "y"]:
+            position = "0"
+          else:
+            position = "1"
+        if (key_property in ["x", "y"] and position in [str(i) for i in range(-10000, 10000)]) or (key_property in ["size"] and position in [str(i) for i in range(1, 10000)]):
           if dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property] == int(position):
             return True
           else:
