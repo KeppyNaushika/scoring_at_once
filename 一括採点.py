@@ -2459,7 +2459,7 @@ def menu(root):
   def show_ver():
     bool_openwebpage = tkinter.messagebox.askyesno(
       "バージョン情報",
-      "一括採点 ver. a.1.0\n\nリリースページを開いて最新のソフトウェアを確認しますか？"
+      "一括採点 ver. a.1.1\n\nリリースページを開いて最新のソフトウェアを確認しますか？"
     )
     if bool_openwebpage:
       webbrowser.open("https://github.com/KeppyNaushika/scoring_at_once/releases")
