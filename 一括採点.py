@@ -58,7 +58,7 @@ class SubWindow:
 
   def sub_window_loop(func):
     def inner(self, *args, **kargs):
-      with open("config.json", "r", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       if dict_config["index_projects_in_listbox"] is not None:
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
@@ -97,7 +97,7 @@ class SubWindow:
 
   def check_dir_exist(self):
     self.window.withdraw()
-    with open("config.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
     dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
     name_project: str = dict_project["name"]
@@ -228,7 +228,7 @@ class SubWindow:
         tkinter.messagebox.showwarning("ファイルパスが指定されていません", "模範解答が保存されているファイルパスが指定されていないため, 新しく試験を追加できません. \nファイルパスを指定して下さい. ")
         self.window.lift()
         return
-      with open("config.json", "r", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       dict_config["projects"].append(
         {
@@ -262,17 +262,17 @@ class SubWindow:
         }
       )
       dict_config["index_projects_in_listbox"] = len(dict_config["projects"]) - 1
-      with open("config.json", "w", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
         json.dump(dict_config, f, indent=2)
       if not self.check_dir_exist():
-        with open("config.json", "r", encoding="utf-8") as f:
+        with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
           dict_config = json.load(f)
         dict_config["projects"].pop(len(dict_config["projects"]) - 1)
         if len(dict_config["projects"]) == 0:
           dict_config["index_projects_in_listbox"] = None
         else:
           dict_config["index_projects_in_listbox"] = 0
-        with open("config.json", "w", encoding="utf-8") as f:
+        with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
           json.dump(dict_config, f, indent=2)
         self.window.lift()
         return
@@ -340,7 +340,7 @@ class SubWindow:
         f"試験一覧の［編集］ボタンをクリックして, 試験の設定を確認して下さい. \n\n「解答欄の位置を指定」を終了します. "
       )
       return "break"
-    with open("config.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
 
     dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
@@ -639,7 +639,7 @@ class SubWindow:
       return "break"
     self.parent.winfo_screenwidth()
     self.window.geometry("1600x1000+0+0")
-    with open("config.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
     dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
     path_dir = dict_project["path_dir"]
@@ -750,7 +750,7 @@ class SubWindow:
         self.list_label_entry_score[index_scoring_answersheet].grid(column=1, row=1, sticky="w")
 
     def choose_to_show_frame_canvas_answer(self):
-      with open("config.json", "r", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
       path_dir = dict_project["path_dir"]
@@ -805,7 +805,7 @@ class SubWindow:
         repack_chosen_frame_canvas_answer(self)
 
     def reload_frame_canvas_answer(self, *args, **kwargs):
-      with open("config.json", "r", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
       path_dir = dict_project["path_dir"]
@@ -1291,7 +1291,7 @@ class SubWindow:
                 else:
                   cell.border = openpyxl.styles.borders.Border()
       
-      with open("config.json", "r", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
       path_dir = dict_project["path_dir"]
@@ -1523,7 +1523,7 @@ class SubWindow:
         )
 
     def preview_export_picture():
-      with open("config.json", "r", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
       path_dir = dict_project["path_dir"]
@@ -1666,16 +1666,16 @@ class SubWindow:
             canvas.create_text(position_x, position_y, text=0, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
 
     def set_position(symbol_or_point, key_property, position, *args):
-      with open("config.json", "r", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       if key_property in ["position"]:
         dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property] = position
-        with open("config.json", "w", encoding="utf-8") as f:
+        with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
           json.dump(dict_config, f, indent=2)
         preview_export_picture()
       elif key_property in ["unscored", "correct", "partial", "hold", "incorrect"]:
         dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property] = not dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property]
-        with open("config.json", "w", encoding="utf-8") as f:
+        with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
           json.dump(dict_config, f, indent=2)
         preview_export_picture()
       elif key_property in ["x", "y", "size"]:
@@ -1691,7 +1691,7 @@ class SubWindow:
             return True
           else:
             dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][symbol_or_point][key_property] = int(position)
-            with open("config.json", "w", encoding="utf-8") as f:
+            with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
               json.dump(dict_config, f, indent=2)
             preview_export_picture()
             return True
@@ -1699,7 +1699,7 @@ class SubWindow:
           return False
 
     def set_position_ex1(*args):
-      with open("config.json", "r", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["position"] = "w"
       dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["x"] = 0
@@ -1731,12 +1731,12 @@ class SubWindow:
       entry_point_x.insert(0, 0)
       entry_point_y.insert(0, 0)
       entry_point_size.insert(0, 15)
-      with open("config.json", "w", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
         json.dump(dict_config, f, indent=2)
       preview_export_picture()
 
     def set_position_ex2(*args):
-      with open("config.json", "r", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["position"] = "c"
       dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"]["symbol"]["x"] = 0
@@ -1768,12 +1768,12 @@ class SubWindow:
       entry_point_x.insert(0, -10)
       entry_point_y.insert(0, -10)
       entry_point_size.insert(0, 10)
-      with open("config.json", "w", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
         json.dump(dict_config, f, indent=2)
       preview_export_picture()
 
     def export_pdf():
-      with open("config.json", "r", encoding="utf-8") as f:
+      with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
         dict_config = json.load(f)
       dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
       path_dir = dict_project["path_dir"]
@@ -1933,7 +1933,7 @@ class SubWindow:
         with open(path_pdf.name, "wb") as f:
           f.write(img2pdf.convert([PIL.Image.open(f"{path_dir}/.temp_saiten/output/{index_meibo}.png").filename for index_meibo, meibo in enumerate(list_meibo)]))
 
-    with open("config.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
     dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
     path_dir = dict_project["path_dir"]
@@ -2165,10 +2165,10 @@ class MainFrame(tkinter.Frame):
     tkinter.Button(frame_listbox_footer, text="下へ", width=10, height=1, command=self.down_project).grid(column=4, row=0)
 
   def write_index_to_config(self, index_projects_in_listbox):
-    with open("config.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
     dict_config["index_projects_in_listbox"] = index_projects_in_listbox
-    with open("config.json", "w", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
       json.dump(dict_config, f, indent=2)
 
   def selected_element_in_listbox(self, event):
@@ -2180,7 +2180,7 @@ class MainFrame(tkinter.Frame):
     if parent is not None:
       self = parent
     self.listbox_projects.delete(0, tkinter.END)
-    with open("config.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
     if len(dict_config["projects"]) == 0:
       self.listbox_projects.insert(0, "［追加］をクリックして新しく試験を追加して下さい")
@@ -2193,7 +2193,7 @@ class MainFrame(tkinter.Frame):
       self.listbox_projects.select_set(index_projects_in_listbox)
   
   def del_project(self):
-    with open("config.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
     index_projects_in_listbox = dict_config["index_projects_in_listbox"]
     if index_projects_in_listbox is None:
@@ -2211,14 +2211,14 @@ class MainFrame(tkinter.Frame):
         + f"本当に試験を削除しますか？"
       )
       if bool_del_project:
-        with open("config.json", "r", encoding="utf-8") as f:
+        with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
           dict_config = json.load(f)
         dict_config["projects"].pop(index_projects_in_listbox)
         if len(dict_config["projects"]) == 0:
           dict_config["index_projects_in_listbox"] = None
         else:
           dict_config["index_projects_in_listbox"] = 0
-        with open("config.json", "w", encoding="utf-8") as f:
+        with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
           json.dump(dict_config, f, indent=2)
         self.load_listbox_projects()
   
@@ -2238,7 +2238,7 @@ class MainFrame(tkinter.Frame):
       + "作成には数十秒かかる場合があります. \n"
       + "自動的に Excel が起動するまで操作しないで下さい. "
     )
-    with open("config.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
     dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
     path_dir = dict_project["path_dir"]
@@ -2435,7 +2435,7 @@ class MainFrame(tkinter.Frame):
       os.startfile(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx")
 
   def read_xlsx(self):
-    with open("config.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
     dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
     path_dir = dict_project["path_dir"]
@@ -2540,12 +2540,12 @@ def make_config():
     "index_projects_in_listbox": None,
     "projects": []
   }
-  with open("config.json", "w", encoding="utf-8") as f:
+  with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
     json.dump(dict_config, f, indent=2)
 
 def check_on_run():
   try:
-    with open("config.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
     return True
   except FileNotFoundError:
