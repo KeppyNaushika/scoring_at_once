@@ -679,89 +679,6 @@ class SubWindow:
     frame_bar_bottom = tkinter.Frame(frame_btn_operate, height=5, background="#bfbfbf")
     frame_bar_bottom.grid(column=0, row=2, sticky="we")
 
-    frame_label_btn_scoring = tkinter.Label(frame_btn_scoring, width=12, text="採点する：")
-    frame_border_btn_scoring_unscored = tkinter.Frame(frame_btn_scoring, background="gray")
-    frame_border_btn_scoring_correct = tkinter.Frame(frame_btn_scoring, background="green")
-    frame_border_btn_scoring_partial = tkinter.Frame(frame_btn_scoring, background="orange")
-    frame_border_btn_scoring_hold = tkinter.Frame(frame_btn_scoring, background="blue")
-    frame_border_btn_scoring_incorrect = tkinter.Frame(frame_btn_scoring, background="red")
-    frame_label_btn_scoring.grid(column=0, row=0)
-    frame_border_btn_scoring_unscored.grid(column=1, row=0)
-    frame_border_btn_scoring_correct.grid(column=2, row=0)
-    frame_border_btn_scoring_partial.grid(column=3, row=0)
-    frame_border_btn_scoring_hold.grid(column=4, row=0)
-    frame_border_btn_scoring_incorrect.grid(column=5, row=0)
-    btn_scoring_unscored = tkinter.Button(frame_border_btn_scoring_unscored, width=15, text="未採点 (Q) ")
-    btn_scoring_correct = tkinter.Button(frame_border_btn_scoring_correct, width=15, text="正答 (E) ")
-    btn_scoring_partial = tkinter.Button(frame_border_btn_scoring_partial, width=15, text="部分点 (F) ")
-    btn_scoring_hold = tkinter.Button(frame_border_btn_scoring_hold, width=15, text="保留 (J) ")
-    btn_scoring_incorrect = tkinter.Button(frame_border_btn_scoring_incorrect, width=15, text="誤答 (O) ")
-    btn_scoring_unscored.pack(padx=4, pady=4)
-    btn_scoring_correct.pack(padx=4, pady=4)
-    btn_scoring_partial.pack(padx=4, pady=4)
-    btn_scoring_hold.pack(padx=4, pady=4)
-    btn_scoring_incorrect.pack(padx=4, pady=4)
-
-    frame_bar = tkinter.Frame(frame_btn_scoring, height=5, background="#bfbfbf")
-    frame_bar.grid(column=0, row=1, columnspan=6, sticky="we")
-    
-    self.booleanVar_checkbutton_show = {
-      "unscored": tkinter.BooleanVar(value=True),
-      "correct": tkinter.BooleanVar(value=False),
-      "partial": tkinter.BooleanVar(value=False),
-      "hold": tkinter.BooleanVar(value=False),
-      "incorrect": tkinter.BooleanVar(value=False),
-    }
-    frame_label_checkbotton_show = tkinter.Label(frame_btn_scoring, width=12, text="表示する\n答案を選択：")
-    frame_border_checkbutton_show_unscored = tkinter.Frame(frame_btn_scoring, background="gray")
-    frame_border_checkbutton_show_correct = tkinter.Frame(frame_btn_scoring, background="green")
-    frame_border_checkbutton_show_partial = tkinter.Frame(frame_btn_scoring, background="orange")
-    frame_border_checkbutton_show_hold = tkinter.Frame(frame_btn_scoring, background="blue")
-    frame_border_checkbutton_show_incorrect = tkinter.Frame(frame_btn_scoring, background="red")
-    frame_label_checkbotton_show.grid(column=0, row=2, sticky="we")
-    frame_border_checkbutton_show_unscored.grid(column=1, row=2, sticky="we")
-    frame_border_checkbutton_show_correct.grid(column=2, row=2, sticky="we")
-    frame_border_checkbutton_show_partial.grid(column=3, row=2, sticky="we")
-    frame_border_checkbutton_show_hold.grid(column=4, row=2, sticky="we")
-    frame_border_checkbutton_show_incorrect.grid(column=5, row=2, sticky="we")
-    checkbutton_show_unscored = tkinter.Checkbutton(
-      frame_border_checkbutton_show_unscored, 
-      width=12, 
-      text="未採点 (Ctrl + Q) ",
-      variable=self.booleanVar_checkbutton_show["unscored"]
-    )
-    checkbutton_show_correct = tkinter.Checkbutton(
-      frame_border_checkbutton_show_correct, 
-      width=12, 
-      text="正答 (Ctrl + E) ",
-      variable=self.booleanVar_checkbutton_show["correct"]
-    )
-    checkbutton_show_partial = tkinter.Checkbutton(
-      frame_border_checkbutton_show_partial, 
-      width=12, 
-      text="部分点 (Ctrl + F) ",
-      variable=self.booleanVar_checkbutton_show["partial"]
-    )
-    checkbutton_show_hold = tkinter.Checkbutton(
-      frame_border_checkbutton_show_hold, 
-      width=12, 
-      text="保留 (Ctrl + J) ",
-      variable=self.booleanVar_checkbutton_show["hold"]
-    )
-    checkbutton_show_incorrect = tkinter.Checkbutton(
-      frame_border_checkbutton_show_incorrect, 
-      width=12, 
-      text="誤答 (Ctrl + O) ",
-      variable=self.booleanVar_checkbutton_show["incorrect"]
-    )
-    checkbutton_show_unscored.pack(padx=4, pady=4)
-    checkbutton_show_correct.pack(padx=4, pady=4)
-    checkbutton_show_partial.pack(padx=4, pady=4)
-    checkbutton_show_hold.pack(padx=4, pady=4)
-    checkbutton_show_incorrect.pack(padx=4, pady=4)
-    checkbutton_show_unscored.pack(padx=4, pady=4)
-
-
     self.scoring_model_images = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
     # self.list_path_file_answer = []
     self.list_scoring_images = []
@@ -1002,7 +919,7 @@ class SubWindow:
           self.index_selected_relation_table_position_to_index_answersheet = 0
           repack_chosen_frame_canvas_answer(self)
 
-    def score_selected_question_answersheet(value: str, event):
+    def score_selected_question_answersheet(value: str, *args):
       self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[self.index_pages_relation_table_position_to_index_answersheet][self.index_selected_relation_table_position_to_index_answersheet][1]
       if self.index_selected_scoring_answersheet is not None:
         with open(path_json_answer_area, "r", encoding="utf-8") as f:
@@ -1027,6 +944,88 @@ class SubWindow:
           move_selected_question_answersheet("next")
         else:
           repack_chosen_frame_canvas_answer(self)
+
+    frame_label_btn_scoring = tkinter.Label(frame_btn_scoring, width=12, text="採点する：")
+    frame_border_btn_scoring_unscored = tkinter.Frame(frame_btn_scoring, background="gray")
+    frame_border_btn_scoring_correct = tkinter.Frame(frame_btn_scoring, background="green")
+    frame_border_btn_scoring_partial = tkinter.Frame(frame_btn_scoring, background="orange")
+    frame_border_btn_scoring_hold = tkinter.Frame(frame_btn_scoring, background="blue")
+    frame_border_btn_scoring_incorrect = tkinter.Frame(frame_btn_scoring, background="red")
+    frame_label_btn_scoring.grid(column=0, row=0)
+    frame_border_btn_scoring_unscored.grid(column=1, row=0)
+    frame_border_btn_scoring_correct.grid(column=2, row=0)
+    frame_border_btn_scoring_partial.grid(column=3, row=0)
+    frame_border_btn_scoring_hold.grid(column=4, row=0)
+    frame_border_btn_scoring_incorrect.grid(column=5, row=0)
+    btn_scoring_unscored = tkinter.Button(frame_border_btn_scoring_unscored, width=15, text="未採点 (Q) ", command=functools.partial(score_selected_question_answersheet, "unscored"))
+    btn_scoring_correct = tkinter.Button(frame_border_btn_scoring_correct, width=15, text="正答 (E) ", command=functools.partial(score_selected_question_answersheet, "correct"))
+    btn_scoring_partial = tkinter.Button(frame_border_btn_scoring_partial, width=15, text="部分点 (F) ", command=functools.partial(score_selected_question_answersheet, "partial"))
+    btn_scoring_hold = tkinter.Button(frame_border_btn_scoring_hold, width=15, text="保留 (J) ", command=functools.partial(score_selected_question_answersheet, "hold"))
+    btn_scoring_incorrect = tkinter.Button(frame_border_btn_scoring_incorrect, width=15, text="誤答 (O) ", command=functools.partial(score_selected_question_answersheet, "incorrect"))
+    btn_scoring_unscored.pack(padx=4, pady=4)
+    btn_scoring_correct.pack(padx=4, pady=4)
+    btn_scoring_partial.pack(padx=4, pady=4)
+    btn_scoring_hold.pack(padx=4, pady=4)
+    btn_scoring_incorrect.pack(padx=4, pady=4)
+
+    frame_bar = tkinter.Frame(frame_btn_scoring, height=5, background="#bfbfbf")
+    frame_bar.grid(column=0, row=1, columnspan=6, sticky="we")
+    
+    self.booleanVar_checkbutton_show = {
+      "unscored": tkinter.BooleanVar(value=True),
+      "correct": tkinter.BooleanVar(value=False),
+      "partial": tkinter.BooleanVar(value=False),
+      "hold": tkinter.BooleanVar(value=False),
+      "incorrect": tkinter.BooleanVar(value=False),
+    }
+    frame_label_checkbotton_show = tkinter.Label(frame_btn_scoring, width=12, text="表示する\n答案を選択：")
+    frame_border_checkbutton_show_unscored = tkinter.Frame(frame_btn_scoring, background="gray")
+    frame_border_checkbutton_show_correct = tkinter.Frame(frame_btn_scoring, background="green")
+    frame_border_checkbutton_show_partial = tkinter.Frame(frame_btn_scoring, background="orange")
+    frame_border_checkbutton_show_hold = tkinter.Frame(frame_btn_scoring, background="blue")
+    frame_border_checkbutton_show_incorrect = tkinter.Frame(frame_btn_scoring, background="red")
+    frame_label_checkbotton_show.grid(column=0, row=2, sticky="we")
+    frame_border_checkbutton_show_unscored.grid(column=1, row=2, sticky="we")
+    frame_border_checkbutton_show_correct.grid(column=2, row=2, sticky="we")
+    frame_border_checkbutton_show_partial.grid(column=3, row=2, sticky="we")
+    frame_border_checkbutton_show_hold.grid(column=4, row=2, sticky="we")
+    frame_border_checkbutton_show_incorrect.grid(column=5, row=2, sticky="we")
+    checkbutton_show_unscored = tkinter.Checkbutton(
+      frame_border_checkbutton_show_unscored, 
+      width=12, 
+      text="未採点 (Ctrl + Q) ",
+      variable=self.booleanVar_checkbutton_show["unscored"]
+    )
+    checkbutton_show_correct = tkinter.Checkbutton(
+      frame_border_checkbutton_show_correct, 
+      width=12, 
+      text="正答 (Ctrl + E) ",
+      variable=self.booleanVar_checkbutton_show["correct"]
+    )
+    checkbutton_show_partial = tkinter.Checkbutton(
+      frame_border_checkbutton_show_partial, 
+      width=12, 
+      text="部分点 (Ctrl + F) ",
+      variable=self.booleanVar_checkbutton_show["partial"]
+    )
+    checkbutton_show_hold = tkinter.Checkbutton(
+      frame_border_checkbutton_show_hold, 
+      width=12, 
+      text="保留 (Ctrl + J) ",
+      variable=self.booleanVar_checkbutton_show["hold"]
+    )
+    checkbutton_show_incorrect = tkinter.Checkbutton(
+      frame_border_checkbutton_show_incorrect, 
+      width=12, 
+      text="誤答 (Ctrl + O) ",
+      variable=self.booleanVar_checkbutton_show["incorrect"]
+    )
+    checkbutton_show_unscored.pack(padx=4, pady=4)
+    checkbutton_show_correct.pack(padx=4, pady=4)
+    checkbutton_show_partial.pack(padx=4, pady=4)
+    checkbutton_show_hold.pack(padx=4, pady=4)
+    checkbutton_show_incorrect.pack(padx=4, pady=4)
+    checkbutton_show_unscored.pack(padx=4, pady=4)
 
     frame_border_btn_reload_answer = tkinter.Frame(frame_btn_scoring, background="cyan")
     frame_border_btn_reload_answer.grid(column=6, row=0)
@@ -2505,7 +2504,7 @@ def menu(root):
   def show_ver():
     bool_openwebpage = tkinter.messagebox.askyesno(
       "バージョン情報",
-      "一括採点 ver. a.1.1\n\nリリースページを開いて最新のソフトウェアを確認しますか？"
+      "一括採点 ver. a.2.0\n\nリリースページを開いて最新のソフトウェアを確認しますか？"
     )
     if bool_openwebpage:
       webbrowser.open("https://github.com/KeppyNaushika/scoring_at_once/releases")
