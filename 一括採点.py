@@ -37,6 +37,12 @@ import os
 import subprocess
 import webbrowser
 
+if os.name == "nt":
+  FONTNAME = "Meiryo UI"
+  FONTFILE = "meiryo.ttc"
+elif os.name == "posix":
+  FONTNAME = None
+  FONTFILE = None
 
 def nothing_to_do(*args, **kwargs):
   tkinter.messagebox.showinfo(
@@ -1893,15 +1899,15 @@ class SubWindow:
             position_x -= dict_project["export"]["point"]["size"] // 2
             position_y -= dict_project["export"]["point"]["size"] // 2
             if question["score"][index_meibo]["status"] == "unscored" and booleanvar_unscored_point.get():
-              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(0), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(0), fill="red", font=PIL.ImageFont.truetype(FONTFILE, size=dict_project["export"]["point"]["size"]))
             elif question["score"][index_meibo]["status"] == "correct" and booleanvar_correct_point.get():
-              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(question["haiten"]), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(question["haiten"]), fill="red", font=PIL.ImageFont.truetype(FONTFILE, size=dict_project["export"]["point"]["size"]))
             elif question["score"][index_meibo]["status"] == "partial" and booleanvar_partial_point.get():
-              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(question["score"][index_meibo]["point"]), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(question["score"][index_meibo]["point"]), fill="red", font=PIL.ImageFont.truetype(FONTFILE, size=dict_project["export"]["point"]["size"]))
             elif question["score"][index_meibo]["status"] == "hold" and booleanvar_hold_point.get():
-              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(question["score"][index_meibo]["point"]), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(question["score"][index_meibo]["point"]), fill="red", font=PIL.ImageFont.truetype(FONTFILE, size=dict_project["export"]["point"]["size"]))
             elif question["score"][index_meibo]["status"] == "incorrect" and booleanvar_incorrect_point.get():
-              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(0), fill="red", font=PIL.ImageFont.truetype("meiryo.ttc", size=dict_project["export"]["point"]["size"]))
+              PIL.ImageDraw.Draw(self.image_answersheet).text((position_x, position_y), str(0), fill="red", font=PIL.ImageFont.truetype(FONTFILE, size=dict_project["export"]["point"]["size"]))
           elif question["type"] == "小計点":
             if str(question["daimon"]) in dict_shokei.keys():
               height_suuji = question["area"][3] - question["area"][1]
