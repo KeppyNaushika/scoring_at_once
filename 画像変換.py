@@ -11,7 +11,7 @@ import pdf2image
 import time
 
 def main():
-  print(f"画像変換 for 一括採点 ver a.2.0\n\nCtrl+C で終了します\n")
+  print(f"画像変換 for 一括採点 ver b.1.0\n\nCtrl+C で終了します\n")
 
   dict_length = {
     "A3": {
