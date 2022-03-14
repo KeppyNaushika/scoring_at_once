@@ -115,7 +115,7 @@ def main():
 
   if len(list_size) == 1:
     list_output_image = list_image
-    str_composite = 1
+    str_composite = "1"
   else:
     str_composite = None
     while str_composite not in ["1", "2", "3", "4"]:
