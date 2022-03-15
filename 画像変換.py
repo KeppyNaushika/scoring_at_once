@@ -8,10 +8,11 @@ import PIL.Image
 import glob
 import os
 import pdf2image
+import sys
 import time
 
 def main():
-  print(f"画像変換 for 一括採点 ver b.1.0\n\nCtrl+C で終了します\n")
+  print(f"画像変換 ver b.1.2 for 一括採点\n\nCtrl+C で終了します")
 
   dict_length = {
     "A3": {
@@ -51,14 +52,14 @@ def main():
   # select mode
   str_input = None
   while str_input not in ["1", "2"]:
-    print(f"＝＝＝＝＝＝＝＝＝＝")
+    print(f"\n＝＝＝＝＝＝＝＝＝＝")
     print(f"変換モードを指定します")
     print(f"｜1: 指定する1つの PDF ファイルを読み込みます")
     print(f"｜2: 指定するフォルダ内に含まれる全ての画像ファイルを読み込みます")
     str_input = input(f"(1/2) >>> ")
 
   # input files
-  print(f"＝＝＝＝＝＝＝＝＝＝")
+  print(f"\n＝＝＝＝＝＝＝＝＝＝")
   if str_input == "1":
     print(f"変換元のファイルを指定します")
     path_pdf = tkinter.filedialog.askopenfilename(
@@ -68,10 +69,14 @@ def main():
     )
     if path_pdf in [None, ""]:
       print(f"ファイルが指定されませんでした")
-      input(f"Enter キーを押して終了します >>> ")
-      return
+      return False
     print(f"ファイル: {path_pdf}")
-    list_image = pdf2image.convert_from_path(path_pdf, poppler_path=f"{os.path.dirname(__file__)}/poppler-22.01.0/Library/bin")
+    sys.stdout.write(f"ファイルを読み込んでいます。PC の性能と PDF ファイルの状態によっては、数分かかる場合があります...")
+    sys.stdout.flush()
+    list_image = pdf2image.convert_from_path(path_pdf, poppler_path=f"{os.path.dirname(__file__)}/poppler-22.01.0/Library/bin", thread_count=4)
+    sys.stdout.write(f"\rファイルを読み込みが完了しました                                                                \r")
+    sys.stdout.flush()
+
 
   else:
     print(f"変換元のファイルが保存されているフォルダを指定します")
@@ -80,14 +85,17 @@ def main():
     )
     if path_input_dir in [None, ""]:
       print(f"ファイルが指定されませんでした")
-      input(f"Enter キーを押して終了します >>> ")
-      return
+      return False
     print(f"フォルダ: {path_input_dir}")
+    sys.stdout.write(f"ファイルを読み込んでいます。PC の性能と PDF ファイルの状態によっては、数分かかる場合があります...")
+    sys.stdout.flush()
     list_image = [PIL.Image.open(path_file) for path_file in glob.glob(path_input_dir + "/*") if os.path.splitext(path_file)[1] in [".jpeg", ".jpg", ".png"]]
-  print(f"{len(list_image)} 枚の画像を読み込みました\n")
-  print(f"＝＝＝＝＝＝＝＝＝＝")
+    sys.stdout.write(f"\rファイルを読み込みが完了しました                                                                \r")
+    sys.stdout.flush()
+  print(f"\n{len(list_image)} 枚の画像を読み込みました")
 
   # set pages
+  print(f"\n＝＝＝＝＝＝＝＝＝＝")
   str_pages = None
   while str_pages not in [str(i+1) for i in range(10)]:
     print(f"連続する答案の枚数を指定します")
@@ -111,10 +119,10 @@ def main():
       list_size.append((dict_length[str_size]["width"], dict_length[str_size]["height"]))
     else:
       list_size.append((dict_length[str_size]["height"], dict_length[str_size]["width"]))
-    print(f"{index_page + 1}枚目の向きを{str_orient}に指定しました\n")
+    print(f"{index_page + 1}枚目の向きを{str_orient}に指定しました")
 
   if len(list_size) == 1:
-    list_output_image = list_image
+    str_composite = "1"
   else:
     str_composite = None
     while str_composite not in ["1", "2", "3", "4"]:
@@ -123,15 +131,14 @@ def main():
       str_composite = input(f"(1 - 4) >>> ")
   
   # 書き出し
-  print(f"＝＝＝＝＝＝＝＝＝＝")
+  print(f"\n＝＝＝＝＝＝＝＝＝＝")
   print(f"出力先のフォルダを指定します")
   path_output_dir = tkinter.filedialog.askdirectory(
     title="出力先のフォルダを指定します"
   )
-  if not isinstance(path_output_dir, str):
+  if path_output_dir in [None, ""]:
     print(f"フォルダが指定されませんでした")
-    input(f"Enter キーを押して終了します >>> ")
-    return
+    return False
   print(f"フォルダ: {path_output_dir}")
   time.sleep(1)
   print(f"")
@@ -142,7 +149,13 @@ def main():
         image_new = PIL.Image.new("RGB", (sum([size[0] for size in list_size]), max([size[1] for size in list_size])), (255, 255, 255, 0))
       elif str_composite in ["2", "4"]:
         image_new = PIL.Image.new("RGB", (max([size[0] for size in list_size]), sum([size[1] for size in list_size])), (255, 255, 255, 0))
-    image_resized = image.resize((list_size[index_image % int(str_pages)][0], list_size[index_image % int(str_pages)][1]))
+    try:
+      image_resized = image.resize((list_size[index_image % int(str_pages)][0], list_size[index_image % int(str_pages)][1]))
+    except OSError:
+      print(f"\nファイルの保存に関するエラーが発生しました")
+      print(f"保存するファイルに書き込み権限が存在しない可能性があります")
+      print(f"別のフォルダを指定して下さい")
+      return False
     if str_composite in ["1"]:
       image_new.paste(image_resized, (sum([size[0] for size in list_size[:index_image % int(str_pages)]]), 0))
     elif str_composite in ["2"]:
@@ -154,10 +167,13 @@ def main():
     if index_image % int(str_pages) == int(str_pages) - 1:
       image_new.save(f"{path_output_dir}/{index_save}.png")
       index_save += 1
-      print(f"\033[1A{index_save} 枚の画像を出力しました")
-  print(f"正常に終了しました")
-  time.sleep(1)
-  input(f"Enter キーを押して終了します...")  
+      sys.stdout.write(f"\r{index_save}枚 / {len(list_image)}枚の画像を出力しました")
+      sys.stdout.flush()
+  return True
 
 if __name__ == "__main__":
-  main()
+  bool_return = main()
+  if bool_return:
+    print(f"\n正常に終了しました")
+  time.sleep(1)
+  input(f"Enter キーを押して終了します...")  
