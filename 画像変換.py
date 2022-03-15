@@ -176,4 +176,4 @@ if __name__ == "__main__":
   if bool_return:
     print(f"\n正常に終了しました")
   time.sleep(1)
-  input(f"Enter キーを押して終了します...")  
+  input(f"Enter キーを押して終了します...")
