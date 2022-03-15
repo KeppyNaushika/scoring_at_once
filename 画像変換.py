@@ -73,7 +73,7 @@ def main():
     print(f"ファイル: {path_pdf}")
     sys.stdout.write(f"ファイルを読み込んでいます。PC の性能と PDF ファイルの状態によっては、数分かかる場合があります...")
     sys.stdout.flush()
-    list_image = pdf2image.convert_from_path(path_pdf, poppler_path=f"{os.path.dirname(__file__)}/poppler-22.01.0/Library/bin")
+    list_image = pdf2image.convert_from_path(path_pdf, poppler_path=f"{os.path.dirname(__file__)}/poppler-22.01.0/Library/bin", thread_count=4)
     sys.stdout.write(f"\rファイルを読み込みが完了しました                                                                \r")
     sys.stdout.flush()
 
