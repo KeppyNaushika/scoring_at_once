@@ -1778,7 +1778,16 @@ class SubWindow:
       dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
       path_dir = dict_project["path_dir"]
       path_json_answer_area = dict_project["path_dir"] + "/.temp_saiten/answer_area.json"
-      path_json_meibo = dict_project["path_dir"] + "/.temp_saiten/meibo.json"
+      try:
+        path_json_meibo = dict_project["path_dir"] + "/.temp_saiten/meibo.json"
+      except FileNotFoundError:
+        tkinter.messagebox.showerror(
+          "名簿ファイルが存在しません", 
+          f"名簿ファイルが存在しないため, 採点済答案画像を出力できません. \n"
+          + f"配点や名簿を指定しない場合でも, "
+          + f"［配点を入力する］をクリックして Excel ファイルを作成し, 何も入力せず閉じて, "
+          + f"［配点を読み込む］をクリックして空の名簿を作成してからもう一度お試し下さい. "
+        )
       path_file_model_answer = dict_project["path_dir"] + "/.temp_saiten/model_answer/model_answer.png"
       path_dir_of_answers = dict_project["path_dir"] + "/.temp_saiten/answer"
       with open(path_json_answer_area, "r", encoding="utf-8") as f:
@@ -1911,7 +1920,6 @@ class SubWindow:
                 self.image_suuji_resized = self.image_suuji[suuji].resize((width_suuji, height_suuji))
                 self.image_clear.paste(self.image_suuji_resized, (question["area"][0] + int(width_suuji * index_suuji * 0.65), question["area"][1]))
                 self.image_answersheet = PIL.Image.alpha_composite(self.image_answersheet, self.image_clear)
-            pass
           elif question["type"] == "合計点":
             height_suuji = question["area"][3] - question["area"][1]
             width_suuji = height_suuji * 3 // 5
@@ -1929,9 +1937,17 @@ class SubWindow:
         filetypes=[("PDF ドキュメント", ".pdf")],
         defaultextension="pdf"
       )
-      if path_pdf is not None:
-        with open(path_pdf.name, "wb") as f:
-          f.write(img2pdf.convert([PIL.Image.open(f"{path_dir}/.temp_saiten/output/{index_meibo}.png").filename for index_meibo, meibo in enumerate(list_meibo)]))
+      if path_pdf not in [None, ""]:
+        try:
+          with open(path_pdf.name, "wb") as f:
+            f.write(img2pdf.convert([PIL.Image.open(f"{path_dir}/.temp_saiten/output/{index_meibo}.png").filename for index_meibo, meibo in enumerate(list_meibo)]))
+        except PermissionError:
+          tkinter.messagebox.showerror(
+            "ファイルを保存できません",
+            "ファイルを保存できませんでした. \n"
+            + "既にファイルを開いていませんか？\n"
+            + "ファイルを閉じて, もう一度お試し下さい. "
+          )
 
     with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
