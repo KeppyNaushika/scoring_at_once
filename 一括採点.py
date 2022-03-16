@@ -1778,22 +1778,24 @@ class SubWindow:
       dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
       path_dir = dict_project["path_dir"]
       path_json_answer_area = dict_project["path_dir"] + "/.temp_saiten/answer_area.json"
-      try:
-        path_json_meibo = dict_project["path_dir"] + "/.temp_saiten/meibo.json"
-      except FileNotFoundError:
-        tkinter.messagebox.showerror(
-          "名簿ファイルが存在しません", 
-          f"名簿ファイルが存在しないため, 採点済答案画像を出力できません. \n"
-          + f"配点や名簿を指定しない場合でも, "
-          + f"［配点を入力する］をクリックして Excel ファイルを作成し, 何も入力せず閉じて, "
-          + f"［配点を読み込む］をクリックして空の名簿を作成してからもう一度お試し下さい. "
-        )
+      path_json_meibo = dict_project["path_dir"] + "/.temp_saiten/meibo.json"
       path_file_model_answer = dict_project["path_dir"] + "/.temp_saiten/model_answer/model_answer.png"
       path_dir_of_answers = dict_project["path_dir"] + "/.temp_saiten/answer"
       with open(path_json_answer_area, "r", encoding="utf-8") as f:
         dict_answer_area = json.load(f)
-      with open(path_json_meibo, "r", encoding="utf-8") as f:
-        list_meibo = json.load(f)
+      try:
+        with open(path_json_meibo, "r", encoding="utf-8") as f:
+          list_meibo = json.load(f)
+      except FileNotFoundError:
+        tkinter.messagebox.showerror(
+          "名簿ファイルが存在しません", 
+          f"名簿ファイルが存在しないため, 採点済答案画像を出力できません. \n"
+          + f"配点や名簿を指定しない場合でも, 次の手順で空の名簿を作成して, もう一度お試し下さい.\n"
+          + f"1. ［配点を入力する］をクリックして Excel ファイルを作成します. \n"
+          + f"2. 何も入力せずに Excel を閉じます. "
+          + f"3. ［配点を読み込む］をクリックします. "
+        )
+        return
       if not os.path.exists(f"{path_dir}/.temp_saiten/output"):
         os.mkdir(f"{path_dir}/.temp_saiten/output")
       
