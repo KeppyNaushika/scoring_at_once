@@ -167,7 +167,7 @@ def main():
     if index_image % int(str_pages) == int(str_pages) - 1:
       image_new.save(f"{path_output_dir}/{index_save}.png")
       index_save += 1
-      sys.stdout.write(f"\r{index_save}枚 / {len(list_image)}枚の画像を出力しました")
+      sys.stdout.write(f"\r{index_save}枚 / {len(list_image // int(str_pages))}枚の画像を出力しました")
       sys.stdout.flush()
   return True
 
