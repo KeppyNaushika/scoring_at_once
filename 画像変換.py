@@ -11,7 +11,7 @@ import pdf2image
 import time
 
 def main():
-  print(f"画像変換 for 一括採点 ver b.1.0\n\nCtrl+C で終了します\n")
+  print(f"画像変換 for 一括採点 ver b.1.0\n\nCtrl+C で終了します")
 
   dict_length = {
     "A3": {
@@ -51,14 +51,14 @@ def main():
   # select mode
   str_input = None
   while str_input not in ["1", "2"]:
-    print(f"＝＝＝＝＝＝＝＝＝＝")
+    print(f"\n＝＝＝＝＝＝＝＝＝＝")
     print(f"変換モードを指定します")
     print(f"｜1: 指定する1つの PDF ファイルを読み込みます")
     print(f"｜2: 指定するフォルダ内に含まれる全ての画像ファイルを読み込みます")
     str_input = input(f"(1/2) >>> ")
 
   # input files
-  print(f"＝＝＝＝＝＝＝＝＝＝")
+  print(f"\n＝＝＝＝＝＝＝＝＝＝")
   if str_input == "1":
     print(f"変換元のファイルを指定します")
     path_pdf = tkinter.filedialog.askopenfilename(
