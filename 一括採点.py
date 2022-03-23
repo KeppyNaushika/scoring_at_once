@@ -99,6 +99,8 @@ class SubWindow:
         if func(self, *args, **kargs) is None:
           self.window.protocol("WM_DELETE_WINDOW", self.this_window_close)
           self.window.mainloop()
+        else:
+          self.this_window_close()
     return inner
 
   def check_dir_exist(self):
@@ -154,7 +156,13 @@ class SubWindow:
       if os.path.splitext(path_file)[1] in [".jpeg", ".jpg", ".png"]:
         img = PIL.Image.open(path_file)
         img.save(path_dir + "/.temp_saiten/model_answer/model_answer.png")
-    list_path_in_file_dir = [path.replace("\\", "/") for path in glob.glob(path_dir + "/*")]
+    with open(path_dir + "/.temp_saiten/answer_area.json", "r", encoding="utf-8") as f:
+      dict_answer_area = json.load(f)    
+    with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
+      dict_config = json.load(f)
+    dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+
+    # load_picture.json
     if os.path.exists(path_dir + "/.temp_saiten/load_picture.json"):
       with open(path_dir + "/.temp_saiten/load_picture.json", "r", encoding="utf-8") as f:
         dict_load_picture = json.load(f)
@@ -162,8 +170,27 @@ class SubWindow:
       dict_load_picture = {
         "answer": []
       }
-    with open(path_dir + "/.temp_saiten/answer_area.json", "r", encoding="utf-8") as f:
-      dict_answer_area = json.load(f)    
+    # list_meibo.json
+    if os.path.exists(path_dir + "/.temp_saiten/meibo.json"):
+      with open(path_dir + "/.temp_saiten/meibo.json", "r", encoding="utf-8") as f:
+        list_meibo = json.load(f)
+    else:
+      list_meibo = []
+
+    for i in range(len(dict_load_picture["answer"]) - len(list_meibo)):
+      list_meibo.append(
+        {
+          "学年": "",
+          "学級": "",
+          "出席番号": "",
+          "生徒番号": "",
+          "氏名": ""
+        }
+      )
+    with open(path_dir + "/.temp_saiten/meibo.json", "w", encoding="utf-8") as f:
+      json.dump(list_meibo, f, indent=2)
+    list_path_in_file_dir = [path.replace("\\", "/") for path in glob.glob(path_dir + "/*")]
+    
     index_file = len(dict_load_picture["answer"])
     for path_in_file_dir in list_path_in_file_dir:
       if path_in_file_dir == path_file:
@@ -648,6 +675,13 @@ class SubWindow:
     path_dir_of_answers = dict_project["path_dir"] + "/.temp_saiten/answer"
     with open(path_json_answer_area, "r", encoding="utf-8") as f:
       dict_answer_area = json.load(f)
+    if len([question for question in dict_answer_area["questions"] if question["type"] == "設問"]) == 0:
+      tkinter.messagebox.showerror(
+        "設問が指定されていません",
+        f"設問が指定されていないため, 一括採点を開始できません. \n"
+        + f"設問を指定したからもう一度お試し下さい. "
+      )
+      return "break"
     list_path_file_answer = glob.glob(path_dir_of_answers + "/*")
     
     width_window = self.window.winfo_width()
@@ -1299,8 +1333,20 @@ class SubWindow:
         dict_answer_area = json.load(f)
       with open(path_dir + "/.temp_saiten/load_picture.json", "r", encoding="utf-8") as f:
         dict_load_picture = json.load(f)
-      with open(path_dir + "/.temp_saiten/meibo.json", "r", encoding="utf-8") as f:
+      path_json_meibo = dict_project["path_dir"] + "/.temp_saiten/meibo.json"
+      # try:
+      with open(path_json_meibo, "r", encoding="utf-8") as f:
         list_meibo = json.load(f)
+      # except FileNotFoundError:
+      #   tkinter.messagebox.showerror(
+      #     "名簿ファイルが存在しません", 
+      #     f"名簿ファイルが存在しないため, 採点済答案画像を出力できません. \n"
+      #     + f"配点や名簿を指定しない場合でも, 次の手順で空の名簿を作成して, もう一度お試し下さい.\n"
+      #     + f"1. ［配点を入力する］をクリックして Excel ファイルを作成します. \n"
+      #     + f"2. 何も入力せずに Excel を閉じます. \n"
+      #     + f"3. ［配点を読み込む］をクリックします. "
+      #   )
+      #   return
       
       workbook_result_scoring = openpyxl.Workbook()
       workbook_result_scoring.remove(workbook_result_scoring["Sheet"])
@@ -1783,8 +1829,19 @@ class SubWindow:
       path_dir_of_answers = dict_project["path_dir"] + "/.temp_saiten/answer"
       with open(path_json_answer_area, "r", encoding="utf-8") as f:
         dict_answer_area = json.load(f)
-      with open(path_json_meibo, "r", encoding="utf-8") as f:
-        list_meibo = json.load(f)
+      try:
+        with open(path_json_meibo, "r", encoding="utf-8") as f:
+          list_meibo = json.load(f)
+      except FileNotFoundError:
+        tkinter.messagebox.showerror(
+          "名簿ファイルが存在しません", 
+          f"名簿ファイルが存在しないため, 採点済答案画像を出力できません. \n"
+          + f"配点や名簿を指定しない場合でも, 次の手順で空の名簿を作成して, もう一度お試し下さい.\n"
+          + f"1. ［配点を入力する］をクリックして Excel ファイルを作成します. \n"
+          + f"2. 何も入力せずに Excel を閉じます. \n"
+          + f"3. ［配点を読み込む］をクリックします. "
+        )
+        return
       if not os.path.exists(f"{path_dir}/.temp_saiten/output"):
         os.mkdir(f"{path_dir}/.temp_saiten/output")
       
@@ -1795,7 +1852,8 @@ class SubWindow:
       self.dict_image_scoring_symbol_resized["tranceparent_hold"] = self.dict_image_scoring_symbol_resized["tranceparent_hold"].convert("RGBA")
       self.dict_image_scoring_symbol_resized["tranceparent_incorrect"] = self.dict_image_scoring_symbol_resized["tranceparent_incorrect"].convert("RGBA")
       list_daimon = list(set([question["daimon"] for question in dict_answer_area["questions"]]))
-      list_daimon.remove(None)
+      if None in list_daimon:
+        list_daimon.remove(None)
       list_daimon.sort()
       self.image_suuji = {
         "0": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/0.png"),
@@ -1911,7 +1969,6 @@ class SubWindow:
                 self.image_suuji_resized = self.image_suuji[suuji].resize((width_suuji, height_suuji))
                 self.image_clear.paste(self.image_suuji_resized, (question["area"][0] + int(width_suuji * index_suuji * 0.65), question["area"][1]))
                 self.image_answersheet = PIL.Image.alpha_composite(self.image_answersheet, self.image_clear)
-            pass
           elif question["type"] == "合計点":
             height_suuji = question["area"][3] - question["area"][1]
             width_suuji = height_suuji * 3 // 5
@@ -1929,9 +1986,17 @@ class SubWindow:
         filetypes=[("PDF ドキュメント", ".pdf")],
         defaultextension="pdf"
       )
-      if path_pdf is not None:
-        with open(path_pdf.name, "wb") as f:
-          f.write(img2pdf.convert([PIL.Image.open(f"{path_dir}/.temp_saiten/output/{index_meibo}.png").filename for index_meibo, meibo in enumerate(list_meibo)]))
+      if path_pdf not in [None, ""]:
+        try:
+          with open(path_pdf.name, "wb") as f:
+            f.write(img2pdf.convert([PIL.Image.open(f"{path_dir}/.temp_saiten/output/{index_meibo}.png").filename for index_meibo, meibo in enumerate(list_meibo)]))
+        except PermissionError:
+          tkinter.messagebox.showerror(
+            "ファイルを保存できません",
+            "ファイルを保存できませんでした. \n"
+            + "既にファイルを開いていませんか？\n"
+            + "ファイルを閉じて, もう一度お試し下さい. "
+          )
 
     with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
       dict_config = json.load(f)
@@ -2264,23 +2329,8 @@ class MainFrame(tkinter.Frame):
         + "［解答欄の位置を指定］をクリックして解答欄の位置を指定してから, もう一度お試し下さい. "
       )
       return
-    if os.path.exists(path_dir + "/.temp_saiten/meibo.json"):
-      with open(path_dir + "/.temp_saiten/meibo.json", "r", encoding="utf-8") as f:
-        list_meibo = json.load(f)
-    else:
-      list_meibo = []
-    for i in range(len(dict_load_picture["answer"]) - len(list_meibo)):
-      list_meibo.append(
-        {
-          "学年": "",
-          "学級": "",
-          "出席番号": "",
-          "生徒番号": "",
-          "氏名": ""
-        }
-      )
-    with open(path_dir + "/.temp_saiten/meibo.json", "w", encoding="utf-8") as f:
-      json.dump(list_meibo, f, indent=2)
+    with open(path_dir + "/.temp_saiten/meibo.json", "r", encoding="utf-8") as f:
+      list_meibo = json.load(f)
     
     workbook_import = openpyxl.Workbook()
     workbook_import.remove(workbook_import["Sheet"])
@@ -2441,8 +2491,6 @@ class MainFrame(tkinter.Frame):
     path_dir = dict_project["path_dir"]
     with open(path_dir + "/.temp_saiten/answer_area.json") as f:
       dict_answer_area = json.load(f)
-    with open(path_dir + "/.temp_saiten/meibo.json", "r", encoding="utf-8") as f:
-      list_meibo = json.load(f)
     if not os.path.exists(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx"):
       tkinter.messagebox.showerror(
         "ファイルが見つかりません",
@@ -2450,6 +2498,8 @@ class MainFrame(tkinter.Frame):
         + "［配点を入力する］をクリックして, ファイルを生成し, 配点を入力して保存して下さい. "
       )
     else:
+      with open(path_dir + "/.temp_saiten/meibo.json", "r", encoding="utf-8") as f:
+        list_meibo = json.load(f)
       try:
         workbook_import = openpyxl.load_workbook(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx", data_only=True)
         os.remove(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx")
@@ -2504,7 +2554,7 @@ def menu(root):
   def show_ver():
     bool_openwebpage = tkinter.messagebox.askyesno(
       "バージョン情報",
-      "一括採点 ver. a.1.2\n\nリリースページを開いて最新のソフトウェアを確認しますか？"
+      "一括採点 ver. a.2.0\n\nリリースページを開いて最新のソフトウェアを確認しますか？"
     )
     if bool_openwebpage:
       webbrowser.open("https://github.com/KeppyNaushika/scoring_at_once/releases")
