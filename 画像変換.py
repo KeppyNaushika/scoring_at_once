@@ -53,9 +53,11 @@ def main():
   while str_input not in ["1", "2"]:
     print(f"\n＝＝＝＝＝＝＝＝＝＝")
     print(f"変換モードを指定します")
-    print(f"｜1: 指定する1つの PDF ファイルを読み込みます")
+    # print(f"｜1: 指定する1つの PDF ファイルを読み込みます")
     print(f"｜2: 指定するフォルダ内に含まれる全ての画像ファイルを読み込みます")
-    str_input = input(f"(1/2) >>> ")
+    # str_input = input(f"(1/2) >>> ")
+    print(f"(1/2) >>> 2")
+    str_input = "2"
 
   # input files
   print(f"\n＝＝＝＝＝＝＝＝＝＝")
