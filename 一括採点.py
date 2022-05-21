@@ -1885,7 +1885,7 @@ class SubWindow:
         for question in dict_answer_area["questions"]:
           if question["type"] == "設問":
             if question["score"][index_meibo]["status"] in ["correct"]:
-              if question["haiten"] is not None:
+              if question["haiten"] is not None and question["daimon"] is not None:
                 dict_shokei[str(question["daimon"])] += question["haiten"]
             if question["score"][index_meibo]["status"] in ["partial", "hold"]:
               dict_shokei[str(question["daimon"])] += question["score"][index_meibo]["point"]
