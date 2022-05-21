@@ -437,10 +437,10 @@ class SubWindow:
       set_type("合計点")
 
     def canvas_draw_rectangle_click(event):
-      self.canvas_draw_rectangle[0] = event.x
-      self.canvas_draw_rectangle[1] = event.y
-      self.canvas_draw_rectangle[2] = min(event.x + 1, canvas.winfo_width())
-      self.canvas_draw_rectangle[3] = min(event.y + 1, canvas.winfo_height())
+      self.canvas_draw_rectangle[0] = int(canvas.canvasx(event.x))
+      self.canvas_draw_rectangle[1] = int(canvas.canvasy(event.y))
+      self.canvas_draw_rectangle[2] = min(int(canvas.canvasx(event.x)) + 1, self.tk_image_model_answer.width())
+      self.canvas_draw_rectangle[3] = min(int(canvas.canvasy(event.y)) + 1, self.tk_image_model_answer.height())
       canvas.coords("rectangle_new",
         self.canvas_draw_rectangle[0],
         self.canvas_draw_rectangle[1],
@@ -448,8 +448,8 @@ class SubWindow:
         self.canvas_draw_rectangle[3], 
       )
     def canvas_draw_rectangle_drag(event):
-      self.canvas_draw_rectangle[2] = min(max(event.x, 0), canvas.winfo_width())
-      self.canvas_draw_rectangle[3] = min(max(event.y, 0), canvas.winfo_height())
+      self.canvas_draw_rectangle[2] = min(max(int(canvas.canvasx(event.x)), 0), self.tk_image_model_answer.width())
+      self.canvas_draw_rectangle[3] = min(max(int(canvas.canvasy(event.y)), 0), self.tk_image_model_answer.height())
       canvas.coords("rectangle_new",
         self.canvas_draw_rectangle[0],
         self.canvas_draw_rectangle[1],
@@ -548,6 +548,7 @@ class SubWindow:
         selected_listbox_question()
 
     self.window.title("解答欄を指定")
+    self.window.geometry("800x500")
     self.canvas_draw_rectangle = [0, 0, 0, 0]
 
     frame_main = tkinter.Frame(self.window)
@@ -607,7 +608,7 @@ class SubWindow:
     frame_canvas = tkinter.Frame(frame_picture)
     frame_canvas.pack()
 
-    canvas = tkinter.Canvas(frame_canvas, bg="black", width=567, height=800)
+    canvas = tkinter.Canvas(frame_canvas, bg="black", width=567, height=760)
     canvas.bind("<Control-MouseWheel>", lambda eve:canvas.xview_scroll(int(-eve.delta/120), 'units'))
     canvas.bind("<MouseWheel>", lambda eve:canvas.yview_scroll(int(-eve.delta/120), 'units'))
     self.tk_image_model_answer = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
@@ -1703,11 +1704,23 @@ class SubWindow:
           if index_setsumon % 5 == 0 and booleanvar_unscored_point.get():
             canvas.create_text(position_x, position_y, text=0, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
           elif index_setsumon % 5 == 1 and booleanvar_correct_point.get():
-            canvas.create_text(position_x, position_y, text=question["haiten"], fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
+            if question["haiten"] is None:
+              str_haiten = "配点なし"
+            else:
+              str_haiten = question["haiten"]
+            canvas.create_text(position_x, position_y, text=str_haiten, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
           elif index_setsumon % 5 == 2 and booleanvar_partial_point.get():
-            canvas.create_text(position_x, position_y, text=question["haiten"] // 2, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
+            if question["haiten"] is None:
+              str_haiten = "配点なし"
+            else:
+              str_haiten = question["haiten"] // 2
+            canvas.create_text(position_x, position_y, text=str_haiten, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
           elif index_setsumon % 5 == 3 and booleanvar_hold_point.get():
-            canvas.create_text(position_x, position_y, text=question["haiten"] // 2, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
+            if question["haiten"] is None:
+              str_haiten = "配点なし"
+            else:
+              str_haiten = question["haiten"] // 2
+            canvas.create_text(position_x, position_y, text=str_haiten, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
           elif index_setsumon % 5 == 4 and booleanvar_incorrect_point.get():
             canvas.create_text(position_x, position_y, text=0, fill="red", font=("Meiryo UI", dict_project["export"]["point"]["size"], "roman"), tags="saiten")
 
@@ -1872,7 +1885,8 @@ class SubWindow:
         for question in dict_answer_area["questions"]:
           if question["type"] == "設問":
             if question["score"][index_meibo]["status"] in ["correct"]:
-              dict_shokei[str(question["daimon"])] += question["haiten"]
+              if question["haiten"] is not None:
+                dict_shokei[str(question["daimon"])] += question["haiten"]
             if question["score"][index_meibo]["status"] in ["partial", "hold"]:
               dict_shokei[str(question["daimon"])] += question["score"][index_meibo]["point"]
         self.image_answersheet = PIL.Image.open(f"{path_dir_of_answers}/{index_meibo}.png").convert("RGBA")
@@ -2170,7 +2184,7 @@ class SubWindow:
     frame_canvas = tkinter.Frame(frame_picture)
     frame_canvas.pack()
 
-    canvas = tkinter.Canvas(frame_canvas, bg="black", width=567, height=800)
+    canvas = tkinter.Canvas(frame_canvas, bg="black", width=567, height=760)
     canvas.bind("<Control-MouseWheel>", lambda eve:canvas.xview_scroll(int(-eve.delta/120), 'units'))
     canvas.bind("<MouseWheel>", lambda eve:canvas.yview_scroll(int(-eve.delta/120), 'units'))
     self.tk_image_model_answer = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
