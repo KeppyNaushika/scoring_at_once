@@ -33,6 +33,7 @@ import functools
 import glob
 import img2pdf
 import json
+import natsort
 import os
 import subprocess
 import webbrowser
@@ -189,7 +190,7 @@ class SubWindow:
       )
     with open(path_dir + "/.temp_saiten/meibo.json", "w", encoding="utf-8") as f:
       json.dump(list_meibo, f, indent=2)
-    list_path_in_file_dir = [path.replace("\\", "/") for path in glob.glob(path_dir + "/*")]
+    list_path_in_file_dir = [path.replace("\\", "/") for path in natsort.natsorted(glob.glob(path_dir + "/*"))]
     
     index_file = len(dict_load_picture["answer"])
     for path_in_file_dir in list_path_in_file_dir:
@@ -683,7 +684,7 @@ class SubWindow:
         + f"設問を指定したからもう一度お試し下さい. "
       )
       return "break"
-    list_path_file_answer = glob.glob(path_dir_of_answers + "/*")
+    list_path_file_answer = natsort.natsorted(glob.glob(path_dir_of_answers + "/*"))
     
     width_window = self.window.winfo_width()
     height_window = self.window.winfo_height()
@@ -792,7 +793,7 @@ class SubWindow:
       path_json_answer_area = path_dir + "/.temp_saiten/answer_area.json"
       path_dir_of_answers = path_dir + "/.temp_saiten/answer"
       path_file_model_answer = path_dir + "/.temp_saiten/model_answer/model_answer.png"
-      list_path_file_answer = glob.glob(path_dir_of_answers + "/*")
+      list_path_file_answer = natsort.natsorted(glob.glob(path_dir_of_answers + "/*"))
       path_dir_of_answers = path_dir + "/.temp_saiten/answer"
       with open(path_json_answer_area, "r", encoding="utf-8") as f:
         dict_answer_area = json.load(f)
@@ -1885,7 +1886,7 @@ class SubWindow:
         for question in dict_answer_area["questions"]:
           if question["type"] == "設問":
             if question["score"][index_meibo]["status"] in ["correct"]:
-              if question["haiten"] is not None:
+              if question["haiten"] is not None and question["daimon"] is not None:
                 dict_shokei[str(question["daimon"])] += question["haiten"]
             if question["score"][index_meibo]["status"] in ["partial", "hold"]:
               dict_shokei[str(question["daimon"])] += question["score"][index_meibo]["point"]
