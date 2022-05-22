@@ -6,13 +6,14 @@ import PIL
 import PIL.Image
 
 import glob
+import natsort
 import os
 import pdf2image
 import sys
 import time
 
 def main():
-  print(f"画像変換 ver b.1.3 for 一括採点\n\nCtrl+C で終了します")
+  print(f"画像変換 for 一括採点\n\nCtrl+C で終了します")
   dict_length = {
     "A3": {
       "width": 800,
@@ -47,6 +48,12 @@ def main():
       "height": 300
     }
   }
+
+  # project name
+  print(f"\n＝＝＝＝＝＝＝＝＝＝")
+  print("変換先のファイル名の連番の先頭に入れる文字列を入力して下さい")
+  print("不要な場合は何も入力せず Enter キーを入力して下さい")
+  str_project = input(">>> ")
 
   # select mode
   str_input = None
@@ -91,7 +98,7 @@ def main():
     print(f"フォルダ: {path_input_dir}")
     sys.stdout.write(f"ファイルを読み込んでいます。PC の性能と PDF ファイルの状態によっては、数分かかる場合があります...")
     sys.stdout.flush()
-    list_image = [PIL.Image.open(path_file) for path_file in glob.glob(path_input_dir + "/*") if os.path.splitext(path_file)[1] in [".jpeg", ".jpg", ".png"]]
+    list_image = [PIL.Image.open(path_file) for path_file in natsort.natsorted(glob.glob(path_input_dir + "/*")) if os.path.splitext(path_file)[1] in [".jpeg", ".jpg", ".png"]]
     sys.stdout.write(f"\rファイルを読み込みが完了しました                                                                \r")
     sys.stdout.flush()
   print(f"\n{len(list_image)} 枚の画像を読み込みました")
@@ -167,9 +174,9 @@ def main():
     elif str_composite in ["4"]:
       image_new.paste(image_resized, (0, sum([size[1] for size in list_size]) - sum([size[1] for size in list_size[:index_image % int(str_pages) + 1]])))
     if index_image % int(str_pages) == int(str_pages) - 1:
-      image_new.save(f"{path_output_dir}/{index_save}.png")
+      image_new.save(f"{path_output_dir}/{str_project}{str(index_save).zfill(5)}.png")
       index_save += 1
-      sys.stdout.write(f"\r{index_save}枚 / {len(list_image // int(str_pages))}枚の画像を出力しました")
+      sys.stdout.write(f"\r{index_save}枚 / {len(list_image) // int(str_pages)}枚の画像を出力しました")
       sys.stdout.flush()
   return True
 
