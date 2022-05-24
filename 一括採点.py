@@ -1355,6 +1355,8 @@ class SubWindow:
       workbook_result_scoring.create_sheet(title="点数一覧")
       workbook_result_scoring.create_sheet(title="正誤一覧")
       list_daimon = list(set([question["daimon"] for question in dict_answer_area["questions"] if question["type"] == "設問"]))
+      if None in list_daimon:
+        list_daimon.remove(None)
       list_daimon.sort()
       list_name_gakunen = list(set([meibo["学年"] for meibo in list_meibo]))
       list_tuple_gakkyuu = list(set([(meibo["学年"], meibo["学級"]) for meibo in list_meibo]))
