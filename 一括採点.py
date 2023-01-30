@@ -609,7 +609,8 @@ class SubWindow:
     frame_canvas = tkinter.Frame(frame_picture)
     frame_canvas.pack(expand=True, fill=tkinter.BOTH)
     canvas = tkinter.Canvas(frame_canvas, bg="black")
-    canvas.bind("<Control-MouseWheel>", lambda eve:canvas.xview_scroll(int(-eve.delta/120), 'units'))
+    canvas.bind("<Control-MouseWheel>", lambda eve:canvas.xview_scroll(int(-eve.delta/120), 'units')) # この bind は誤り
+    canvas.bind("<Shift-MouseWheel>", lambda eve:canvas.xview_scroll(int(-eve.delta/120), 'units')) # かといってこれも変
     canvas.bind("<MouseWheel>", lambda eve:canvas.yview_scroll(int(-eve.delta/120), 'units'))
     self.tk_image_model_answer = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
     canvas.create_image(0, 0, image=self.tk_image_model_answer, anchor="nw")
@@ -780,9 +781,13 @@ class SubWindow:
           self.list_frame_canvas_question[index_scoring_answersheet].configure(background="cyan")
           self.list_label_entry_score[index_scoring_answersheet].configure(background="cyan")
         self.list_frame_canvas_question[index_scoring_answersheet].grid(padx=3, pady=3)
-        self.list_canvas_question[index_scoring_answersheet].grid(column=0, row=0, columnspan=2, padx=1, pady=1)
-        self.list_entry_score[index_scoring_answersheet].grid(column=0, row=1, sticky="e")
-        self.list_label_entry_score[index_scoring_answersheet].grid(column=1, row=1, sticky="w")
+        if self.is_show_name.get():
+          self.list_label_name_question[index_scoring_answersheet].grid(column=0, row=0, columnspan=2, padx=1, pady=1)
+        else:
+          self.list_label_name_question[index_scoring_answersheet].grid_forget()
+        self.list_canvas_question[index_scoring_answersheet].grid(column=0, row=1, columnspan=2, padx=1, pady=1)
+        self.list_entry_score[index_scoring_answersheet].grid(column=0, row=2, sticky="e")
+        self.list_label_entry_score[index_scoring_answersheet].grid(column=1, row=2, sticky="w")
 
     def choose_to_show_frame_canvas_answer(self):
       with open(f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8") as f:
@@ -847,6 +852,9 @@ class SubWindow:
       path_json_answer_area = path_dir + "/.temp_saiten/answer_area.json"
       with open(path_json_answer_area, "r", encoding="utf-8") as f:
         dict_answer_area = json.load(f)
+      path_json_meibo = path_dir + '/.temp_saiten/meibo.json'
+      with open(path_json_meibo, "r", encoding="utf-8") as f:
+        dict_meibo = json.load(f)
 
       frame_list_frame_canvas_answer.grid_forget()
       frame_list_frame_canvas_answer.grid(column=0, row=1, sticky="nw")
@@ -855,6 +863,7 @@ class SubWindow:
         canvas_question.destroy()
       self.list_frame_border_frame_canvas_question = []
       self.list_frame_canvas_question = []
+      self.list_label_name_question= []
       self.list_canvas_question = []
       self.list_label_entry_score = []
       self.list_entry_score = []
@@ -863,6 +872,7 @@ class SubWindow:
       
       self.frame_border_frame_canvas_model_answer = tkinter.Frame(frame_list_frame_canvas_answer, background="black")
       self.frame_canvas_model_answer = tkinter.Frame(self.frame_border_frame_canvas_model_answer)
+      self.label_name_model_answer = tkinter.Label(self.frame_canvas_model_answer, text='模範解答')
       self.canvas_model_answer = tkinter.Canvas(self.frame_canvas_model_answer, width=width_canvas, height=height_canvas)
       self.canvas_model_answer.create_image(
         -1 * dict_answer_area["questions"][self.index_selected_scoring_question]["area"][0],
@@ -890,6 +900,7 @@ class SubWindow:
       for index_scoring_answersheet, scoring_answersheet in enumerate(dict_answer_area["questions"][self.index_selected_scoring_question]["score"]):
         self.list_frame_border_frame_canvas_question.append(tkinter.Frame(frame_list_frame_canvas_answer)) #, background=background_frame))
         self.list_frame_canvas_question.append(tkinter.Frame(self.list_frame_border_frame_canvas_question[-1]))
+        self.list_label_name_question.append(tkinter.Label(self.list_frame_canvas_question[-1], text=str(dict_meibo[index_scoring_answersheet]['氏名'])))
         self.list_canvas_question.append(tkinter.Canvas(self.list_frame_canvas_question[-1], width=width_canvas, height=height_canvas))
         self.list_canvas_question[index_scoring_answersheet].create_image(
           -1 * dict_answer_area["questions"][self.index_selected_scoring_question]["area"][0], 
@@ -1099,6 +1110,11 @@ class SubWindow:
     btn_move_answer_back.grid(column=0, row=0, padx=4, pady=4)
     btn_move_answer_down.grid(column=0, row=0, padx=4, pady=4)
     btn_move_answer_next.grid(column=0, row=0, padx=4, pady=4)
+
+    self.is_show_name = tkinter.BooleanVar(value=False)
+    btn_show_name = tkinter.Checkbutton(frame_btn_scoring, variable=self.is_show_name, text='氏名表示', command=functools.partial(repack_chosen_frame_canvas_answer, self))
+    btn_show_name.grid(column=10, row=0)
+
     listbox_question.bind("<<ListboxSelect>>", selected_scoring_question)
     
     self.frame_border_frame_canvas_model_answer = tkinter.Frame(frame_list_frame_canvas_answer, background="black")
