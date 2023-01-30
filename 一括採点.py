@@ -553,19 +553,19 @@ class SubWindow:
     self.canvas_draw_rectangle = [0, 0, 0, 0]
 
     frame_main = tkinter.Frame(self.window)
-    frame_main.grid(column=0, row=0)
+    frame_main.pack(expand=True, fill=tkinter.BOTH)
 
     frame_question = tkinter.Frame(frame_main)
-    frame_question.grid(column=0, row=0)
+    frame_question.pack(side=tkinter.LEFT)
     frame_picture = tkinter.Frame(frame_main)
-    frame_picture.grid(column=1, row=0)
+    frame_picture.pack(side=tkinter.RIGHT, expand=True, fill=tkinter.BOTH)
 
     frame_listbox_question = tkinter.Frame(frame_question)
     frame_listbox_question.grid(column=0, row=0)
     frame_btn_list_question = tkinter.Frame(frame_question)
     frame_btn_list_question.grid(column=0, row=1)
 
-    listbox_question = tkinter.Listbox(frame_listbox_question, width=20, height=30)
+    listbox_question = tkinter.Listbox(frame_listbox_question, width=20, height=20)
     listbox_question.pack(side="left")
     listbox_question.configure(
       activestyle=tkinter.DOTBOX,
@@ -607,9 +607,8 @@ class SubWindow:
     btn_scale_back.grid(column=0, row=5, columnspan=3)
 
     frame_canvas = tkinter.Frame(frame_picture)
-    frame_canvas.pack()
-
-    canvas = tkinter.Canvas(frame_canvas, bg="black", width=567, height=760)
+    frame_canvas.pack(expand=True, fill=tkinter.BOTH)
+    canvas = tkinter.Canvas(frame_canvas, bg="black")
     canvas.bind("<Control-MouseWheel>", lambda eve:canvas.xview_scroll(int(-eve.delta/120), 'units'))
     canvas.bind("<MouseWheel>", lambda eve:canvas.yview_scroll(int(-eve.delta/120), 'units'))
     self.tk_image_model_answer = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
@@ -618,7 +617,7 @@ class SubWindow:
     xscrollbar_canvas = tkinter.Scrollbar(frame_canvas, orient=tkinter.HORIZONTAL, command=canvas.xview)
     yscrollbar_canvas.pack(side="right", fill="y")
     xscrollbar_canvas.pack(side="bottom", fill="x")
-    canvas.pack()
+    canvas.pack(expand=True, fill=tkinter.BOTH)
     canvas.config(
       xscrollcommand=xscrollbar_canvas.set,
       yscrollcommand=yscrollbar_canvas.set,
