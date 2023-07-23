@@ -3,6 +3,8 @@
 
 公式ホームページ ： https://score.keppy.jp/
 
+公式 Discord コミュニティ ： https://discord.gg/fkYY3suRgm
+
 ダウンロードは https://github.com/KeppyNaushika/scoring_at_once/releases からしていただけます。
 
 質問は KeppyNaushika@gmail.com へ
