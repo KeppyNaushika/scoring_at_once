@@ -44,6 +44,9 @@ from typing import Callable, Any
 
 import sao_export
 
+VERSION = "1.0.0"
+SUCCESSOR_URL = "https://github.com/KeppyNaushika/score-at-once-electron"
+
 # ---------------------------------------------------------------------------
 # OS ごとの差異をここに集約する
 # ---------------------------------------------------------------------------
@@ -129,10 +132,6 @@ def wheel_steps(event: tkinter.Event) -> int:
     if IS_WINDOWS:
         return int(-event.delta / 120)
     return -event.delta
-
-
-def nothing_to_do(*args, **kwargs):
-    tkinter.messagebox.showinfo("未実装", "この機能は現在実装されておりません")
 
 
 # class: 子ウインドウ:
@@ -360,6 +359,26 @@ class SubWindow:
 
     @sub_window_loop
     def add_project(self):
+        self._project_form(index_edit=None)
+
+    def edit_project(self):
+        """選択中の試験の名前・答案フォルダ・模範解答を変更する."""
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            dict_config = json.load(f)
+        if dict_config["index_projects_in_listbox"] is None:
+            tkinter.messagebox.showwarning(
+                "試験が選択されていません", "編集する試験を一覧から選択して下さい. "
+            )
+            return
+        self._edit_project_window(dict_config["index_projects_in_listbox"])
+
+    @sub_window_loop
+    def _edit_project_window(self, index_edit: int):
+        self._project_form(index_edit=index_edit)
+
+    def _project_form(self, index_edit: int | None):
+        """試験の追加・編集画面を作る. index_edit が None なら追加, それ以外はその番号の試験を編集する."""
+
         def choose_dir():
             entry_path_dir.delete(0, "end")
             entry_path_dir.insert(0, tkinter.filedialog.askdirectory())
@@ -399,6 +418,32 @@ class SubWindow:
                 CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
+            if index_edit is not None:
+                # 編集: 失敗したら元に戻せるよう, 変更前の値を控えておく
+                dict_project_before = dict(dict_config["projects"][index_edit])
+                dict_config["projects"][index_edit].update(
+                    name=str_name, path_dir=str_path_dir, path_file=str_path_file
+                )
+                dict_config["index_projects_in_listbox"] = index_edit
+                path_cached_model_answer = (
+                    str_path_dir + "/.temp_saiten/model_answer/model_answer.png"
+                )
+                # 模範解答を差し替えたら, 作業フォルダ内の変換済み画像を作り直させる
+                if str_path_file != dict_project_before["path_file"] and os.path.exists(
+                    path_cached_model_answer
+                ):
+                    os.remove(path_cached_model_answer)
+                with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                    json.dump(dict_config, f, indent=2)
+                if not self.check_dir_exist():
+                    dict_config["projects"][index_edit] = dict_project_before
+                    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                        json.dump(dict_config, f, indent=2)
+                    self.window.deiconify()
+                    self.window.lift()
+                    return
+                self.this_window_close()
+                return
             dict_config["projects"].append(
                 {
                     "name": str_name,
@@ -449,6 +494,7 @@ class SubWindow:
                     CONFIG_PATH, "w", encoding="utf-8"
                 ) as f:
                     json.dump(dict_config, f, indent=2)
+                self.window.deiconify()
                 self.window.lift()
                 return
             self.this_window_close()
@@ -458,7 +504,7 @@ class SubWindow:
                 + "予期せぬ動作を防ぐため, 本アプリ起動中は「.temp_saiten」や指定したフォルダを移動, 削除しないで下さい. ",
             )
 
-        self.window.title("試験を追加")
+        self.window.title("試験を追加" if index_edit is None else "試験を編集")
         frame_main = tkinter.Frame(self.window)
         frame_main.pack(expand=True, padx=20, pady=20)
 
@@ -512,8 +558,19 @@ class SubWindow:
         )
         btn_path_file.grid(column=2, row=0)
 
+        if index_edit is not None:
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                dict_project = json.load(f)["projects"][index_edit]
+            entry_name.insert(0, dict_project["name"])
+            entry_path_dir.insert(0, dict_project["path_dir"])
+            entry_path_file.insert(0, dict_project["path_file"])
+
         tkinter.Button(
-            frame_btn, text="試験を追加", command=add_json, width=40, height=2
+            frame_btn,
+            text="試験を追加" if index_edit is None else "適用",
+            command=add_json,
+            width=40,
+            height=2,
         ).grid(column=0, row=0)
         tkinter.Button(
             frame_btn,
@@ -522,9 +579,6 @@ class SubWindow:
             width=40,
             height=2,
         ).grid(column=1, row=0)
-
-    def edit_project(self):
-        nothing_to_do()
 
     # 解答欄の位置を指定
     @sub_window_loop
@@ -836,12 +890,25 @@ class SubWindow:
             frame_btn_list_question, width=6, text="合計点", command=set_total
         )
         btn_list_question_total.grid(column=2, row=2)
-        btn_scale_mode = tkinter.Button(
-            frame_btn_list_question, width=21, text="[ドラッグ] / 自動"
-        )
-        btn_scale_mode.grid(column=0, row=3, columnspan=3)
         btn_scale_help = tkinter.Button(
-            frame_btn_list_question, width=21, text="ヘルプ"
+            frame_btn_list_question,
+            width=21,
+            text="ヘルプ",
+            command=lambda: tkinter.messagebox.showinfo(
+                "使い方",
+                "模範解答の画像の上をドラッグすると, 解答欄 (採点枠) を追加できます. \n"
+                + "追加した枠は左の一覧に表示され, 選択中の枠は赤で示されます. \n\n"
+                + "一覧で枠を選び, 下のボタンで枠の種類を指定します. \n"
+                + "・設問: 採点する解答欄 (緑)\n"
+                + "・氏名 / 生徒番号: 名簿の入力用に切り取る欄 (青 / 水色)\n"
+                + "・採点者印: 採点者の印を押す欄 (黄)\n"
+                + "・小計点 / 合計点: 書き出し時に点数を印字する欄 (紫 / 橙)\n\n"
+                + "［上へ］［下へ］で枠の順番を, ［削除］で枠を削除できます. \n"
+                + "枠を削除すると, その枠の採点データも削除されます. \n\n"
+                + "全ての答案は模範解答と同じ位置で切り取られます. \n"
+                + "答案スキャンデータの大きさと向きは, 模範解答と揃えておいて下さい. ",
+                parent=self.window,
+            ),
         )
         btn_scale_help.grid(column=0, row=4, columnspan=3)
         btn_scale_back = tkinter.Button(
@@ -4374,10 +4441,6 @@ class SubWindow:
             frame_btn_other, width=6, text="例2", command=set_position_ex2
         )
         btn_ex2.grid(column=1, row=0)
-        btn_ex3 = tkinter.Button(
-            frame_btn_other, width=6, text="例3", command=nothing_to_do
-        )
-        btn_ex3.grid(column=2, row=0)
         btn_export_picture = tkinter.Button(
             frame_btn_other,
             width=21,
@@ -4395,7 +4458,22 @@ class SubWindow:
         )
         btn_export_xlsx.grid(column=0, row=2, columnspan=3)
         btn_help = tkinter.Button(
-            frame_btn_other, width=21, text="ヘルプ", command=nothing_to_do
+            frame_btn_other,
+            width=21,
+            text="ヘルプ",
+            command=lambda: tkinter.messagebox.showinfo(
+                "使い方",
+                "採点済みの答案を PDF に, 採点結果の一覧を Excel に書き出します. \n\n"
+                + "上の欄で, 答案に重ねる採点記号 (○ × など) と点数の位置・ずれ・大きさを指定します. \n"
+                + "チェックを外した採点状態の記号・点数は印字されません. \n"
+                + "［例1］［例2］で, よく使う配置をまとめて設定できます. \n"
+                + "設定は右のプレビューに反映されます. \n\n"
+                + "小計点・合計点の枠には, 大問ごとの小計と合計点が印字されます. \n"
+                + "部分点・保留で点数が未入力のものは 0 点として扱います. \n\n"
+                + "後継版 score-at-once-electron へ移行する場合は, メイン画面の\n"
+                + "［後継版へ書き出す (.sao)］を使って下さい. ",
+                parent=self.window,
+            ),
         )
         btn_help.grid(column=0, row=3, columnspan=3)
         btn_back = tkinter.Button(
@@ -4584,11 +4662,26 @@ class MainFrame(tkinter.Frame):
                 self.load_listbox_projects()
 
     def up_project(self):
-        nothing_to_do()
-        self.load_listbox_projects()
+        self.move_project(-1)
 
     def down_project(self):
-        nothing_to_do()
+        self.move_project(+1)
+
+    def move_project(self, offset: int):
+        """選択中の試験を試験一覧の中で offset だけ移動する (-1 で上へ, +1 で下へ)."""
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            dict_config = json.load(f)
+        index_from = dict_config["index_projects_in_listbox"]
+        if index_from is None:
+            return
+        index_to = index_from + offset
+        if not 0 <= index_to < len(dict_config["projects"]):
+            return  # 先頭より上, 末尾より下には動かせない
+        projects = dict_config["projects"]
+        projects[index_from], projects[index_to] = projects[index_to], projects[index_from]
+        dict_config["index_projects_in_listbox"] = index_to
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(dict_config, f, indent=2)
         self.load_listbox_projects()
 
     def make_xlsx(self):
@@ -5069,34 +5162,16 @@ def menu(root):
     def show_ver():
         bool_openwebpage = tkinter.messagebox.askyesno(
             "バージョン情報",
-            "一括採点 ver. a.2.0\n\nリリースページを開いて最新のソフトウェアを確認しますか？",
+            f"一括採点 ver. {VERSION}\n\n"
+            + "このバージョンでサポートを終了しました. \n"
+            + "後継版 score-at-once-electron のページを開きますか？",
         )
         if bool_openwebpage:
-            webbrowser.open("https://github.com/KeppyNaushika/scoring_at_once/releases")
+            webbrowser.open(SUCCESSOR_URL)
 
     menu_root = tkinter.Menu(root)
-
-    menu_file = tkinter.Menu(menu_root, tearoff=0)
-    # menu_file.add_command(label="新しく試験を追加")
-    # menu_file.add_command(label="選択中の試験を編集")
-    # menu_file.add_command(label="選択中の試験を削除")
-    # menu_file.add_separator()
-    # menu_file.add_command(label="構成設定をリセット")
-    # menu_file.add_separator()
-    # menu_file.add_command(label="終了")
-
-    # menu_edit = tkinter.Menu(menu_root, tearoff=0)
-    # menu_edit.add_command(label="選択中の試験の解答欄の位置を指定")
-    # menu_edit.add_command(label="選択中の試験の配点を入力する")
-    # menu_edit.add_command(label="選択中の試験の配点を読み込む")
-    # menu_edit.add_command(label="選択中の試験を一括採点する")
-
     menu_help = tkinter.Menu(menu_root, tearoff=0)
-    # menu_help.add_command(label="ヘルプ")
     menu_help.add_command(label="バージョン情報", command=show_ver)
-
-    # menu_root.add_cascade(label="ファイル", menu=menu_file)
-    # menu_root.add_cascade(label="編集", menu=menu_edit)
     menu_root.add_cascade(label="ヘルプ", menu=menu_help)
     root.config(menu=menu_root)
 
@@ -5116,8 +5191,11 @@ def check_on_run():
         return True
     except FileNotFoundError:
         tkinter.messagebox.showinfo(
-            "ごめんなさい",
-            "本ソフトウェアは, alpha版です. \n\n" + "一部動作しない機能がございます. ",
+            "サポート終了のお知らせ",
+            f"一括採点 ver. {VERSION} は最終版で, 今後の更新はありません. \n\n"
+            + "後継版 score-at-once-electron への移行をお勧めします. \n"
+            + "採点データはメイン画面の［後継版へ書き出す (.sao)］で移行できます. \n\n"
+            + SUCCESSOR_URL,
         )
         bool_accept_terms = tkinter.messagebox.askyesno(
             "Accept the terms? - 規約に同意しますか？",
@@ -5145,7 +5223,7 @@ def check_on_run():
 
 def main():
     root = tkinter.Tk()
-    root.title("一括採点 - alpha版")
+    root.title(f"一括採点 ver. {VERSION}")
     root.geometry("800x500")
     menu(root)
     MainFrame(root=root)

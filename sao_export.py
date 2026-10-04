@@ -110,6 +110,10 @@ def _region_label(index: int, question: dict[str, Any]) -> str:
         for key in ("daimon", "shomon", "shimon")
         if question.get(key) not in (None, "")
     ]
+    if question["type"] == "小計点":
+        return f"小計{question['daimon']}" if question.get("daimon") not in (None, "") else "小計"
+    if question["type"] == "合計点":
+        return "合計"
     if numbers:
         return "-".join(numbers)
     if question["type"] != "設問":
