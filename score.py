@@ -44,11 +44,13 @@ import PIL.ImageFont
 import PIL.ImageTk
 
 import openpyxl
+import openpyxl.cell.cell
 import openpyxl.drawing.image
 import openpyxl.styles
 import openpyxl.utils.cell
 import openpyxl.worksheet.datavalidation
 import openpyxl.worksheet.views
+from openpyxl.utils.cell import get_column_letter
 
 import functools
 import getpass
@@ -131,6 +133,67 @@ else:
 
 # 解答として読み込む画像の拡張子 (大文字の .JPG なども受け付ける)
 IMAGE_EXTENSIONS = (".jpeg", ".jpg", ".png")
+
+
+def anchor_position(area: list[int], setting: dict[str, Any]) -> tuple[int, int]:
+    """採点枠 area = [x0, y0, x1, y1] に対して, 記号や点数を置く座標を返す.
+
+    setting["position"] は枠のどこを基準にするか (nw / n / ne / w / c / e / sw / s / se, 方角と同じ),
+    setting["x"], setting["y"] は基準点からのずれ (ピクセル).
+    """
+    x0, y0, x1, y1 = area
+    position = setting["position"]
+    x = x0 if "w" in position else x1 if "e" in position else (x0 + x1) // 2
+    y = y0 if "n" in position else y1 if "s" in position else (y0 + y1) // 2
+    return x + setting["x"], y + setting["y"]
+
+
+def cell_at(sheet: Any, row: int, column: int) -> openpyxl.cell.cell.Cell:
+    """値を書き込むセルを返す. 結合セルの左上以外 (MergedCell) は値を持てないので, 誤って書かないよう確かめる."""
+    cell = sheet.cell(row=row, column=column)
+    assert isinstance(cell, openpyxl.cell.cell.Cell), f"結合されたセルには書き込めません: {cell.coordinate}"
+    return cell
+
+
+# 採点枠の種類ごとの表示色 (解答欄の指定画面)
+REGION_COLORS = {
+    "設問": "green",
+    "氏名": "blue",
+    "生徒番号": "cyan",
+    "小計点": "magenta",
+    "合計点": "orange",
+    "採点者印": "yellow",
+}
+
+# 採点状態ごとの表示色 (一括採点画面の枠)
+STATUS_COLORS = {
+    "unscored": "gray",
+    "correct": "green",
+    "partial": "yellow",
+    "hold": "blue",
+    "incorrect": "red",
+}
+
+
+def printed_point_text(score: dict[str, Any], haiten: int | None) -> str:
+    """書き出す答案に印字する点数. 点数が決まらないもの (配点・部分点が未入力) は空文字."""
+    status, point = score["status"], score["point"]
+    if status in ("unscored", "incorrect"):
+        return "0"
+    value = haiten if status == "correct" else point
+    return "" if value is None else str(value)
+
+
+def score_entry_text(score: dict[str, Any], haiten: int | None) -> str:
+    """一括採点画面の点数欄に出す文字. 正答で配点が未設定なら「配」, 未採点なら「未採」."""
+    status, point = score["status"], score["point"]
+    if status == "unscored":
+        return "未採"
+    if status == "correct":
+        return "配" if haiten is None else str(haiten)
+    if status == "incorrect":
+        return "0"
+    return "" if point is None else str(point)  # partial / hold
 
 
 def is_image_file(path: str) -> bool:
@@ -819,41 +882,27 @@ class SubWindow:
             canvas.coords("rectangle_new", 0, 0, 0, 0)
 
         def selected_listbox_question(*args, **kwargs):
+            """採点枠を種類ごとの色で描き直す. 一覧で選択中の枠は赤で示す."""
             with open(path_json_answer_area, "r", encoding="utf-8") as f:
-                dict_answer_area = json.load(f)
-            for index_question, question in enumerate(dict_answer_area["questions"]):
-                if question["type"] == "設問":
-                    color_reactangle = "green"
-                elif question["type"] == "氏名":
-                    color_reactangle = "blue"
-                elif question["type"] == "生徒番号":
-                    color_reactangle = "cyan"
-                elif question["type"] == "小計点":
-                    color_reactangle = "magenta"
-                elif question["type"] == "合計点":
-                    color_reactangle = "orange"
-                elif question["type"] == "採点者印":
-                    color_reactangle = "yellow"
-                self.selected_area_index = listbox_question.curselection()[0]
-                if index_question == listbox_question.curselection()[0]:
-                    color_reactangle = "red"
+                questions = json.load(f)["questions"]
+            selection = listbox_question.curselection()
+            if not selection:
+                return
+            self.selected_area_index = selection[0]
+            for index_question, question in enumerate(questions):
+                color = (
+                    "red"
+                    if index_question == self.selected_area_index
+                    else REGION_COLORS.get(question["type"], "green")
+                )
+                x0, y0, x1, y1 = question["area"]
                 canvas.create_rectangle(
-                    question["area"][0],
-                    question["area"][1],
-                    question["area"][2],
-                    question["area"][3],
-                    outline=color_reactangle,
-                    width=2,
-                    fill=color_reactangle,
-                    stipple="gray12",
-                    tags="field",
+                    x0, y0, x1, y1,
+                    outline=color, width=2, fill=color, stipple="gray12", tags="field",
                 )
                 canvas.create_text(
-                    question["area"][0] - 10,
-                    (question["area"][1] + question["area"][3]) // 2,
-                    text=str(index_question),
-                    fill="green",
-                    tags="number",
+                    x0 - 10, (y0 + y1) // 2,
+                    text=str(index_question), fill="green", tags="number",
                 )
 
         def reload_listbox_question():
@@ -1166,175 +1215,53 @@ class SubWindow:
                 self.scoring_question_indices.append(
                     index_question
                 )
-        listbox_question.select_set(self.scoring_question_index)
-        self.scoring_question_index = (
-            self.scoring_question_indices[0]
-        )
+        if not self.scoring_question_indices:
+            tkinter.messagebox.showwarning(
+                "採点する設問がありません",
+                "［解答欄の位置を指定］で, 種類が「設問」の枠を 1 つ以上作って下さい. ",
+            )
+            return True  # 画面を閉じてメイン画面に戻る
+        listbox_question.select_set(0)
+        self.scoring_question_index = self.scoring_question_indices[0]
 
         def repack_chosen_frame_canvas_answer(self):
+            """表示中のページの答案を格子状に並べ直し, 採点状態に応じて枠の色と点数欄を更新する."""
             with open(path_json_answer_area, "r", encoding="utf-8") as f:
-                dict_answer_area = json.load(f)
+                question = json.load(f)["questions"][self.scoring_question_index]
             label_show_page.configure(
                 text=f"{self.answer_grid_page + 1} 頁 / {len(self.answer_grid_pages)} 頁"
             )
-            for index_relation_table_position_to_index_answersheet, (
-                (int_column_position_of_answer, int_row_position_of_answer),
-                index_scoring_answersheet,
-            ) in enumerate(
-                self.answer_grid_pages[
-                    self.answer_grid_page
-                ]
-            ):
-                self.list_entry_score[index_scoring_answersheet].configure(
-                    state="normal"
-                )
-                if (
-                    dict_answer_area["questions"][self.scoring_question_index][
-                        "score"
-                    ][index_scoring_answersheet]["status"]
-                    == "unscored"
-                ):
-                    background_frame = "gray"
-                    self.list_entry_score[index_scoring_answersheet].delete(
-                        0, tkinter.END
-                    )
-                    self.list_entry_score[index_scoring_answersheet].insert(0, "未採")
-                elif (
-                    dict_answer_area["questions"][self.scoring_question_index][
-                        "score"
-                    ][index_scoring_answersheet]["status"]
-                    == "correct"
-                ):
-                    background_frame = "green"
-                    self.list_entry_score[index_scoring_answersheet].delete(
-                        0, tkinter.END
-                    )
-                    if (
-                        dict_answer_area["questions"][
-                            self.scoring_question_index
-                        ]["haiten"]
-                        is None
-                    ):
-                        self.list_entry_score[index_scoring_answersheet].insert(0, "配")
-                    else:
-                        self.list_entry_score[index_scoring_answersheet].insert(
-                            0,
-                            str(
-                                dict_answer_area["questions"][
-                                    self.scoring_question_index
-                                ]["haiten"]
-                            ),
-                        )
-                elif (
-                    dict_answer_area["questions"][self.scoring_question_index][
-                        "score"
-                    ][index_scoring_answersheet]["status"]
-                    == "partial"
-                ):
-                    background_frame = "yellow"
-                    self.list_entry_score[index_scoring_answersheet].delete(
-                        0, tkinter.END
-                    )
-                    if (
-                        dict_answer_area["questions"][
-                            self.scoring_question_index
-                        ]["score"][index_scoring_answersheet]["point"]
-                        is not None
-                    ):
-                        self.list_entry_score[index_scoring_answersheet].insert(
-                            0,
-                            str(
-                                dict_answer_area["questions"][
-                                    self.scoring_question_index
-                                ]["score"][index_scoring_answersheet]["point"]
-                            ),
-                        )
-                elif (
-                    dict_answer_area["questions"][self.scoring_question_index][
-                        "score"
-                    ][index_scoring_answersheet]["status"]
-                    == "hold"
-                ):
-                    background_frame = "blue"
-                    self.list_entry_score[index_scoring_answersheet].delete(
-                        0, tkinter.END
-                    )
-                    if (
-                        dict_answer_area["questions"][
-                            self.scoring_question_index
-                        ]["score"][index_scoring_answersheet]["point"]
-                        is not None
-                    ):
-                        self.list_entry_score[index_scoring_answersheet].insert(
-                            0,
-                            str(
-                                dict_answer_area["questions"][
-                                    self.scoring_question_index
-                                ]["score"][index_scoring_answersheet]["point"]
-                            ),
-                        )
-                elif (
-                    dict_answer_area["questions"][self.scoring_question_index][
-                        "score"
-                    ][index_scoring_answersheet]["status"]
-                    == "incorrect"
-                ):
-                    background_frame = "red"
-                    self.list_entry_score[index_scoring_answersheet].configure(
-                        state="normal"
-                    )
-                    self.list_entry_score[index_scoring_answersheet].delete(
-                        0, tkinter.END
-                    )
-                    self.list_entry_score[index_scoring_answersheet].insert(0, "0")
-                self.list_entry_score[index_scoring_answersheet].configure(
-                    state="readonly"
-                )
-                self.answer_cell_borders[
-                    index_scoring_answersheet
-                ].configure(background=background_frame)
-                self.answer_cell_borders[
-                    index_scoring_answersheet
-                ].grid(
-                    column=int_column_position_of_answer,
-                    row=int_row_position_of_answer,
-                    padx=2,
-                    pady=2,
-                )
-                self.answer_cell_frames[index_scoring_answersheet].configure(
-                    background="white"
-                )
-                self.list_label_entry_score[index_scoring_answersheet].configure(
-                    background="white"
-                )
-                if (
-                    index_relation_table_position_to_index_answersheet
-                    == self.answer_grid_cursor
-                ):
-                    self.list_canvas_question[index_scoring_answersheet].configure(
-                        background="cyan"
-                    )
-                    self.list_label_entry_score[index_scoring_answersheet].configure(
-                        background="cyan"
-                    )
-                self.answer_cell_frames[index_scoring_answersheet].grid(
-                    padx=3, pady=3
-                )
+            page = self.answer_grid_pages[self.answer_grid_page]
+            for cursor, ((column, row), sheet_index) in enumerate(page):
+                score = question["score"][sheet_index]
+                entry = self.list_entry_score[sheet_index]
+                entry.configure(state="normal")
+                entry.delete(0, tkinter.END)
+                entry.insert(0, score_entry_text(score, question["haiten"]))
+                entry.configure(state="readonly")
+
+                border = self.answer_cell_borders[sheet_index]
+                border.configure(background=STATUS_COLORS.get(score["status"], "gray"))
+                border.grid(column=column, row=row, padx=2, pady=2)
+
+                # 選択中の答案は水色で示す
+                self.answer_cell_frames[sheet_index].configure(background="white")
+                self.list_label_entry_score[sheet_index].configure(background="white")
+                if cursor == self.answer_grid_cursor:
+                    self.list_canvas_question[sheet_index].configure(background="cyan")
+                    self.list_label_entry_score[sheet_index].configure(background="cyan")
+
+                self.answer_cell_frames[sheet_index].grid(padx=3, pady=3)
+                name_label = self.answer_cell_name_labels[sheet_index]
                 if self.is_show_name.get():
-                    self.answer_cell_name_labels[index_scoring_answersheet].grid(
-                        column=0, row=0, columnspan=2, padx=1, pady=1
-                    )
+                    name_label.grid(column=0, row=0, columnspan=2, padx=1, pady=1)
                 else:
-                    self.answer_cell_name_labels[
-                        index_scoring_answersheet
-                    ].grid_forget()
-                self.list_canvas_question[index_scoring_answersheet].grid(
+                    name_label.grid_forget()
+                self.list_canvas_question[sheet_index].grid(
                     column=0, row=1, columnspan=2, padx=1, pady=1
                 )
-                self.list_entry_score[index_scoring_answersheet].grid(
-                    column=0, row=2, sticky="e"
-                )
-                self.list_label_entry_score[index_scoring_answersheet].grid(
+                entry.grid(column=0, row=2, sticky="e")
+                self.list_label_entry_score[sheet_index].grid(
                     column=1, row=2, sticky="w"
                 )
 
@@ -2560,7 +2487,7 @@ class SubWindow:
             if None in list_daimon:
                 list_daimon.remove(None)
             list_daimon.sort()
-            list_name_gakunen = list(set([meibo["学年"] for meibo in list_meibo]))
+            list_name_gakunen = natsort.natsorted({meibo["学年"] for meibo in list_meibo})
             list_tuple_gakkyuu = list(
                 set([(meibo["学年"], meibo["学級"]) for meibo in list_meibo])
             )
@@ -2603,11 +2530,14 @@ class SubWindow:
                         list_list_score_status[-1].append(f"○")
                     elif score["status"] == "partial":
                         list_list_score_point[-1].append(score["point"])
-                        list_list_score_status[-1].append(f"△{score['point']}")
+                        list_list_score_status[-1].append(
+                            f"△{'' if score['point'] is None else score['point']}"
+                        )
                     elif score["status"] == "hold":
                         list_list_score_point[-1].append(score["point"])
+                        haiten = list_tuple_question[index_score][3]
                         list_list_score_status[-1].append(
-                            f"？{list_tuple_question[index_score][3]}"
+                            f"？{'' if haiten is None else haiten}"
                         )
                     elif score["status"] == "incorrect":
                         list_list_score_point[-1].append(0)
@@ -2700,29 +2630,15 @@ class SubWindow:
                             tuple_columnrange_shoukei[0] + index_daimon
                         )
                     ].width = (50 / 8)
-                    sheet.cell(
-                        column=tuple_columnrange_shoukei[0] + index_daimon, row=2
-                    ).value = daimon
+                    cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon, row=2).value = daimon
                     if sheet.title == "点数一覧":
-                        sheet.cell(
-                            column=tuple_columnrange_shoukei[0] + index_daimon, row=3
-                        ).value = "小"
-                        sheet.cell(
-                            column=tuple_columnrange_shoukei[0] + index_daimon, row=4
-                        ).value = "計"
-                        sheet.cell(
-                            column=tuple_columnrange_shoukei[0] + index_daimon, row=5
-                        ).value = "点"
+                        cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon, row=3).value = "小"
+                        cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon, row=4).value = "計"
+                        cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon, row=5).value = "点"
                     else:
-                        sheet.cell(
-                            column=tuple_columnrange_shoukei[0] + index_daimon, row=3
-                        ).value = "小計"
-                        sheet.cell(
-                            column=tuple_columnrange_shoukei[0] + index_daimon, row=4
-                        ).value = "設問"
-                        sheet.cell(
-                            column=tuple_columnrange_shoukei[0] + index_daimon, row=5
-                        ).value = "正答数"
+                        cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon, row=3).value = "小計"
+                        cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon, row=4).value = "設問"
+                        cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon, row=5).value = "正答数"
                     set_style(
                         sheet[
                             f"{openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}2:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}5"
@@ -2740,36 +2656,28 @@ class SubWindow:
                             tuple_columnrange_question[0] + index_tuple_question
                         )
                     ].width = (40 / 8)
-                    sheet.cell(
-                        column=tuple_columnrange_question[0] + index_tuple_question,
-                        row=2,
-                    ).value = tuple_question[0]
-                    sheet.cell(
-                        column=tuple_columnrange_question[0] + index_tuple_question,
-                        row=3,
-                    ).value = tuple_question[1]
-                    sheet.cell(
-                        column=tuple_columnrange_question[0] + index_tuple_question,
-                        row=4,
-                    ).value = tuple_question[2]
-                    sheet.cell(
-                        column=tuple_columnrange_question[0] + index_tuple_question,
-                        row=5,
-                    ).value = tuple_question[3]
+                    cell_at(sheet, column=tuple_columnrange_question[0] + index_tuple_question,
+                        row=2,).value = tuple_question[0]
+                    cell_at(sheet, column=tuple_columnrange_question[0] + index_tuple_question,
+                        row=3,).value = tuple_question[1]
+                    cell_at(sheet, column=tuple_columnrange_question[0] + index_tuple_question,
+                        row=4,).value = tuple_question[2]
+                    cell_at(sheet, column=tuple_columnrange_question[0] + index_tuple_question,
+                        row=5,).value = tuple_question[3]
 
                 ### 順位, 生徒番号, 氏名
-                sheet.cell(column=tuple_columnrange_question[1] + 1, row=2).value = "学"
-                sheet.cell(column=tuple_columnrange_question[1] + 1, row=3).value = "年"
-                sheet.cell(column=tuple_columnrange_question[1] + 1, row=4).value = "順"
-                sheet.cell(column=tuple_columnrange_question[1] + 1, row=5).value = "位"
-                sheet.cell(column=tuple_columnrange_question[1] + 2, row=2).value = "学"
-                sheet.cell(column=tuple_columnrange_question[1] + 2, row=3).value = "級"
-                sheet.cell(column=tuple_columnrange_question[1] + 2, row=4).value = "順"
-                sheet.cell(column=tuple_columnrange_question[1] + 2, row=5).value = "位"
-                sheet.cell(column=tuple_columnrange_question[1] + 3, row=6).value = (
+                cell_at(sheet, column=tuple_columnrange_question[1] + 1, row=2).value = "学"
+                cell_at(sheet, column=tuple_columnrange_question[1] + 1, row=3).value = "年"
+                cell_at(sheet, column=tuple_columnrange_question[1] + 1, row=4).value = "順"
+                cell_at(sheet, column=tuple_columnrange_question[1] + 1, row=5).value = "位"
+                cell_at(sheet, column=tuple_columnrange_question[1] + 2, row=2).value = "学"
+                cell_at(sheet, column=tuple_columnrange_question[1] + 2, row=3).value = "級"
+                cell_at(sheet, column=tuple_columnrange_question[1] + 2, row=4).value = "順"
+                cell_at(sheet, column=tuple_columnrange_question[1] + 2, row=5).value = "位"
+                cell_at(sheet, column=tuple_columnrange_question[1] + 3, row=6).value = (
                     "生徒番号"
                 )
-                sheet.cell(column=tuple_columnrange_question[1] + 4, row=6).value = (
+                cell_at(sheet, column=tuple_columnrange_question[1] + 4, row=6).value = (
                     "氏名"
                 )
                 sheet.column_dimensions[
@@ -2800,9 +2708,7 @@ class SubWindow:
 
                 # row: 学年平均点 / 学年正答率
                 for index_name_gakunen, name_gakunen in enumerate(list_name_gakunen):
-                    sheet.cell(
-                        row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=2
-                    ).value = name_gakunen
+                    cell_at(sheet, row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=2).value = name_gakunen
                     for index_column in [2, 3, 4, 5, 6]:
                         sheet.cell(
                             row=tuple_rowrange_gakunen[0] + index_name_gakunen,
@@ -2811,38 +2717,28 @@ class SubWindow:
                             horizontal="centerContinuous"
                         )
                     if sheet.title == "点数一覧":
-                        sheet.cell(
-                            row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=3
-                        ).value = "学年平均点"
+                        cell_at(sheet, row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=3).value = "学年平均点"
                         for index_column in [
                             index_column + 7
                             for index_column in range(
                                 1 + len(list_daimon) + len(list_tuple_question)
                             )
                         ]:
-                            sheet.cell(
-                                column=index_column,
-                                row=tuple_rowrange_gakunen[0] + index_name_gakunen,
-                            ).value = f"=AVERAGEIFS({openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[1]}, $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})"
+                            cell_at(sheet, column=index_column,
+                                row=tuple_rowrange_gakunen[0] + index_name_gakunen,).value = f"=AVERAGEIFS({openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[1]}, $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})"
                             sheet.cell(
                                 column=index_column,
                                 row=tuple_rowrange_gakunen[0] + index_name_gakunen,
                             ).number_format = "0.0"
                     else:
-                        sheet.cell(
-                            row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=3
-                        ).value = "学年正答率"
-                        sheet.cell(
-                            column=7, row=tuple_rowrange_gakunen[0] + index_name_gakunen
-                        ).value = f"=AVERAGE(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakunen[0] + index_name_gakunen}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakunen[0] + index_name_gakunen})"
+                        cell_at(sheet, row=tuple_rowrange_gakunen[0] + index_name_gakunen, column=3).value = "学年正答率"
+                        cell_at(sheet, column=7, row=tuple_rowrange_gakunen[0] + index_name_gakunen).value = f"=AVERAGE(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakunen[0] + index_name_gakunen}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakunen[0] + index_name_gakunen})"
                         sheet.cell(
                             column=7, row=tuple_rowrange_gakunen[0] + index_name_gakunen
                         ).number_format = "[=1]1;.000"
                         for index_daimon, daimon in enumerate(list_daimon):
-                            sheet.cell(
-                                column=tuple_columnrange_shoukei[0] + index_daimon,
-                                row=tuple_rowrange_gakunen[0] + index_name_gakunen,
-                            ).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakunen[0] + index_name_gakunen}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakunen[0] + index_name_gakunen}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
+                            cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon,
+                                row=tuple_rowrange_gakunen[0] + index_name_gakunen,).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakunen[0] + index_name_gakunen}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakunen[0] + index_name_gakunen}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
                             sheet.cell(
                                 column=tuple_columnrange_shoukei[0] + index_daimon,
                                 row=tuple_rowrange_gakunen[0] + index_name_gakunen,
@@ -2850,51 +2746,33 @@ class SubWindow:
                         for index_tuple_question, tuple_question in enumerate(
                             list_tuple_question
                         ):
-                            sheet.cell(
-                                column=tuple_columnrange_question[0]
+                            cell_at(sheet, column=tuple_columnrange_question[0]
                                 + index_tuple_question,
-                                row=tuple_rowrange_gakunen[0] + index_name_gakunen,
-                            ).value = f'=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[1]}, "○", $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})/COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})'
+                                row=tuple_rowrange_gakunen[0] + index_name_gakunen,).value = f'=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[1]}, "○", $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})/COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakunen[0] + index_name_gakunen})'
                             sheet.cell(
                                 column=tuple_columnrange_question[0]
                                 + index_tuple_question,
                                 row=tuple_rowrange_gakunen[0] + index_name_gakunen,
                             ).number_format = "[=1]1;.000"
-                    sheet.cell(
-                        column=tuple_columnrange_question[1] + 1,
-                        row=tuple_rowrange_gakunen[0] + index_name_gakunen,
-                    ).value = "-"
-                    sheet.cell(
-                        column=tuple_columnrange_question[1] + 2,
-                        row=tuple_rowrange_gakunen[0] + index_name_gakunen,
-                    ).value = "-"
-                    sheet.cell(
-                        column=tuple_columnrange_question[1] + 3,
-                        row=tuple_rowrange_gakunen[0] + index_name_gakunen,
-                    ).value = "-"
-                    sheet.cell(
-                        column=tuple_columnrange_question[1] + 4,
-                        row=tuple_rowrange_gakunen[0] + index_name_gakunen,
-                    ).value = "-"
+                    cell_at(sheet, column=tuple_columnrange_question[1] + 1,
+                        row=tuple_rowrange_gakunen[0] + index_name_gakunen,).value = "-"
+                    cell_at(sheet, column=tuple_columnrange_question[1] + 2,
+                        row=tuple_rowrange_gakunen[0] + index_name_gakunen,).value = "-"
+                    cell_at(sheet, column=tuple_columnrange_question[1] + 3,
+                        row=tuple_rowrange_gakunen[0] + index_name_gakunen,).value = "-"
+                    cell_at(sheet, column=tuple_columnrange_question[1] + 4,
+                        row=tuple_rowrange_gakunen[0] + index_name_gakunen,).value = "-"
 
                 # row: 学級平均点 / 学級平均正答数
                 for index_tuple_gakkyuu, tuple_gakkyuu in enumerate(list_tuple_gakkyuu):
-                    sheet.cell(
-                        row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=2
-                    ).value = tuple_gakkyuu[0]
-                    sheet.cell(
-                        row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=3
-                    ).value = tuple_gakkyuu[1]
+                    cell_at(sheet, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=2).value = tuple_gakkyuu[0]
+                    cell_at(sheet, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu, column=3).value = tuple_gakkyuu[1]
                     if sheet.title == "点数一覧":
-                        sheet.cell(
-                            row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
-                            column=4,
-                        ).value = "学級平均点"
+                        cell_at(sheet, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
+                            column=4,).value = "学級平均点"
                     else:
-                        sheet.cell(
-                            row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
-                            column=4,
-                        ).value = "学級正答率"
+                        cell_at(sheet, row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
+                            column=4,).value = "学級正答率"
                     for index_column in [3, 4, 5, 6]:
                         sheet.cell(
                             row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
@@ -2909,28 +2787,22 @@ class SubWindow:
                                 1 + len(list_daimon) + len(list_tuple_question)
                             )
                         ]:
-                            sheet.cell(
-                                column=index_column,
-                                row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
-                            ).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[0]}:${openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[1]}, $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
+                            cell_at(sheet, column=index_column,
+                                row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[0]}:${openpyxl.utils.cell.get_column_letter(index_column)}${tuple_rowrange_meibo[1]}, $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
                             sheet.cell(
                                 column=index_column,
                                 row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
                             ).number_format = "0.0"
                     else:
-                        sheet.cell(
-                            column=7,
-                            row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
-                        ).value = f"=AVERAGE(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
+                        cell_at(sheet, column=7,
+                            row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,).value = f"=AVERAGE(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})"
                         sheet.cell(
                             column=7,
                             row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
                         ).number_format = "[=1]1;.000"
                         for index_daimon, daimon in enumerate(list_daimon):
-                            sheet.cell(
-                                column=tuple_columnrange_shoukei[0] + index_daimon,
-                                row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
-                            ).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
+                            cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon,
+                                row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,).value = f"=AVERAGEIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
                             sheet.cell(
                                 column=tuple_columnrange_shoukei[0] + index_daimon,
                                 row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
@@ -2938,108 +2810,68 @@ class SubWindow:
                         for index_tuple_question, tuple_question in enumerate(
                             list_tuple_question
                         ):
-                            sheet.cell(
-                                column=tuple_columnrange_question[0]
+                            cell_at(sheet, column=tuple_columnrange_question[0]
                                 + index_tuple_question,
-                                row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
-                            ).value = f'=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[1]}, "○", $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})/COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})'
+                                row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,).value = f'=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[0]}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0] + index_tuple_question)}${tuple_rowrange_meibo[1]}, "○", $B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})/COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu})'
                             sheet.cell(
                                 column=tuple_columnrange_question[0]
                                 + index_tuple_question,
                                 row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
                             ).number_format = "[=1]1;.000"
-                    sheet.cell(
-                        column=tuple_columnrange_question[1] + 1,
-                        row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
-                    ).value = "-"
-                    sheet.cell(
-                        column=tuple_columnrange_question[1] + 2,
-                        row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
-                    ).value = "-"
-                    sheet.cell(
-                        column=tuple_columnrange_question[1] + 3,
-                        row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
-                    ).value = "-"
-                    sheet.cell(
-                        column=tuple_columnrange_question[1] + 4,
-                        row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,
-                    ).value = "-"
+                    cell_at(sheet, column=tuple_columnrange_question[1] + 1,
+                        row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,).value = "-"
+                    cell_at(sheet, column=tuple_columnrange_question[1] + 2,
+                        row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,).value = "-"
+                    cell_at(sheet, column=tuple_columnrange_question[1] + 3,
+                        row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,).value = "-"
+                    cell_at(sheet, column=tuple_columnrange_question[1] + 4,
+                        row=tuple_rowrange_gakkyuu[0] + index_tuple_gakkyuu,).value = "-"
 
                 # row: 名簿
                 for index_meibo, meibo in enumerate(list_meibo):
-                    sheet.cell(
-                        row=tuple_rowrange_meibo[0] + index_meibo, column=2
-                    ).value = meibo["学年"]
-                    sheet.cell(
-                        row=tuple_rowrange_meibo[0] + index_meibo, column=3
-                    ).value = meibo["学級"]
-                    sheet.cell(
-                        row=tuple_rowrange_meibo[0] + index_meibo, column=4
-                    ).value = meibo["出席番号"]
-                    sheet.cell(
-                        row=tuple_rowrange_meibo[0] + index_meibo, column=5
-                    ).value = meibo["生徒番号"]
-                    sheet.cell(
-                        row=tuple_rowrange_meibo[0] + index_meibo, column=6
-                    ).value = meibo["氏名"]
+                    cell_at(sheet, row=tuple_rowrange_meibo[0] + index_meibo, column=2).value = meibo["学年"]
+                    cell_at(sheet, row=tuple_rowrange_meibo[0] + index_meibo, column=3).value = meibo["学級"]
+                    cell_at(sheet, row=tuple_rowrange_meibo[0] + index_meibo, column=4).value = meibo["出席番号"]
+                    cell_at(sheet, row=tuple_rowrange_meibo[0] + index_meibo, column=5).value = meibo["生徒番号"]
+                    cell_at(sheet, row=tuple_rowrange_meibo[0] + index_meibo, column=6).value = meibo["氏名"]
                     if sheet.title == "点数一覧":
                         ### column: 合計得点
-                        sheet.cell(
-                            column=tuple_columnrange_goukei[0],
-                            row=tuple_rowrange_meibo[0] + index_meibo,
-                        ).value = f"=SUM({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}${tuple_rowrange_meibo[0] + index_meibo}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}${tuple_rowrange_meibo[0] + index_meibo})"
+                        cell_at(sheet, column=tuple_columnrange_goukei[0],
+                            row=tuple_rowrange_meibo[0] + index_meibo,).value = f"=SUM({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}${tuple_rowrange_meibo[0] + index_meibo}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}${tuple_rowrange_meibo[0] + index_meibo})"
                         ### column: 各大問ごとの小計点
                         for index_daimon, daimon in enumerate(list_daimon):
-                            sheet.cell(
-                                column=tuple_columnrange_shoukei[0] + index_daimon,
-                                row=tuple_rowrange_meibo[0] + index_meibo,
-                            ).value = f"=SUMIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_meibo[0] + index_meibo}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_meibo[0] + index_meibo}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
+                            cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon,
+                                row=tuple_rowrange_meibo[0] + index_meibo,).value = f"=SUMIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_meibo[0] + index_meibo}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_meibo[0] + index_meibo}, ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)"
                         ### 各設問
                         for index_tuple_question in range(len(list_tuple_question)):
-                            sheet.cell(
-                                column=tuple_columnrange_question[0]
+                            cell_at(sheet, column=tuple_columnrange_question[0]
                                 + index_tuple_question,
-                                row=tuple_rowrange_meibo[0] + index_meibo,
-                            ).value = list_list_score_point[index_meibo][
+                                row=tuple_rowrange_meibo[0] + index_meibo,).value = list_list_score_point[index_meibo][
                                 index_tuple_question
                             ]
                     else:
                         ### column: 合計正答設問数
-                        sheet.cell(
-                            column=tuple_columnrange_goukei[0],
-                            row=tuple_rowrange_meibo[0] + index_meibo,
-                        ).value = f'=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}${tuple_rowrange_meibo[0] + index_meibo}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}${tuple_rowrange_meibo[0] + index_meibo}, "○")'
+                        cell_at(sheet, column=tuple_columnrange_goukei[0],
+                            row=tuple_rowrange_meibo[0] + index_meibo,).value = f'=COUNTIFS({openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}${tuple_rowrange_meibo[0] + index_meibo}:{openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}${tuple_rowrange_meibo[0] + index_meibo}, "○")'
                         ### column: 各大問ごとの小計正答設問数
                         for index_daimon, daimon in enumerate(list_daimon):
-                            sheet.cell(
-                                column=tuple_columnrange_shoukei[0] + index_daimon,
-                                row=tuple_rowrange_meibo[0] + index_meibo,
-                            ).value = f'=COUNTIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_meibo[0] + index_meibo}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_meibo[0] + index_meibo}, "○", ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)'
+                            cell_at(sheet, column=tuple_columnrange_shoukei[0] + index_daimon,
+                                row=tuple_rowrange_meibo[0] + index_meibo,).value = f'=COUNTIFS(${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}{tuple_rowrange_meibo[0] + index_meibo}:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}{tuple_rowrange_meibo[0] + index_meibo}, "○", ${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[0])}$2:${openpyxl.utils.cell.get_column_letter(tuple_columnrange_question[1])}$2, {openpyxl.utils.cell.get_column_letter(tuple_columnrange_shoukei[0] + index_daimon)}$2)'
                         ### 設問
                         for index_tuple_question in range(len(list_tuple_question)):
-                            sheet.cell(
-                                column=tuple_columnrange_question[0]
+                            cell_at(sheet, column=tuple_columnrange_question[0]
                                 + index_tuple_question,
-                                row=tuple_rowrange_meibo[0] + index_meibo,
-                            ).value = list_list_score_status[index_meibo][
+                                row=tuple_rowrange_meibo[0] + index_meibo,).value = list_list_score_status[index_meibo][
                                 index_tuple_question
                             ]
-                    sheet.cell(
-                        column=tuple_columnrange_question[1] + 1,
-                        row=tuple_rowrange_meibo[0] + index_meibo,
-                    ).value = f'=COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_meibo[0] + index_meibo}, $G${tuple_rowrange_meibo[0]}:$G${tuple_rowrange_meibo[1]}, ">"&$G{tuple_rowrange_meibo[0] + index_meibo}) + 1'
-                    sheet.cell(
-                        column=tuple_columnrange_question[1] + 2,
-                        row=tuple_rowrange_meibo[0] + index_meibo,
-                    ).value = f'=COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_meibo[0] + index_meibo}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_meibo[0] + index_meibo}, $G${tuple_rowrange_meibo[0]}:$G${tuple_rowrange_meibo[1]}, ">"&$G{tuple_rowrange_meibo[0] + index_meibo}) + 1'
-                    sheet.cell(
-                        row=tuple_rowrange_meibo[0] + index_meibo,
-                        column=tuple_columnrange_question[1] + 3,
-                    ).value = meibo["生徒番号"]
-                    sheet.cell(
-                        row=tuple_rowrange_meibo[0] + index_meibo,
-                        column=tuple_columnrange_question[1] + 4,
-                    ).value = meibo["氏名"]
+                    cell_at(sheet, column=tuple_columnrange_question[1] + 1,
+                        row=tuple_rowrange_meibo[0] + index_meibo,).value = f'=COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_meibo[0] + index_meibo}, $G${tuple_rowrange_meibo[0]}:$G${tuple_rowrange_meibo[1]}, ">"&$G{tuple_rowrange_meibo[0] + index_meibo}) + 1'
+                    cell_at(sheet, column=tuple_columnrange_question[1] + 2,
+                        row=tuple_rowrange_meibo[0] + index_meibo,).value = f'=COUNTIFS($B${tuple_rowrange_meibo[0]}:$B${tuple_rowrange_meibo[1]}, $B{tuple_rowrange_meibo[0] + index_meibo}, $C${tuple_rowrange_meibo[0]}:$C${tuple_rowrange_meibo[1]}, $C{tuple_rowrange_meibo[0] + index_meibo}, $G${tuple_rowrange_meibo[0]}:$G${tuple_rowrange_meibo[1]}, ">"&$G{tuple_rowrange_meibo[0] + index_meibo}) + 1'
+                    cell_at(sheet, row=tuple_rowrange_meibo[0] + index_meibo,
+                        column=tuple_columnrange_question[1] + 3,).value = meibo["生徒番号"]
+                    cell_at(sheet, row=tuple_rowrange_meibo[0] + index_meibo,
+                        column=tuple_columnrange_question[1] + 4,).value = meibo["氏名"]
 
             path_workbook_result_scoring = tkinter.filedialog.asksaveasfilename(
                 parent=self.window,
@@ -3204,69 +3036,9 @@ class SubWindow:
             for question in dict_answer_area["questions"]:
                 if question["type"] == "設問":
                     index_setsumon += 1
-                    if dict_project["export"]["symbol"]["position"] == "nw":
-                        position_x = (
-                            question["area"][0] + dict_project["export"]["symbol"]["x"]
-                        )
-                        position_y = (
-                            question["area"][1] + dict_project["export"]["symbol"]["y"]
-                        )
-                    elif dict_project["export"]["symbol"]["position"] == "n":
-                        position_x = (
-                            question["area"][0] + question["area"][2]
-                        ) // 2 + dict_project["export"]["symbol"]["x"]
-                        position_y = (
-                            question["area"][1] + dict_project["export"]["symbol"]["y"]
-                        )
-                    elif dict_project["export"]["symbol"]["position"] == "ne":
-                        position_x = (
-                            question["area"][2] + dict_project["export"]["symbol"]["x"]
-                        )
-                        position_y = (
-                            question["area"][1] + dict_project["export"]["symbol"]["y"]
-                        )
-                    elif dict_project["export"]["symbol"]["position"] == "w":
-                        position_x = (
-                            question["area"][0] + dict_project["export"]["symbol"]["x"]
-                        )
-                        position_y = (
-                            question["area"][1] + question["area"][3]
-                        ) // 2 + dict_project["export"]["symbol"]["y"]
-                    elif dict_project["export"]["symbol"]["position"] == "c":
-                        position_x = (
-                            question["area"][0] + question["area"][2]
-                        ) // 2 + dict_project["export"]["symbol"]["x"]
-                        position_y = (
-                            question["area"][1] + question["area"][3]
-                        ) // 2 + dict_project["export"]["symbol"]["y"]
-                    elif dict_project["export"]["symbol"]["position"] == "e":
-                        position_x = (
-                            question["area"][2] + dict_project["export"]["symbol"]["x"]
-                        )
-                        position_y = (
-                            question["area"][1] + question["area"][3]
-                        ) // 2 + dict_project["export"]["symbol"]["y"]
-                    elif dict_project["export"]["symbol"]["position"] == "sw":
-                        position_x = (
-                            question["area"][0] + dict_project["export"]["symbol"]["x"]
-                        )
-                        position_y = (
-                            question["area"][3] + dict_project["export"]["symbol"]["y"]
-                        )
-                    elif dict_project["export"]["symbol"]["position"] == "s":
-                        position_x = (
-                            question["area"][0] + question["area"][2]
-                        ) // 2 + dict_project["export"]["symbol"]["x"]
-                        position_y = (
-                            question["area"][3] + dict_project["export"]["symbol"]["y"]
-                        )
-                    elif dict_project["export"]["symbol"]["position"] == "se":
-                        position_x = (
-                            question["area"][2] + dict_project["export"]["symbol"]["x"]
-                        )
-                        position_y = (
-                            question["area"][3] + dict_project["export"]["symbol"]["y"]
-                        )
+                    position_x, position_y = anchor_position(
+                        question["area"], dict_project["export"]["symbol"]
+                    )
                     if index_setsumon % 5 == 0 and booleanvar_unscored_symbol.get():
                         canvas.create_image(
                             position_x,
@@ -3319,69 +3091,9 @@ class SubWindow:
             for question in dict_answer_area["questions"]:
                 if question["type"] == "設問":
                     index_setsumon += 1
-                    if dict_project["export"]["point"]["position"] == "nw":
-                        position_x = (
-                            question["area"][0] + dict_project["export"]["point"]["x"]
-                        )
-                        position_y = (
-                            question["area"][1] + dict_project["export"]["point"]["y"]
-                        )
-                    elif dict_project["export"]["point"]["position"] == "n":
-                        position_x = (
-                            question["area"][0] + question["area"][2]
-                        ) // 2 + dict_project["export"]["point"]["x"]
-                        position_y = (
-                            question["area"][1] + dict_project["export"]["point"]["y"]
-                        )
-                    elif dict_project["export"]["point"]["position"] == "ne":
-                        position_x = (
-                            question["area"][2] + dict_project["export"]["point"]["x"]
-                        )
-                        position_y = (
-                            question["area"][1] + dict_project["export"]["point"]["y"]
-                        )
-                    elif dict_project["export"]["point"]["position"] == "w":
-                        position_x = (
-                            question["area"][0] + dict_project["export"]["point"]["x"]
-                        )
-                        position_y = (
-                            question["area"][1] + question["area"][3]
-                        ) // 2 + dict_project["export"]["point"]["y"]
-                    elif dict_project["export"]["point"]["position"] == "c":
-                        position_x = (
-                            question["area"][0] + question["area"][2]
-                        ) // 2 + dict_project["export"]["point"]["x"]
-                        position_y = (
-                            question["area"][1] + question["area"][3]
-                        ) // 2 + dict_project["export"]["point"]["y"]
-                    elif dict_project["export"]["point"]["position"] == "e":
-                        position_x = (
-                            question["area"][2] + dict_project["export"]["point"]["x"]
-                        )
-                        position_y = (
-                            question["area"][1] + question["area"][3]
-                        ) // 2 + dict_project["export"]["point"]["y"]
-                    elif dict_project["export"]["point"]["position"] == "sw":
-                        position_x = (
-                            question["area"][0] + dict_project["export"]["point"]["x"]
-                        )
-                        position_y = (
-                            question["area"][3] + dict_project["export"]["point"]["y"]
-                        )
-                    elif dict_project["export"]["point"]["position"] == "s":
-                        position_x = (
-                            question["area"][0] + question["area"][2]
-                        ) // 2 + dict_project["export"]["point"]["x"]
-                        position_y = (
-                            question["area"][3] + dict_project["export"]["point"]["y"]
-                        )
-                    elif dict_project["export"]["point"]["position"] == "se":
-                        position_x = (
-                            question["area"][2] + dict_project["export"]["point"]["x"]
-                        )
-                        position_y = (
-                            question["area"][3] + dict_project["export"]["point"]["y"]
-                        )
+                    position_x, position_y = anchor_position(
+                        question["area"], dict_project["export"]["point"]
+                    )
                     if index_setsumon % 5 == 0 and booleanvar_unscored_point.get():
                         canvas.create_text(
                             position_x,
@@ -3763,81 +3475,9 @@ class SubWindow:
                 for question in dict_answer_area["questions"]:
                     if question["type"] == "設問":
                         # symbol
-                        if dict_project["export"]["symbol"]["position"] == "nw":
-                            position_x = (
-                                question["area"][0]
-                                + dict_project["export"]["symbol"]["x"]
-                            )
-                            position_y = (
-                                question["area"][1]
-                                + dict_project["export"]["symbol"]["y"]
-                            )
-                        elif dict_project["export"]["symbol"]["position"] == "n":
-                            position_x = (
-                                question["area"][0] + question["area"][2]
-                            ) // 2 + dict_project["export"]["symbol"]["x"]
-                            position_y = (
-                                question["area"][1]
-                                + dict_project["export"]["symbol"]["y"]
-                            )
-                        elif dict_project["export"]["symbol"]["position"] == "ne":
-                            position_x = (
-                                question["area"][2]
-                                + dict_project["export"]["symbol"]["x"]
-                            )
-                            position_y = (
-                                question["area"][1]
-                                + dict_project["export"]["symbol"]["y"]
-                            )
-                        elif dict_project["export"]["symbol"]["position"] == "w":
-                            position_x = (
-                                question["area"][0]
-                                + dict_project["export"]["symbol"]["x"]
-                            )
-                            position_y = (
-                                question["area"][1] + question["area"][3]
-                            ) // 2 + dict_project["export"]["symbol"]["y"]
-                        elif dict_project["export"]["symbol"]["position"] == "c":
-                            position_x = (
-                                question["area"][0] + question["area"][2]
-                            ) // 2 + dict_project["export"]["symbol"]["x"]
-                            position_y = (
-                                question["area"][1] + question["area"][3]
-                            ) // 2 + dict_project["export"]["symbol"]["y"]
-                        elif dict_project["export"]["symbol"]["position"] == "e":
-                            position_x = (
-                                question["area"][2]
-                                + dict_project["export"]["symbol"]["x"]
-                            )
-                            position_y = (
-                                question["area"][1] + question["area"][3]
-                            ) // 2 + dict_project["export"]["symbol"]["y"]
-                        elif dict_project["export"]["symbol"]["position"] == "sw":
-                            position_x = (
-                                question["area"][0]
-                                + dict_project["export"]["symbol"]["x"]
-                            )
-                            position_y = (
-                                question["area"][3]
-                                + dict_project["export"]["symbol"]["y"]
-                            )
-                        elif dict_project["export"]["symbol"]["position"] == "s":
-                            position_x = (
-                                question["area"][0] + question["area"][2]
-                            ) // 2 + dict_project["export"]["symbol"]["x"]
-                            position_y = (
-                                question["area"][3]
-                                + dict_project["export"]["symbol"]["y"]
-                            )
-                        elif dict_project["export"]["symbol"]["position"] == "se":
-                            position_x = (
-                                question["area"][2]
-                                + dict_project["export"]["symbol"]["x"]
-                            )
-                            position_y = (
-                                question["area"][3]
-                                + dict_project["export"]["symbol"]["y"]
-                            )
+                        position_x, position_y = anchor_position(
+                            question["area"], dict_project["export"]["symbol"]
+                        )
                         position_x -= dict_project["export"]["symbol"]["size"] // 2
                         position_y -= dict_project["export"]["symbol"]["size"] // 2
                         self.image_clear = PIL.Image.new(
@@ -3897,130 +3537,24 @@ class SubWindow:
                             self.image_answersheet, self.image_clear
                         )
                         # position
-                        if dict_project["export"]["point"]["position"] == "nw":
-                            position_x = (
-                                question["area"][0]
-                                + dict_project["export"]["point"]["x"]
-                            )
-                            position_y = (
-                                question["area"][1]
-                                + dict_project["export"]["point"]["y"]
-                            )
-                        elif dict_project["export"]["point"]["position"] == "n":
-                            position_x = (
-                                question["area"][0] + question["area"][2]
-                            ) // 2 + dict_project["export"]["point"]["x"]
-                            position_y = (
-                                question["area"][1]
-                                + dict_project["export"]["point"]["y"]
-                            )
-                        elif dict_project["export"]["point"]["position"] == "ne":
-                            position_x = (
-                                question["area"][2]
-                                + dict_project["export"]["point"]["x"]
-                            )
-                            position_y = (
-                                question["area"][1]
-                                + dict_project["export"]["point"]["y"]
-                            )
-                        elif dict_project["export"]["point"]["position"] == "w":
-                            position_x = (
-                                question["area"][0]
-                                + dict_project["export"]["point"]["x"]
-                            )
-                            position_y = (
-                                question["area"][1] + question["area"][3]
-                            ) // 2 + dict_project["export"]["point"]["y"]
-                        elif dict_project["export"]["point"]["position"] == "c":
-                            position_x = (
-                                question["area"][0] + question["area"][2]
-                            ) // 2 + dict_project["export"]["point"]["x"]
-                            position_y = (
-                                question["area"][1] + question["area"][3]
-                            ) // 2 + dict_project["export"]["point"]["y"]
-                        elif dict_project["export"]["point"]["position"] == "e":
-                            position_x = (
-                                question["area"][2]
-                                + dict_project["export"]["point"]["x"]
-                            )
-                            position_y = (
-                                question["area"][1] + question["area"][3]
-                            ) // 2 + dict_project["export"]["point"]["y"]
-                        elif dict_project["export"]["point"]["position"] == "sw":
-                            position_x = (
-                                question["area"][0]
-                                + dict_project["export"]["point"]["x"]
-                            )
-                            position_y = (
-                                question["area"][3]
-                                + dict_project["export"]["point"]["y"]
-                            )
-                        elif dict_project["export"]["point"]["position"] == "s":
-                            position_x = (
-                                question["area"][0] + question["area"][2]
-                            ) // 2 + dict_project["export"]["point"]["x"]
-                            position_y = (
-                                question["area"][3]
-                                + dict_project["export"]["point"]["y"]
-                            )
-                        elif dict_project["export"]["point"]["position"] == "se":
-                            position_x = (
-                                question["area"][2]
-                                + dict_project["export"]["point"]["x"]
-                            )
-                            position_y = (
-                                question["area"][3]
-                                + dict_project["export"]["point"]["y"]
-                            )
+                        position_x, position_y = anchor_position(
+                            question["area"], dict_project["export"]["point"]
+                        )
                         position_x -= dict_project["export"]["point"]["size"] // 2
                         position_y -= dict_project["export"]["point"]["size"] // 2
-                        if (
-                            question["score"][index_meibo]["status"] == "unscored"
-                            and booleanvar_unscored_point.get()
-                        ):
+                        score = question["score"][index_meibo]
+                        show_point = {
+                            "unscored": booleanvar_unscored_point,
+                            "correct": booleanvar_correct_point,
+                            "partial": booleanvar_partial_point,
+                            "hold": booleanvar_hold_point,
+                            "incorrect": booleanvar_incorrect_point,
+                        }
+                        point_text = printed_point_text(score, question["haiten"])
+                        if show_point[score["status"]].get() and point_text:
                             PIL.ImageDraw.Draw(self.image_answersheet).text(
                                 (position_x, position_y),
-                                str(0),
-                                fill="red",
-                                font=load_font(dict_project["export"]["point"]["size"]),
-                            )
-                        elif (
-                            question["score"][index_meibo]["status"] == "correct"
-                            and booleanvar_correct_point.get()
-                        ):
-                            PIL.ImageDraw.Draw(self.image_answersheet).text(
-                                (position_x, position_y),
-                                str(question["haiten"]),
-                                fill="red",
-                                font=load_font(dict_project["export"]["point"]["size"]),
-                            )
-                        elif (
-                            question["score"][index_meibo]["status"] == "partial"
-                            and booleanvar_partial_point.get()
-                        ):
-                            PIL.ImageDraw.Draw(self.image_answersheet).text(
-                                (position_x, position_y),
-                                str(question["score"][index_meibo]["point"]),
-                                fill="red",
-                                font=load_font(dict_project["export"]["point"]["size"]),
-                            )
-                        elif (
-                            question["score"][index_meibo]["status"] == "hold"
-                            and booleanvar_hold_point.get()
-                        ):
-                            PIL.ImageDraw.Draw(self.image_answersheet).text(
-                                (position_x, position_y),
-                                str(question["score"][index_meibo]["point"]),
-                                fill="red",
-                                font=load_font(dict_project["export"]["point"]["size"]),
-                            )
-                        elif (
-                            question["score"][index_meibo]["status"] == "incorrect"
-                            and booleanvar_incorrect_point.get()
-                        ):
-                            PIL.ImageDraw.Draw(self.image_answersheet).text(
-                                (position_x, position_y),
-                                str(0),
+                                point_text,
                                 fill="red",
                                 font=load_font(dict_project["export"]["point"]["size"]),
                             )
@@ -4085,13 +3619,12 @@ class SubWindow:
             if path_pdf:
                 try:
                     with open(path_pdf, "wb") as f:
-                        f.write(
-                            img2pdf.convert(
-                                [
-                                    f"{path_dir}/.temp_saiten/output/{index_meibo}.png"
-                                    for index_meibo in range(len(list_meibo))
-                                ]
-                            )
+                        img2pdf.convert(
+                            [
+                                f"{path_dir}/.temp_saiten/output/{index_meibo}.png"
+                                for index_meibo in range(len(list_meibo))
+                            ],
+                            outputstream=f,
                         )
                 except PermissionError:
                     tkinter.messagebox.showerror(
@@ -4739,95 +4272,63 @@ class MainFrame(tkinter.Frame):
         workbook_import.create_sheet(title="名簿登録")
         sheet_meibo = workbook_import["名簿登録"]
         sheet_meibo.freeze_panes = "B2"
-        sheet_meibo.cell(1, 1).value = "答案番号"
+        cell_at(sheet_meibo, 1, 1).value = "答案番号"
         sheet_meibo.row_dimensions[1].height = 40
         for index_row in range(len(list_meibo)):
-            sheet_meibo.cell(index_row + 2, 1).value = index_row
+            cell_at(sheet_meibo, index_row + 2, 1).value = index_row
             sheet_meibo.row_dimensions[index_row + 2].height = 30
-        for index_column, key in enumerate(
-            ["学年", "学級", "出席番号", "生徒番号", "氏名"]
-        ):
-            sheet_meibo.cell(1, index_column + 2).value = key
-            if key in ["学年", "学級", "出席番号"]:
-                sheet_meibo.column_dimensions[
-                    openpyxl.utils.cell.get_column_letter(index_column + 2)
-                ].width = 10
-            else:
-                sheet_meibo.column_dimensions[
-                    openpyxl.utils.cell.get_column_letter(index_column + 2)
-                ].width = 20
-            for index_row in range(len(list_meibo)):
-                sheet_meibo.cell(index_row + 2, index_column + 2).value = list_meibo[
-                    index_row
-                ][key]
-                if index_column + 2 in [2, 4]:
-                    color_background = "bfffff"
-                elif index_column + 2 in [3]:
-                    color_background = "cccccc"
-                elif index_column + 2 in [5]:
-                    color_background = "ffbfbf"
-                elif index_column + 2 in [6]:
-                    color_background = "ffdfdf"
-                sheet_meibo.cell(index_row + 2, index_column + 2).fill = (
-                    openpyxl.styles.PatternFill(
-                        patternType="solid", fgColor=color_background
-                    )
+        # 名簿の入力欄: (見出し, 列幅, 背景色)
+        meibo_columns = [
+            ("学年", 10, "bfffff"),
+            ("学級", 10, "cccccc"),
+            ("出席番号", 10, "bfffff"),
+            ("生徒番号", 20, "ffbfbf"),
+            ("氏名", 20, "ffdfdf"),
+        ]
+        for column, (key, width, color) in enumerate(meibo_columns, start=2):
+            cell_at(sheet_meibo, 1, column).value = key
+            sheet_meibo.column_dimensions[get_column_letter(column)].width = width
+            for row_number, person in enumerate(list_meibo, start=2):
+                input_cell = cell_at(sheet_meibo, row_number, column)
+                input_cell.value = person[key]
+                input_cell.fill = openpyxl.styles.PatternFill(
+                    patternType="solid", fgColor=color
                 )
-                sheet_meibo.cell(index_row + 2, index_column + 2).protection = (
-                    openpyxl.styles.Protection(locked=False)
-                )
-        list_add_images: list = []
-        index_column += 2
+                input_cell.protection = openpyxl.styles.Protection(locked=False)
+
+        # 答案の生徒番号・氏名欄を切り抜いて名簿の右に並べ, 入力の手がかりにする
+        image_height = 40
+        index_column = len(meibo_columns) + 1
         for str_type in ["生徒番号", "氏名"]:
             for question in dict_answer_area["questions"]:
-                if question["type"] == str_type:
-                    index_column += 1
-                    list_add_images.append([])
-                    sheet_meibo.cell(1, index_column).value = f"({str_type})"
-                    for index_meibo, meibo in enumerate(list_meibo):
-                        list_add_images[-1].append(
-                            PIL.Image.open(
-                                f"{path_dir}/.temp_saiten/answer/{index_meibo}.png"
-                            )
-                        )
-                        list_add_images[-1][-1] = list_add_images[-1][-1].crop(
-                            (
-                                question["area"][0],
-                                question["area"][1],
-                                question["area"][2],
-                                question["area"][3],
-                            )
-                        )
-                        height_image = 40
-                        width_image = (
-                            list_add_images[-1][-1].width
-                            * 40
-                            // list_add_images[-1][-1].height
-                        )
-                        list_add_images[-1][-1] = list_add_images[-1][-1].resize(
-                            (width_image, height_image)
-                        )
-                        list_add_images[-1][-1].save(
-                            f"{path_dir}/.temp_saiten/make_xlsx/{index_column}_{index_meibo}.png"
-                        )
-                        list_add_images[-1][-1] = openpyxl.drawing.image.Image(
-                            f"{path_dir}/.temp_saiten/make_xlsx/{index_column}_{index_meibo}.png"
-                        )
-                        sheet_meibo.add_image(
-                            list_add_images[-1][-1],
-                            f"{openpyxl.utils.get_column_letter(index_column)}{index_meibo + 2}",
-                        )
-                    sheet_meibo.column_dimensions[
-                        openpyxl.utils.get_column_letter(index_column)
-                    ].width = (width_image / 8)
+                if question["type"] != str_type:
+                    continue
+                index_column += 1
+                column_letter = get_column_letter(index_column)
+                cell_at(sheet_meibo, 1, index_column).value = f"({str_type})"
+                x0, y0, x1, y1 = question["area"]
+                image_width = (x1 - x0) * image_height // (y1 - y0)
+                sheet_meibo.column_dimensions[column_letter].width = image_width / 8
+                for index_meibo in range(len(list_meibo)):
+                    path_crop = f"{path_dir}/.temp_saiten/make_xlsx/{index_column}_{index_meibo}.png"
+                    with PIL.Image.open(
+                        f"{path_dir}/.temp_saiten/answer/{index_meibo}.png"
+                    ) as image:
+                        image.crop((x0, y0, x1, y1)).resize(
+                            (image_width, image_height)
+                        ).save(path_crop)
+                    sheet_meibo.add_image(
+                        openpyxl.drawing.image.Image(path_crop),
+                        f"{column_letter}{index_meibo + 2}",
+                    )
         workbook_import.create_sheet(title="配点登録")
         sheet_haiten = workbook_import["配点登録"]
-        sheet_haiten.cell(1, 1).value = "枠番号"
-        sheet_haiten.cell(1, 2).value = "種類"
-        sheet_haiten.cell(1, 3).value = "大問"
-        sheet_haiten.cell(1, 4).value = "小問"
-        sheet_haiten.cell(1, 5).value = "枝問"
-        sheet_haiten.cell(1, 6).value = "配点"
+        cell_at(sheet_haiten, 1, 1).value = "枠番号"
+        cell_at(sheet_haiten, 1, 2).value = "種類"
+        cell_at(sheet_haiten, 1, 3).value = "大問"
+        cell_at(sheet_haiten, 1, 4).value = "小問"
+        cell_at(sheet_haiten, 1, 5).value = "枝問"
+        cell_at(sheet_haiten, 1, 6).value = "配点"
         side = openpyxl.styles.Side(style="thin", color="000000")
         border_up_down = openpyxl.styles.Border(top=side, bottom=side)
         datavalidation_whole = openpyxl.worksheet.datavalidation.DataValidation(
@@ -4840,11 +4341,11 @@ class MainFrame(tkinter.Frame):
         sheet_haiten.row_dimensions[1].height = 22.5
         for index_question, question in enumerate(dict_answer_area["questions"]):
             sheet_haiten.row_dimensions[index_question + 2].height = 22.5
-            sheet_haiten.cell(index_question + 2, 1).value = index_question
+            cell_at(sheet_haiten, index_question + 2, 1).value = index_question
             sheet_haiten.cell(index_question + 2, 1).border = border_up_down
-            sheet_haiten.cell(index_question + 2, 2).value = question["type"]
+            cell_at(sheet_haiten, index_question + 2, 2).value = question["type"]
             sheet_haiten.cell(index_question + 2, 2).border = border_up_down
-            sheet_haiten.cell(index_question + 2, 3).value = question["daimon"]
+            cell_at(sheet_haiten, index_question + 2, 3).value = question["daimon"]
             sheet_haiten.cell(index_question + 2, 3).border = border_up_down
             if question["type"] in ["設問", "小計点"]:
                 sheet_haiten.cell(index_question + 2, 3).fill = (
@@ -4860,7 +4361,7 @@ class MainFrame(tkinter.Frame):
                 sheet_haiten.cell(index_question + 2, 3).fill = (
                     openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
                 )
-            sheet_haiten.cell(index_question + 2, 4).value = question["shomon"]
+            cell_at(sheet_haiten, index_question + 2, 4).value = question["shomon"]
             sheet_haiten.cell(index_question + 2, 4).border = border_up_down
             if question["type"] in ["設問"]:
                 sheet_haiten.cell(index_question + 2, 4).fill = (
@@ -4876,7 +4377,7 @@ class MainFrame(tkinter.Frame):
                 sheet_haiten.cell(index_question + 2, 4).fill = (
                     openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
                 )
-            sheet_haiten.cell(index_question + 2, 5).value = question["shimon"]
+            cell_at(sheet_haiten, index_question + 2, 5).value = question["shimon"]
             sheet_haiten.cell(index_question + 2, 5).border = border_up_down
             if question["type"] in ["設問"]:
                 sheet_haiten.cell(index_question + 2, 5).fill = (
@@ -4892,7 +4393,7 @@ class MainFrame(tkinter.Frame):
                 sheet_haiten.cell(index_question + 2, 5).fill = (
                     openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
                 )
-            sheet_haiten.cell(index_question + 2, 6).value = question["haiten"]
+            cell_at(sheet_haiten, index_question + 2, 6).value = question["haiten"]
             sheet_haiten.cell(index_question + 2, 6).border = border_up_down
             if question["type"] in ["設問"]:
                 sheet_haiten.cell(index_question + 2, 6).fill = (
@@ -4906,9 +4407,10 @@ class MainFrame(tkinter.Frame):
                 sheet_haiten.cell(index_question + 2, 6).fill = (
                     openpyxl.styles.PatternFill(patternType="solid", fgColor="cccccc")
                 )
-        sheet_haiten.cell(index_question + 3, 5).value = "配点合計"
-        sheet_haiten.cell(index_question + 3, 6).value = (
-            f'=SUMIF(B2:B{index_question + 2}, "設問", F2:F{index_question + 2})'
+        last_row = len(dict_answer_area["questions"]) + 1  # 採点枠の最終行
+        cell_at(sheet_haiten, last_row + 1, 5).value = "配点合計"
+        cell_at(sheet_haiten, last_row + 1, 6).value = (
+            f'=SUMIF(B2:B{last_row}, "設問", F2:F{last_row})'
         )
         for sheet in workbook_import.worksheets:
             for row in sheet.rows:

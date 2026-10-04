@@ -6,11 +6,31 @@ import PIL
 import PIL.Image
 
 import glob
+import itertools
 import natsort
 import os
 import pdf2image
 import sys
 import time
+
+def composite_pages(pages, sizes, direction):
+  """1 人分の答案 (複数枚) を, 指定した向きに並べて 1 枚の画像にする.
+
+  sizes: 各ページの (幅, 高さ). direction: "1" 左→右 / "2" 上→下 / "3" 右→左 / "4" 下→上
+  """
+  horizontal = direction in ("1", "3")
+  widths, heights = zip(*sizes)
+  canvas_size = (sum(widths), max(heights)) if horizontal else (max(widths), sum(heights))
+  canvas = PIL.Image.new("RGB", canvas_size, "white")
+  # offsets[i] = i 枚目の始まりの位置 (並べる向きに沿った長さの累積)
+  offsets = list(itertools.accumulate(widths if horizontal else heights, initial=0))
+  for index, (page, size) in enumerate(zip(pages, sizes)):
+    start = offsets[index]
+    if direction in ("3", "4"):  # 逆向きは末尾側から詰める
+      start = offsets[-1] - offsets[index + 1]
+    canvas.paste(page.resize(size), (start, 0) if horizontal else (0, start))
+  return canvas
+
 
 def main():
   print(f"画像変換 for 一括採点\n\nCtrl+C で終了します")
@@ -155,33 +175,20 @@ def main():
   print(f"フォルダ: {path_output_dir}")
   time.sleep(1)
   print(f"")
-  index_save = 0
-  for index_image, image in enumerate(list_image):
-    if index_image % int(str_pages) == 0:
-      if str_composite in ["1", "3"]:
-        image_new = PIL.Image.new("RGB", (sum([size[0] for size in list_size]), max([size[1] for size in list_size])), (255, 255, 255, 0))
-      elif str_composite in ["2", "4"]:
-        image_new = PIL.Image.new("RGB", (max([size[0] for size in list_size]), sum([size[1] for size in list_size])), (255, 255, 255, 0))
+  n_pages = len(list_size)
+  n_sheets = len(list_image) // n_pages  # 枚数が足りない最後の 1 人分は出力しない
+  for index_save in range(n_sheets):
+    pages = list_image[index_save * n_pages:(index_save + 1) * n_pages]
+    image_new = composite_pages(pages, list_size, str_composite)
     try:
-      image_resized = image.resize((list_size[index_image % int(str_pages)][0], list_size[index_image % int(str_pages)][1]))
+      image_new.save(f"{path_output_dir}/{str_project}{str(index_save).zfill(5)}.png")
     except OSError:
       print(f"\nファイルの保存に関するエラーが発生しました")
       print(f"保存するファイルに書き込み権限が存在しない可能性があります")
       print(f"別のフォルダを指定して下さい")
       return False
-    if str_composite in ["1"]:
-      image_new.paste(image_resized, (sum([size[0] for size in list_size[:index_image % int(str_pages)]]), 0))
-    elif str_composite in ["2"]:
-      image_new.paste(image_resized, (0, sum([size[1] for size in list_size[:index_image % int(str_pages)]])))
-    elif str_composite in ["3"]:
-      image_new.paste(image_resized, (sum([size[0] for size in list_size]) - sum([size[0] for size in list_size[:index_image % int(str_pages) + 1]]), 0))
-    elif str_composite in ["4"]:
-      image_new.paste(image_resized, (0, sum([size[1] for size in list_size]) - sum([size[1] for size in list_size[:index_image % int(str_pages) + 1]])))
-    if index_image % int(str_pages) == int(str_pages) - 1:
-      image_new.save(f"{path_output_dir}/{str_project}{str(index_save).zfill(5)}.png")
-      index_save += 1
-      sys.stdout.write(f"\r{index_save}枚 / {len(list_image) // int(str_pages)}枚の画像を出力しました")
-      sys.stdout.flush()
+    sys.stdout.write(f"\r{index_save + 1}枚 / {n_sheets}枚の画像を出力しました")
+    sys.stdout.flush()
   return True
 
 if __name__ == "__main__":

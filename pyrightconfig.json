@@ -1,0 +1,7 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.11",
+  "include": ["score.py", "sao_export.py", "画像変換.py", "tools"],
+  "exclude": ["Build", ".venv", ".venv-build"]
+}

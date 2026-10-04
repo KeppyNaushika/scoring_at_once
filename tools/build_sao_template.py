@@ -29,6 +29,8 @@ def main(electron_repo: str) -> None:
     )
     if os.path.exists(OUTPUT):
         os.remove(OUTPUT)
+    if sys.version_info < (3, 12):
+        sys.exit("Python 3.12 以降で実行して下さい (sqlite3 の setconfig が必要)")
     db = sqlite3.connect(OUTPUT)
     db.isolation_level = None
     # 初期マイグレーションが writable_schema で sqlite_autoindex_* を作るため, defensive モードを切る
