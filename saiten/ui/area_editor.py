@@ -6,11 +6,12 @@ import tkinter
 from functools import partial
 from typing import TYPE_CHECKING
 
-import PIL.ImageTk
+import PIL.Image
 
 from saiten.models import REGION_TYPES, RegionType, Workspace, new_region
+from saiten.resolution import Resolution, scale_area
 from saiten.scoring import REGION_COLORS
-from saiten.ui.common import ProjectWindow, bind_wheel_scroll
+from saiten.ui.common import ProjectWindow, bind_wheel_scroll, scaled_photo
 
 if TYPE_CHECKING:
     from saiten.ui.main_window import MainWindow
@@ -50,8 +51,12 @@ class AreaEditor(ProjectWindow):
         self.answer_count = len(workspace.load_sources())
         # 最後に追加した枠を選んだ状態で開く
         self.selected_index: int | None = len(self.regions) - 1 if self.regions else None
-        # ドラッグ中の枠 [x0, y0, x1, y1]. 始点と現在の点で, 大小はまだ並べていない
+        # ドラッグ中の枠 [x0, y0, x1, y1] (画像の座標). 始点と現在の点で, 大小はまだ並べていない
         self.drag_rectangle = [0, 0, 0, 0]
+        # 高解像度の画像は縮めて表示する. 枠の座標は画像のピクセルのまま保存する
+        self.scale = Resolution.of(workspace.model_answer_path).display_scale
+        with PIL.Image.open(workspace.model_answer_path) as image:
+            self.image_size = image.size
 
         main_frame = tkinter.Frame(self.window)
         main_frame.pack(expand=True, fill=tkinter.BOTH)
@@ -107,7 +112,7 @@ class AreaEditor(ProjectWindow):
         canvas = tkinter.Canvas(frame, bg="black")
         bind_wheel_scroll(canvas)
         # PhotoImage は参照が消えると表示も消えるので属性に持っておく
-        self.model_answer_image = PIL.ImageTk.PhotoImage(file=self.workspace.model_answer_path)
+        self.model_answer_image = scaled_photo(self.workspace.model_answer_path, self.scale)
         canvas.create_image(0, 0, image=self.model_answer_image, anchor="nw")
         y_scrollbar = tkinter.Scrollbar(frame, orient=tkinter.VERTICAL, command=canvas.yview)
         x_scrollbar = tkinter.Scrollbar(frame, orient=tkinter.HORIZONTAL, command=canvas.xview)
@@ -179,7 +184,7 @@ class AreaEditor(ProjectWindow):
         self.canvas.delete(REGION_TAG, NUMBER_TAG)
         for index, region in enumerate(self.regions):
             color = "red" if index == self.selected_index else REGION_COLORS.get(region["type"], "green")
-            x0, y0, x1, y1 = region["area"]
+            x0, y0, x1, y1 = scale_area(region["area"], self.scale)
             self.canvas.create_rectangle(
                 x0, y0, x1, y1, outline=color, width=2, fill=color, stipple="gray12", tags=REGION_TAG
             )
@@ -196,21 +201,24 @@ class AreaEditor(ProjectWindow):
     # ------------------------------------------------------------------
     def _image_point(self, event: tkinter.Event) -> tuple[int, int]:
         """イベントの位置を模範解答画像の座標にする. 画像の外は画像の端に丸める."""
-        x = int(self.canvas.canvasx(event.x))
-        y = int(self.canvas.canvasy(event.y))
-        width, height = self.model_answer_image.width(), self.model_answer_image.height()
+        x = int(self.canvas.canvasx(event.x) / self.scale)
+        y = int(self.canvas.canvasy(event.y) / self.scale)
+        width, height = self.image_size
         return min(max(x, 0), width), min(max(y, 0), height)
 
     def _on_press(self, event: tkinter.Event) -> None:
         x, y = self._image_point(event)
         # 押しただけでも 1 ピクセルの枠が見えるようにする
-        width, height = self.model_answer_image.width(), self.model_answer_image.height()
+        width, height = self.image_size
         self.drag_rectangle = [x, y, min(x + 1, width), min(y + 1, height)]
-        self.canvas.coords(NEW_RECTANGLE_TAG, *self.drag_rectangle)
+        self._show_drag_rectangle()
 
     def _on_drag(self, event: tkinter.Event) -> None:
         self.drag_rectangle[2:] = self._image_point(event)
-        self.canvas.coords(NEW_RECTANGLE_TAG, *self.drag_rectangle)
+        self._show_drag_rectangle()
+
+    def _show_drag_rectangle(self) -> None:
+        self.canvas.coords(NEW_RECTANGLE_TAG, *scale_area(self.drag_rectangle, self.scale))
 
     def _on_release(self, _event: tkinter.Event) -> None:
         # 離した位置は最後の <B1-Motion> で受け取っている (旧版と同じ)

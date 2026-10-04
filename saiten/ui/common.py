@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import tkinter
 import tkinter.messagebox
+from pathlib import Path
 from typing import TYPE_CHECKING
+
+import PIL.Image
+import PIL.ImageTk
 
 from saiten.environment import wheel_steps
 from saiten.models import Project, Workspace, load_config, save_config
@@ -64,3 +68,12 @@ def bind_wheel_scroll(widget: tkinter.Canvas | tkinter.Listbox) -> None:
     widget.bind("<MouseWheel>", lambda event: widget.yview_scroll(wheel_steps(event), "units"))
     for sequence in ("<Shift-MouseWheel>", "<Control-MouseWheel>"):
         widget.bind(sequence, lambda event: widget.xview_scroll(wheel_steps(event), "units"))
+
+
+def scaled_photo(path: Path, scale: float) -> PIL.ImageTk.PhotoImage:
+    """画像を縮尺 scale で表示するための PhotoImage. 参照が消えると表示も消えるので, 呼び出し側で持っておく."""
+    with PIL.Image.open(path) as image:
+        if scale != 1.0:
+            size = (round(image.width * scale), round(image.height * scale))
+            return PIL.ImageTk.PhotoImage(image.resize(size, PIL.Image.Resampling.LANCZOS))
+        return PIL.ImageTk.PhotoImage(image)

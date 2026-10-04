@@ -34,8 +34,9 @@ from saiten.models import (
     Status,
     Workspace,
 )
+from saiten.resolution import Resolution
 from saiten.scoring import anchor_position
-from saiten.ui.common import ProjectWindow, bind_wheel_scroll
+from saiten.ui.common import ProjectWindow, bind_wheel_scroll, scaled_photo
 
 if TYPE_CHECKING:
     from saiten.ui.main_window import MainWindow
@@ -171,6 +172,9 @@ class ExportWindow(ProjectWindow):
 
     def __init__(self, main: MainWindow, project_index: int, workspace: Workspace) -> None:
         super().__init__(main, "書き出し", project_index, workspace)
+        # 高解像度の画像は縮めて表示する. 記号・点数は書き出す画像と同じ倍率で大きくしてから縮める
+        self.resolution = Resolution.of(workspace.model_answer_path)
+        self.scale = self.resolution.display_scale
         frame = tkinter.Frame(self.window)
         frame.grid(column=0, row=0)
         controls = tkinter.Frame(frame)
@@ -219,7 +223,7 @@ class ExportWindow(ProjectWindow):
         frame.pack()
         canvas = tkinter.Canvas(frame, bg="black", width=567, height=760)
         bind_wheel_scroll(canvas)
-        self.model_answer = PIL.ImageTk.PhotoImage(file=self.workspace.model_answer_path)
+        self.model_answer = scaled_photo(self.workspace.model_answer_path, self.scale)
         canvas.create_image(0, 0, image=self.model_answer, anchor="nw")
         y_scrollbar = tkinter.Scrollbar(frame, orient=tkinter.VERTICAL, command=canvas.yview)
         x_scrollbar = tkinter.Scrollbar(frame, orient=tkinter.HORIZONTAL, command=canvas.xview)
@@ -241,10 +245,11 @@ class ExportWindow(ProjectWindow):
         settings = self.load_project()["export"]
         for kind, panel in self.panels.items():
             panel.show_checks(settings[kind])
-        symbol_style, point_style = settings["symbol"], settings["point"]
+        scaled = self.resolution.scale_settings(settings)
+        symbol_style, point_style = scaled["symbol"], scaled["point"]
         self.symbol_photos = {
             status: PIL.ImageTk.PhotoImage(image=image)
-            for status, image in load_symbols(symbol_style["size"]).items()
+            for status, image in load_symbols(max(1, round(symbol_style["size"] * self.scale))).items()
         }
         questions = [region for region in self.workspace.load_regions() if region["type"] == "設問"]
         samples: list[tuple[Region, Status]] = [(region, sample_status(number)) for number, region in enumerate(questions, start=1)]
@@ -254,16 +259,21 @@ class ExportWindow(ProjectWindow):
         for region, status in samples:
             if is_shown(symbol_style, status):
                 self.canvas.create_image(
-                    *anchor_position(region["area"], symbol_style),
+                    *self._on_screen(anchor_position(region["area"], symbol_style)),
                     anchor="center", image=self.symbol_photos[status], tags=PREVIEW_TAG,
                 )
-        font = (environment.FONT_NAME, point_style["size"], "roman")
+        font = (environment.FONT_NAME, max(1, round(point_style["size"] * self.scale)), "roman")
         for region, status in samples:
             if is_shown(point_style, status):
                 self.canvas.create_text(
-                    *anchor_position(region["area"], point_style),
+                    *self._on_screen(anchor_position(region["area"], point_style)),
                     text=sample_point_text(status, region["haiten"]), fill=POINT_COLOR, font=font, tags=PREVIEW_TAG,
                 )
+
+    def _on_screen(self, point: tuple[int, int]) -> tuple[int, int]:
+        """画像の座標をプレビューの座標にする."""
+        x, y = point
+        return round(x * self.scale), round(y * self.scale)
 
     # ------------------------------------------------------------------
     # 設定の変更 (保存してプレビューし直す)

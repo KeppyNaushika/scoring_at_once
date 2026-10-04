@@ -11,6 +11,7 @@ import PIL.Image
 from saiten import environment
 from saiten.errors import UserError
 from saiten.models import Project, Region, Workspace, empty_student, unscored
+from saiten.resolution import image_dpi, save_preserving_dpi
 
 IMAGE_EXTENSIONS = (".jpeg", ".jpg", ".png")
 
@@ -62,14 +63,12 @@ def prepare_workspace(project: Project) -> Workspace:
     if not workspace.regions_path.exists():
         workspace.save_regions([])
     if not workspace.model_answer_path.exists():
-        with PIL.Image.open(model_answer) as image:
-            image.save(workspace.model_answer_path)
+        _copy_as_png(model_answer, workspace.model_answer_path)
 
     regions = workspace.load_regions()
     sources = workspace.load_sources()
     for path in _new_answer_images(project_dir, model_answer, sources):
-        with PIL.Image.open(path) as image:
-            image.save(workspace.answer_image(len(sources)))
+        _copy_as_png(Path(path), workspace.answer_image(len(sources)))
         sources.append(path)
         _append_unscored(regions)
     students = workspace.load_students()
@@ -99,6 +98,12 @@ def _new_answer_images(project_dir: Path, model_answer: Path, imported: list[str
         for path in candidates
         if is_image_file(path) and os.path.normpath(path) != model and path not in imported
     ]
+
+
+def _copy_as_png(source: Path, destination: Path) -> None:
+    """画像を PNG にして作業フォルダに写す. 解像度の記録は表示の縮尺と記号の大きさに使うので残す."""
+    with PIL.Image.open(source) as image:
+        save_preserving_dpi(image, destination, image_dpi(source))
 
 
 def _append_unscored(regions: list[Region]) -> None:

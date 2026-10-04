@@ -13,6 +13,7 @@ import PIL.ImageDraw
 
 from saiten import environment
 from saiten.models import STATUSES, ExportSettings, MarkStyle, Region, Status, Workspace
+from saiten.resolution import Resolution, save_preserving_dpi
 from saiten.scoring import anchor_position, daimon_subtotals, printed_point_text
 
 POINT_COLOR = "red"
@@ -95,14 +96,21 @@ def render_answer_sheet(
 def write_answer_sheets(
     workspace: Workspace, regions: list[Region], sheet_count: int, settings: ExportSettings
 ) -> list[Path]:
-    """全答案の採点済み画像を output/<答案番号>.png に保存し, そのパスを答案番号順に返す."""
+    """全答案の採点済み画像を output/<答案番号>.png に保存し, そのパスを答案番号順に返す.
+
+    記号・点数の大きさは答案の解像度に合わせて拡大する. 保存する画像にも解像度を記録し,
+    PDF にしたときのページの大きさが元の用紙と同じになるようにする.
+    """
     workspace.output_dir.mkdir(exist_ok=True)
-    symbols = load_symbols(settings["symbol"]["size"])
+    resolution = Resolution.of(workspace.model_answer_path)
+    scaled = resolution.scale_settings(settings)
+    symbols = load_symbols(scaled["symbol"]["size"])
     digits = load_digits()
     paths = [workspace.output_image(index) for index in range(sheet_count)]
     for index, path in enumerate(paths):
         with PIL.Image.open(workspace.answer_image(index)) as sheet:
-            render_answer_sheet(sheet, regions, index, settings, symbols, digits).save(path)
+            image = render_answer_sheet(sheet, regions, index, scaled, symbols, digits)
+        save_preserving_dpi(image, path, resolution.dpi)
     return paths
 
 

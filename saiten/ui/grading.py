@@ -10,13 +10,14 @@ from typing import TYPE_CHECKING, Callable, Literal
 import PIL.ImageTk
 
 from saiten.models import STATUSES, Region, Score, Status, Student, Workspace
+from saiten.resolution import Resolution, scale_area
 from saiten.scoring import (
     STATUS_COLORS,
     STATUS_LABELS,
     question_title,
     score_entry_text,
 )
-from saiten.ui.common import ProjectWindow
+from saiten.ui.common import ProjectWindow, scaled_photo
 
 if TYPE_CHECKING:
     from saiten.ui.main_window import MainWindow
@@ -261,11 +262,11 @@ class GradingWindow(ProjectWindow):
         self.layout = AnswerGrid([[]], column_count=0)
 
         self.window.geometry("1600x1000+0+0")
-        self.model_image = PIL.ImageTk.PhotoImage(file=workspace.model_answer_path)
+        # 高解像度の画像は縮めて表示する (切り抜く座標も同じ縮尺にする)
+        self.scale = Resolution.of(workspace.model_answer_path).display_scale
+        self.model_image = scaled_photo(workspace.model_answer_path, self.scale)
         sheet_count = len(self.regions[self.question_index]["score"])
-        self.answer_images = [
-            PIL.ImageTk.PhotoImage(file=workspace.answer_image(i)) for i in range(sheet_count)
-        ]
+        self.answer_images = [scaled_photo(workspace.answer_image(i), self.scale) for i in range(sheet_count)]
         # 表示する採点状態の絞り込み. 初めは未採点だけを表示する
         self.status_filter = {status: tkinter.BooleanVar(value=status == "unscored") for status in STATUSES}
         self.show_name = tkinter.BooleanVar(value=False)
@@ -366,6 +367,11 @@ class GradingWindow(ProjectWindow):
         """採点中の設問."""
         return self.regions[self.question_index]
 
+    @property
+    def display_area(self) -> list[int]:
+        """採点中の設問の枠を, 表示の縮尺にしたもの."""
+        return scale_area(self.region["area"], self.scale)
+
     def reload(self) -> None:
         """採点データを読み直し, 採点中の設問の答案を作り直して 1 ページ目から表示する."""
         self.regions = self.workspace.load_regions()
@@ -378,7 +384,7 @@ class GradingWindow(ProjectWindow):
         self.model_cell = tkinter.Frame(self.cell_area, background="black")
         frame = tkinter.Frame(self.model_cell)
         frame.grid(padx=4, pady=4)
-        crop_canvas(frame, self.model_image, region["area"]).grid(column=0, row=0)
+        crop_canvas(frame, self.model_image, self.display_area).grid(column=0, row=0)
         haiten = "未配点" if region["haiten"] is None else f"{region['haiten']}点"
         tkinter.Label(frame, text=f"模範解答: {haiten}").grid(column=0, row=1)
         self.model_cell.grid(column=0, row=0)
@@ -386,7 +392,7 @@ class GradingWindow(ProjectWindow):
         names = [student["氏名"] for student in self.students]
         self.cells = [
             AnswerCell.create(
-                self.cell_area, str(names[i]) if i < len(names) else "", self.answer_images[i], region["area"]
+                self.cell_area, str(names[i]) if i < len(names) else "", self.answer_images[i], self.display_area
             )
             for i in range(len(region["score"]))
         ]
@@ -403,7 +409,7 @@ class GradingWindow(ProjectWindow):
         self.question_list.configure(height=window_height // 21 - 5)
         self.question_frame.update_idletasks()
         self.toolbar.update_idletasks()
-        x0, y0, x1, y1 = self.region["area"]
+        x0, y0, x1, y1 = self.display_area
         column_count = (window_width - self.question_frame.winfo_width()) // (x1 - x0 + 20)
         row_count = (window_height - 150) // (y1 - y0 + 40)
         shown = [self.status_filter[score["status"]].get() for score in self.region["score"]]
