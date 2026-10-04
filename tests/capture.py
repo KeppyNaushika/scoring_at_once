@@ -38,10 +38,13 @@ EXPORT_VARIANTS: dict[str, dict[str, Any]] = {
     },
 }
 
-# .sao の ID は試験フォルダの絶対パスから作られるので, 毎回同じ場所を使う
-tmp = Path(tempfile.gettempdir()) / "scoring_at_once_capture"
-shutil.rmtree(tmp, ignore_errors=True)
-tmp.mkdir()
+if SCENARIO == "sao":
+    # .sao の ID は試験フォルダの絶対パスから作られるので, 毎回同じ場所を使う
+    tmp = Path(tempfile.gettempdir()) / "scoring_at_once_capture_sao"
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir()
+else:
+    tmp = Path(tempfile.mkdtemp(prefix="scoring_at_once_capture_"))
 variant = SCENARIO.split(":")[1] if ":" in SCENARIO else "default"
 paths = fixture.build(tmp, EXPORT_VARIANTS.get(variant, fixture.EXPORT_DEFAULT))
 os.environ["SCORING_AT_ONCE_CONFIG_DIR"] = str(paths["config_dir"])
@@ -58,16 +61,16 @@ for name in ("showinfo", "showwarning", "showerror"):
     setattr(tkinter.messagebox, name, lambda title="", message="", **k: messages.append(str(title)))
 for name in ("askokcancel", "askyesno"):
     setattr(tkinter.messagebox, name, lambda *a, **k: True)
-tkinter.simpledialog.askstring = lambda *a, **k: "tester"  # type: ignore[assignment]
-tkinter.filedialog.asksaveasfilename = lambda **k: str(tmp / ("out" + "." + k.get("defaultextension", "bin").lstrip(".")))  # type: ignore[assignment]
-subprocess.run = lambda *a, **k: None  # type: ignore[assignment]
+setattr(tkinter.simpledialog, "askstring", lambda *a, **k: "tester")
+setattr(tkinter.filedialog, "asksaveasfilename", lambda **k: str(tmp / f"out.{k.get('defaultextension', 'bin').lstrip('.')}"))
+setattr(subprocess, "run", lambda *a, **k: None)
 if hasattr(os, "startfile"):
-    os.startfile = lambda *a, **k: None  # type: ignore[attr-defined]
+    setattr(os, "startfile", lambda *a, **k: None)
 
 errors: list[str] = []
-tkinter.Tk.report_callback_exception = lambda self, *a: errors.append(  # type: ignore[method-assign]
+setattr(tkinter.Tk, "report_callback_exception", lambda self, *a: errors.append(
     "".join(traceback.format_exception(*a)).strip().splitlines()[-1]
-)
+))
 
 import score  # noqa: E402
 
@@ -118,7 +121,7 @@ def dump_xlsx(path: Path) -> list[Any]:
     for sheet in workbook.worksheets:
         rows.append([sheet.title, "merged", sorted(str(r) for r in sheet.merged_cells.ranges)])
         rows.append([sheet.title, "widths", sorted((k, v.width) for k, v in sheet.column_dimensions.items())])
-        rows.append([sheet.title, "images", sorted((i.anchor._from.col, i.anchor._from.row, i.width, i.height) for i in sheet._images)])
+        rows.append([sheet.title, "images", sorted((i.anchor._from.col, i.anchor._from.row, i.width, i.height) for i in getattr(sheet, "_images"))])
         for row in sheet.iter_rows():
             for c in row:
                 if c.value is None and c.fill.fgColor.rgb == "00000000":
@@ -158,14 +161,14 @@ def scenario_roster() -> None:
 
         workbook = openpyxl.load_workbook(xlsx)
         sheet = workbook["名簿登録"]
-        sheet.cell(2, 2).value = "3"
-        sheet.cell(3, 6).value = "新しい 名前"
-        sheet.cell(7, 5).value = 12345
+        sheet["B2"] = "3"
+        sheet["F3"] = "新しい 名前"
+        sheet["E7"] = 12345
         haiten = workbook["配点登録"]
-        haiten.cell(5, 3).value = 9
-        haiten.cell(6, 6).value = None
-        haiten.cell(7, 6).value = 7
-        haiten.cell(4, 5).value = "イ"
+        haiten["C5"] = 9
+        haiten["F6"] = None
+        haiten["F7"] = 7
+        haiten["E4"] = "イ"
         workbook.save(xlsx)
         button(app_root, "名簿/配点を\n読み込む").invoke()
         result["meibo"] = read_json(paths["work_dir"] / "meibo.json")
@@ -347,5 +350,10 @@ app_root = tkinter.Tk()
 app_root.geometry("800x500")
 score.MainFrame(root=app_root)
 SCENARIOS.get(SCENARIO.split(":")[0], scenario_export)()
-app_root.after(60000, lambda: (result.setdefault("exception", "timeout"), finish()))
+def timeout() -> None:
+    result.setdefault("exception", "timeout")
+    finish()
+
+
+app_root.after(60000, timeout)
 app_root.mainloop()

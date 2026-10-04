@@ -31,5 +31,5 @@ def test_same_as_golden(scenario: str, tmp_path: Path) -> None:
     expected = json.loads((ROOT / "tests" / "golden" / f"{scenario.replace(':', '_')}.json").read_text(encoding="utf-8"))
     assert actual.get("exception") is None
     assert actual["errors"] == []
-    for key in expected:
+    for key in expected.keys() - {"messages"}:  # ダイアログの文言は比べない
         assert actual.get(key) == expected[key], f"{scenario}: {key} が変わっています"

@@ -36,6 +36,8 @@ from typing import Any
 
 import PIL.Image
 
+from saiten.models import Project
+
 FORMAT = "score-at-once-archive"
 FORMAT_VERSION = 1
 APP_VERSION = "scoring_at_once-1.0.0"
@@ -127,7 +129,7 @@ def _load_json(path: str) -> Any:
 
 
 def export_sao(
-    project: dict[str, Any],
+    project: Project,
     output_path: str,
     username: str,
     template_path: str,
