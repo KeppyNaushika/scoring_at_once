@@ -25,11 +25,18 @@
 - 保留は、後継版では「保留 (pending)」として取り込まれます。
 - 同じ試験を何度書き出しても同じデータとして扱われます。後継版で「統合」を選べば、前回取り込んだ内容が更新されます。
 
+## 答案の画像について
+
+- 一括採点は、全ての答案を模範解答と同じ座標で切り抜きます。模範解答と答案は、同じ用紙サイズ・同じ解像度の画像にそろえて下さい。
+- 付属の `画像変換.py` で、PDF やスキャン画像を用紙サイズと解像度（150 / 200 / 300 dpi、または旧バージョンと同じ約 69 dpi）を指定してそろえられます。
+  旧バージョンの画像変換は A4 を 567 × 800 ピクセルに縮めていたため文字がつぶれていましたが、v1.0.0 では 150 dpi 以上を選べます。
+- 解像度が記録された高解像度の画像は、画面では縮小して表示し、採点記号・点数は印刷したときの大きさが旧バージョンと同じになるよう拡大して書き出します。
+
 ## 動作環境
 
 Windows と macOS で動作します。
 
-ソースから実行する場合は、Tk を含む Python 3.12 以降が必要です。macOS では Homebrew の `python-tk` を使います。
+ソースから実行する場合は、Tk を含む Python 3.11 以降が必要です。macOS では Homebrew の `python-tk` を使います。
 
 ```sh
 python3 -m venv .venv
@@ -39,6 +46,30 @@ python3 -m venv .venv
 
 - macOS / Linux では、設定ファイル `config.json` は `~/Library/Application Support/scoring_at_once/`（Linux は `~/.config/scoring_at_once/`）に保存されます。
 - Windows では、従来どおり実行ファイルと同じフォルダに保存されます。
+
+## 開発
+
+```
+score.py                 起動 (初回の利用規約の確認とメイン画面)
+saiten/
+  models.py              保存データ (config.json, answer_area.json, meibo.json) の型と読み書き
+  scoring.py             得点・小計・合計・表示文字など採点の計算
+  resolution.py          画像の解像度に応じた表示の縮尺と記号の大きさ
+  importing.py           答案画像の取り込み
+  environment.py         OS ごとの違い (設定の置き場所・フォントなど)
+  exporters/             採点済み答案 PDF・採点結果一覧 Excel・名簿/配点 Excel・後継版用 .sao
+  ui/                    メイン画面・試験の追加/編集・解答欄の指定・一括採点・書き出し
+画像変換.py              スキャン画像を一括採点用にそろえるコマンドラインツール
+tools/                   macOS 用のビルド・.sao のテンプレート作成
+tests/                   回帰テスト (アプリを外から操作して結果を記録と比べる) と単体テスト
+```
+
+```sh
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/python -m pytest tests        # テスト
+.venv/bin/mypy score.py saiten tests    # 型検査 (pyright でも 0 件)
+./tools/build_macos.sh                  # macOS 用の .app を Build/ に作る
+```
 
 ## リンク
 
