@@ -109,6 +109,15 @@ def file_md5(path: Path) -> str:
     return hashlib.md5(path.read_bytes()).hexdigest()
 
 
+def image_digest(path: Path) -> str:
+    """画像の見た目 (RGB の画素と大きさ) の要約. 保存形式 (RGBA か RGB か, 圧縮率) の違いは無視する."""
+    import PIL.Image
+
+    with PIL.Image.open(path) as image:
+        rgb = image.convert("RGB")
+    return f"{rgb.size}:{hashlib.md5(rgb.tobytes()).hexdigest()}"
+
+
 def read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -192,7 +201,7 @@ def scenario_export() -> None:
         window.update()
         button(window, "採点結果一覧表(.xlsx)の出力").invoke()
         window.update()
-        result["png"] = {p.name: file_md5(p) for p in sorted((paths["work_dir"] / "output").glob("*.png"))}
+        result["png"] = {p.name: image_digest(p) for p in sorted((paths["work_dir"] / "output").glob("*.png"))}
         result["pdf_exists"] = (tmp / "out.pdf").exists()
         result["result_xlsx"] = dump_xlsx(tmp / "out.xlsx")
         finish()
@@ -210,7 +219,7 @@ def scenario_preset(name: str) -> Callable[[], None]:
             window.update()
             result["export_settings"] = read_json(paths["config_dir"] / "config.json")["projects"][0]["export"]
             button(window, "採点済答案画像の出力").invoke()
-            result["png"] = {p.name: file_md5(p) for p in sorted((paths["work_dir"] / "output").glob("*.png"))}
+            result["png"] = {p.name: image_digest(p) for p in sorted((paths["work_dir"] / "output").glob("*.png"))}
             finish()
         step(2500, run)
     return scenario
