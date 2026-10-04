@@ -1,6 +1,19 @@
+# 設定 (旧バージョンは実行ファイルの隣に保存していた)
 config.json
-test-figure/.*
-./build/.*
-./dist/.*.mypy_cache/
+test-figure/
+
+# ビルド成果物 (Nuitka)
+/Build/
+/build/
+/dist/
+nuitka-crash-report.xml
+
+# Python
+__pycache__/
+*.pyc
 .venv/
 .venv-build/
+.mypy_cache/
+
+# macOS
+.DS_Store
