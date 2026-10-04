@@ -36,15 +36,91 @@ import json
 import natsort
 import os
 import subprocess
+import sys
 import webbrowser
 from typing import Callable, Any
 
-if os.name == "nt":
+# ---------------------------------------------------------------------------
+# OS ごとの差異をここに集約する
+# ---------------------------------------------------------------------------
+IS_WINDOWS = sys.platform == "win32"
+IS_MACOS = sys.platform == "darwin"
+
+# アセット (記号・数字画像) はスクリプト (Nuitka ビルド時は実行ファイル) と同じ場所に置く
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSETS_DIR = os.path.join(APP_DIR, "assets")
+
+
+def _user_config_dir() -> str:
+    """config.json を置くディレクトリを返す.
+
+    Windows は従来どおり実行ファイルの隣 (既存ユーザーの設定を引き継ぐため).
+    macOS/Linux は .app バンドル内に書き込めないので, ユーザーごとの設定ディレクトリを使う.
+    """
+    if IS_WINDOWS:
+        return APP_DIR
+    if IS_MACOS:
+        base = os.path.expanduser("~/Library/Application Support")
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    path = os.path.join(base, "scoring_at_once")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+CONFIG_PATH = os.path.join(_user_config_dir(), "config.json")
+
+# 画面表示用フォント名 (FONTNAME) と, 書き出し画像に点数を描くフォントファイル (FONTFILE)
+if IS_WINDOWS:
     FONTNAME = "Meiryo UI"
     FONTFILE = "meiryo.ttc"
-elif os.name == "posix":
+elif IS_MACOS:
+    FONTNAME = "Hiragino Sans"
+    FONTFILE = "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc"
+else:
     FONTNAME = ""
-    FONTFILE = ""
+    FONTFILE = "DejaVuSans.ttf"
+
+# 解答として読み込む画像の拡張子 (大文字の .JPG なども受け付ける)
+IMAGE_EXTENSIONS = (".jpeg", ".jpg", ".png")
+
+
+def is_image_file(path: str) -> bool:
+    return os.path.splitext(path)[1].lower() in IMAGE_EXTENSIONS
+
+
+def load_font(size: int) -> PIL.ImageFont.FreeTypeFont | PIL.ImageFont.ImageFont:
+    """点数描画用のフォントを読み込む. 見つからなければ Pillow 既定のフォントで代用する."""
+    try:
+        return PIL.ImageFont.truetype(FONTFILE, size)
+    except OSError:
+        return PIL.ImageFont.load_default()
+
+
+def open_with_default_app(path: str) -> None:
+    """ファイルを OS 既定のアプリケーション (Excel など) で開く."""
+    if IS_WINDOWS:
+        os.startfile(path)  # type: ignore[attr-defined]
+    elif IS_MACOS:
+        subprocess.run(["open", path], check=False)
+    else:
+        subprocess.run(["xdg-open", path], check=False)
+
+
+def hide_directory(path: str) -> None:
+    """作業フォルダを隠す. macOS/Linux は名前が "." で始まるので何もしなくてよい."""
+    if IS_WINDOWS:
+        subprocess.run(["attrib", "+H", path], check=False)
+
+
+def wheel_steps(event: tkinter.Event) -> int:
+    """マウスホイールの回転量をスクロール単位数に変換する.
+
+    Windows は 1 ノッチ = delta 120, macOS は delta が 1 前後の小さな値で届く.
+    """
+    if IS_WINDOWS:
+        return int(-event.delta / 120)
+    return -event.delta
 
 
 def nothing_to_do(*args, **kwargs):
@@ -52,13 +128,15 @@ def nothing_to_do(*args, **kwargs):
 
 
 # class: 子ウインドウ:
-from typing import Callable, Any
 
 
 class SubWindow:
     def __init__(self, parent) -> None:
         self.parent = parent
-        self.window = None
+        # 子ウインドウ. 表示中は必ず Toplevel が入り, 閉じている間だけ None になる
+        # (生成と破棄は sub_window_loop / this_window_close が担当する).
+        # 各画面のメソッドは表示中にしか呼ばれないので, 型は Toplevel として扱う.
+        self.window: tkinter.Toplevel = None  # type: ignore[assignment]
         self.index_selected_relation_table_position_to_index_answersheet = 0
         self.list_label_entry_score: list[tkinter.Label] = []
         self.list_entry_score: list[tkinter.Entry] = []
@@ -66,9 +144,10 @@ class SubWindow:
         self.pages_relation_table_position_to_index_answersheet: list[
             list[tuple[tuple[int, int], int]]
         ] = []  # Initialize the attribute
-        self.index_selected_question = None
+        self.index_selected_question: int | None = None
         self.canvas_draw_rectangle = [0, 0, 0, 0]
-        self.tk_image_model_answer = None
+        # 模範解答画像. 画面を開くときに必ず読み込まれる
+        self.tk_image_model_answer: PIL.ImageTk.PhotoImage
         self.index_pages_relation_table_position_to_index_answersheet = 0
         self.len_columns_relation_table_position_to_index_answersheet = 0
         self.len_rows_relation_table_position_to_index_answersheet = 0
@@ -76,7 +155,7 @@ class SubWindow:
 
     def this_window_close(self):
         self.window.withdraw()
-        self.window = None
+        self.window = None  # type: ignore[assignment]
         self.parent.destroy()
         main()
         return "break"
@@ -85,7 +164,7 @@ class SubWindow:
     def sub_window_loop(func: Callable[..., Any]):
         def inner(self, *args, **kargs):
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
             if dict_config["index_projects_in_listbox"] is not None:
@@ -131,7 +210,7 @@ class SubWindow:
     def check_dir_exist(self):
         self.window.withdraw()
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
@@ -154,7 +233,7 @@ class SubWindow:
                 + f"試験名: {name_project}",
             )
             return False
-        if not os.path.splitext(path_file)[1] in [".jpeg", ".jpg", ".png"]:
+        if not is_image_file(path_file):
             tkinter.messagebox.showwarning(
                 "ファイルの拡張子が対応しません",
                 f"指定されたファイルの拡張子が jpeg, jpg, png 以外であったため, ファイルを開きませんでした. \n"
@@ -166,11 +245,11 @@ class SubWindow:
             return False
         if not os.path.exists(path_dir + "/.temp_saiten"):
             os.mkdir(path_dir + "/.temp_saiten")
-            subprocess.check_call(["attrib", "+H", path_dir + "/.temp_saiten"])
+            hide_directory(path_dir + "/.temp_saiten")
         if not os.path.exists(path_dir + "/.temp_saiten"):
             os.mkdir(path_dir + "/.temp_saiten")
         if not os.path.exists(path_dir + "/.temp_saiten/answer_area.json"):
-            dict_answer_area = {"questions": []}
+            dict_answer_area: dict[str, list] = {"questions": []}
             with open(
                 path_dir + "/.temp_saiten/answer_area.json", "w", encoding="utf-8"
             ) as f:
@@ -182,7 +261,7 @@ class SubWindow:
         if not os.path.exists(path_dir + "/.temp_saiten/make_xlsx"):
             os.mkdir(path_dir + "/.temp_saiten/make_xlsx")
         if not os.path.exists(path_dir + "/.temp_saiten/model_answer/model_answer.png"):
-            if os.path.splitext(path_file)[1] in [".jpeg", ".jpg", ".png"]:
+            if is_image_file(path_file):
                 img = PIL.Image.open(path_file)
                 img.save(path_dir + "/.temp_saiten/model_answer/model_answer.png")
         with open(
@@ -190,7 +269,7 @@ class SubWindow:
         ) as f:
             dict_answer_area = json.load(f)
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
@@ -229,7 +308,7 @@ class SubWindow:
                 continue
             elif path_in_file_dir in dict_load_picture["answer"]:
                 continue
-            elif os.path.splitext(path_in_file_dir)[1] in [".jpeg", ".jpg", ".png"]:
+            elif is_image_file(path_in_file_dir):
                 img = PIL.Image.open(path_in_file_dir)
                 img.save(path_dir + "/.temp_saiten/answer/" + str(index_file) + ".png")
                 dict_load_picture["answer"].append(path_in_file_dir)
@@ -309,7 +388,7 @@ class SubWindow:
                 self.window.lift()
                 return
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
             dict_config["projects"].append(
@@ -345,12 +424,12 @@ class SubWindow:
             )
             dict_config["index_projects_in_listbox"] = len(dict_config["projects"]) - 1
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8"
+                CONFIG_PATH, "w", encoding="utf-8"
             ) as f:
                 json.dump(dict_config, f, indent=2)
             if not self.check_dir_exist():
                 with open(
-                    f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                    CONFIG_PATH, "r", encoding="utf-8"
                 ) as f:
                     dict_config = json.load(f)
                 dict_config["projects"].pop(len(dict_config["projects"]) - 1)
@@ -359,7 +438,7 @@ class SubWindow:
                 else:
                     dict_config["index_projects_in_listbox"] = 0
                 with open(
-                    f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8"
+                    CONFIG_PATH, "w", encoding="utf-8"
                 ) as f:
                     json.dump(dict_config, f, indent=2)
                 self.window.lift()
@@ -407,7 +486,7 @@ class SubWindow:
         frame_path_file = tkinter.Frame(frame_form, width=80)
         frame_path_file.grid(column=0, row=7)
 
-        entry_path_dir = tkinter.Entry(frame_path_dir, width=60, textvariable="")
+        entry_path_dir = tkinter.Entry(frame_path_dir, width=60, textvariable=tkinter.StringVar())
         entry_path_dir.grid(column=0, row=0)
         label_hspace_dir = tkinter.Label(frame_path_dir, width=3)
         label_hspace_dir.grid(column=1, row=0)
@@ -416,7 +495,7 @@ class SubWindow:
         )
         btn_path_dir.grid(column=2, row=0)
 
-        entry_path_file = tkinter.Entry(frame_path_file, width=60, textvariable="")
+        entry_path_file = tkinter.Entry(frame_path_file, width=60, textvariable=tkinter.StringVar())
         entry_path_file.grid(column=0, row=0)
         label_hspace_file = tkinter.Label(frame_path_file, width=3)
         label_hspace_file.grid(column=1, row=0)
@@ -449,7 +528,7 @@ class SubWindow:
             )
             return "break"
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
 
@@ -661,8 +740,10 @@ class SubWindow:
                 listbox_question.insert(tkinter.END, "解答欄を指定して下さい")
                 listbox_question.configure(state=tkinter.DISABLED)
             else:
+                # 未選択 (None) なら先頭を選ぶ. 削除で範囲外になったら末尾に寄せる
                 self.index_selected_question = min(
-                    self.index_selected_question, len(dict_answer_area["questions"]) - 1
+                    self.index_selected_question or 0,
+                    len(dict_answer_area["questions"]) - 1,
                 )
                 for index_question, question in enumerate(
                     dict_answer_area["questions"]
@@ -701,7 +782,7 @@ class SubWindow:
             listbox_question.insert(tkinter.END, f"設問{index_question}")
         listbox_question.bind(
             "<MouseWheel>",
-            lambda eve: listbox_question.yview_scroll(int(-eve.delta / 120), "units"),
+            lambda eve: listbox_question.yview_scroll(wheel_steps(eve), "units"),
         )
         yscrollbar_table_question = tkinter.Scrollbar(
             frame_listbox_question,
@@ -768,15 +849,15 @@ class SubWindow:
         canvas = tkinter.Canvas(frame_canvas, bg="black")
         canvas.bind(
             "<Control-MouseWheel>",
-            lambda eve: canvas.xview_scroll(int(-eve.delta / 120), "units"),
+            lambda eve: canvas.xview_scroll(wheel_steps(eve), "units"),
         )  # この bind は誤り
         canvas.bind(
             "<Shift-MouseWheel>",
-            lambda eve: canvas.xview_scroll(int(-eve.delta / 120), "units"),
+            lambda eve: canvas.xview_scroll(wheel_steps(eve), "units"),
         )  # かといってこれも変
         canvas.bind(
             "<MouseWheel>",
-            lambda eve: canvas.yview_scroll(int(-eve.delta / 120), "units"),
+            lambda eve: canvas.yview_scroll(wheel_steps(eve), "units"),
         )
         self.tk_image_model_answer = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
         canvas.create_image(0, 0, image=self.tk_image_model_answer, anchor="nw")
@@ -844,7 +925,7 @@ class SubWindow:
         self.parent.winfo_screenwidth()
         self.window.geometry("1600x1000+0+0")
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
@@ -1114,7 +1195,7 @@ class SubWindow:
 
         def choose_to_show_frame_canvas_answer(self):
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
             dict_project = dict_config["projects"][
@@ -1226,7 +1307,7 @@ class SubWindow:
 
         def reload_frame_canvas_answer(self, *args, **kwargs):
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
             dict_project = dict_config["projects"][
@@ -2286,7 +2367,7 @@ class SubWindow:
                                     cell.border = openpyxl.styles.borders.Border()
 
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
             dict_project = dict_config["projects"][
@@ -2359,8 +2440,8 @@ class SubWindow:
                 for question in dict_answer_area["questions"]
                 if question["type"] == "設問"
             ]
-            list_list_score_point = []
-            list_list_score_status = []
+            list_list_score_point: list[list] = []
+            list_list_score_status: list[list] = []
             for index_list_score, list_score in enumerate(list_list_score):
                 list_list_score_point.append([])
                 list_list_score_status.append([])
@@ -2813,14 +2894,16 @@ class SubWindow:
                         column=tuple_columnrange_question[1] + 4,
                     ).value = meibo["氏名"]
 
-            path_workbook_result_scoring = tkinter.filedialog.asksaveasfile(
+            path_workbook_result_scoring = tkinter.filedialog.asksaveasfilename(
                 parent=self.window,
                 title="採点データを名前を付けて保存",
                 filetypes=[("Excel スプレッドシート", ".xlsx")],
                 defaultextension="xlsx",
             )
+            if not path_workbook_result_scoring:  # キャンセルされた
+                return
             try:
-                workbook_result_scoring.save(path_workbook_result_scoring.name)
+                workbook_result_scoring.save(path_workbook_result_scoring)
             except PermissionError:
                 tkinter.messagebox.showerror(
                     "ファイルを保存できません",
@@ -2831,7 +2914,7 @@ class SubWindow:
 
         def preview_export_picture():
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
             dict_project = dict_config["projects"][
@@ -2853,32 +2936,32 @@ class SubWindow:
             size = dict_project["export"]["symbol"]["size"]
             self.dict_image_scoring_symbol = {
                 "unscored": PIL.Image.open(
-                    os.path.dirname(__file__) + "/assets/unscored.png"
+                    os.path.join(ASSETS_DIR, "unscored.png")
                 ),
                 "correct": PIL.Image.open(
-                    os.path.dirname(__file__) + "/assets/correct.png"
+                    os.path.join(ASSETS_DIR, "correct.png")
                 ),
                 "partial": PIL.Image.open(
-                    os.path.dirname(__file__) + "/assets/partial.png"
+                    os.path.join(ASSETS_DIR, "partial.png")
                 ),
-                "hold": PIL.Image.open(os.path.dirname(__file__) + "/assets/hold.png"),
+                "hold": PIL.Image.open(os.path.join(ASSETS_DIR, "hold.png")),
                 "incorrect": PIL.Image.open(
-                    os.path.dirname(__file__) + "/assets/incorrect.png"
+                    os.path.join(ASSETS_DIR, "incorrect.png")
                 ),
                 "tranceparent_unscored": PIL.Image.open(
-                    os.path.dirname(__file__) + "/assets/tranceparent_unscored.png"
+                    os.path.join(ASSETS_DIR, "tranceparent_unscored.png")
                 ),
                 "tranceparent_correct": PIL.Image.open(
-                    os.path.dirname(__file__) + "/assets/tranceparent_correct.png"
+                    os.path.join(ASSETS_DIR, "tranceparent_correct.png")
                 ),
                 "tranceparent_partial": PIL.Image.open(
-                    os.path.dirname(__file__) + "/assets/tranceparent_partial.png"
+                    os.path.join(ASSETS_DIR, "tranceparent_partial.png")
                 ),
                 "tranceparent_hold": PIL.Image.open(
-                    os.path.dirname(__file__) + "/assets/tranceparent_hold.png"
+                    os.path.join(ASSETS_DIR, "tranceparent_hold.png")
                 ),
                 "tranceparent_incorrect": PIL.Image.open(
-                    os.path.dirname(__file__) + "/assets/tranceparent_incorrect.png"
+                    os.path.join(ASSETS_DIR, "tranceparent_incorrect.png")
                 ),
             }
             self.dict_image_scoring_symbol_resized = {
@@ -3235,7 +3318,7 @@ class SubWindow:
 
         def set_position(symbol_or_point, key_property, position, *args):
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
             if key_property in ["position"]:
@@ -3243,7 +3326,7 @@ class SubWindow:
                     "export"
                 ][symbol_or_point][key_property] = position
                 with open(
-                    f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8"
+                    CONFIG_PATH, "w", encoding="utf-8"
                 ) as f:
                     json.dump(dict_config, f, indent=2)
                 preview_export_picture()
@@ -3266,7 +3349,7 @@ class SubWindow:
                     key_property
                 ]
                 with open(
-                    f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8"
+                    CONFIG_PATH, "w", encoding="utf-8"
                 ) as f:
                     json.dump(dict_config, f, indent=2)
                 preview_export_picture()
@@ -3294,7 +3377,7 @@ class SubWindow:
                             dict_config["index_projects_in_listbox"]
                         ]["export"][symbol_or_point][key_property] = int(position)
                         with open(
-                            f"{os.path.dirname(__file__)}/config.json",
+                            CONFIG_PATH,
                             "w",
                             encoding="utf-8",
                         ) as f:
@@ -3306,7 +3389,7 @@ class SubWindow:
 
         def set_position_ex1(*args):
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
             dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][
@@ -3339,9 +3422,9 @@ class SubWindow:
             entry_symbol_x.delete(0, tkinter.END)
             entry_symbol_y.delete(0, tkinter.END)
             entry_symbol_size.delete(0, tkinter.END)
-            entry_symbol_x.insert(0, 0)
-            entry_symbol_y.insert(0, 0)
-            entry_symbol_size.insert(0, 60)
+            entry_symbol_x.insert(0, "0")
+            entry_symbol_y.insert(0, "0")
+            entry_symbol_size.insert(0, "60")
             dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][
                 "point"
             ]["position"] = "w"
@@ -3372,18 +3455,18 @@ class SubWindow:
             entry_point_x.delete(0, tkinter.END)
             entry_point_y.delete(0, tkinter.END)
             entry_point_size.delete(0, tkinter.END)
-            entry_point_x.insert(0, 0)
-            entry_point_y.insert(0, 0)
-            entry_point_size.insert(0, 15)
+            entry_point_x.insert(0, "0")
+            entry_point_y.insert(0, "0")
+            entry_point_size.insert(0, "15")
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8"
+                CONFIG_PATH, "w", encoding="utf-8"
             ) as f:
                 json.dump(dict_config, f, indent=2)
             preview_export_picture()
 
         def set_position_ex2(*args):
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
             dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][
@@ -3416,9 +3499,9 @@ class SubWindow:
             entry_symbol_x.delete(0, tkinter.END)
             entry_symbol_y.delete(0, tkinter.END)
             entry_symbol_size.delete(0, tkinter.END)
-            entry_symbol_x.insert(0, 0)
-            entry_symbol_y.insert(0, 0)
-            entry_symbol_size.insert(0, 60)
+            entry_symbol_x.insert(0, "0")
+            entry_symbol_y.insert(0, "0")
+            entry_symbol_size.insert(0, "60")
             dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][
                 "point"
             ]["position"] = "se"
@@ -3449,18 +3532,18 @@ class SubWindow:
             entry_point_x.delete(0, tkinter.END)
             entry_point_y.delete(0, tkinter.END)
             entry_point_size.delete(0, tkinter.END)
-            entry_point_x.insert(0, -10)
-            entry_point_y.insert(0, -10)
-            entry_point_size.insert(0, 10)
+            entry_point_x.insert(0, "-10")
+            entry_point_y.insert(0, "-10")
+            entry_point_size.insert(0, "10")
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8"
+                CONFIG_PATH, "w", encoding="utf-8"
             ) as f:
                 json.dump(dict_config, f, indent=2)
             preview_export_picture()
 
         def export_pdf():
             with open(
-                f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                CONFIG_PATH, "r", encoding="utf-8"
             ) as f:
                 dict_config = json.load(f)
             dict_project = dict_config["projects"][
@@ -3526,16 +3609,16 @@ class SubWindow:
                 list_daimon.remove(None)
             list_daimon.sort()
             self.image_suuji = {
-                "0": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/0.png"),
-                "1": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/1.png"),
-                "2": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/2.png"),
-                "3": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/3.png"),
-                "4": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/4.png"),
-                "5": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/5.png"),
-                "6": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/6.png"),
-                "7": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/7.png"),
-                "8": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/8.png"),
-                "9": PIL.Image.open(f"{os.path.dirname(__file__)}/assets/9.png"),
+                "0": PIL.Image.open(os.path.join(ASSETS_DIR, "0.png")),
+                "1": PIL.Image.open(os.path.join(ASSETS_DIR, "1.png")),
+                "2": PIL.Image.open(os.path.join(ASSETS_DIR, "2.png")),
+                "3": PIL.Image.open(os.path.join(ASSETS_DIR, "3.png")),
+                "4": PIL.Image.open(os.path.join(ASSETS_DIR, "4.png")),
+                "5": PIL.Image.open(os.path.join(ASSETS_DIR, "5.png")),
+                "6": PIL.Image.open(os.path.join(ASSETS_DIR, "6.png")),
+                "7": PIL.Image.open(os.path.join(ASSETS_DIR, "7.png")),
+                "8": PIL.Image.open(os.path.join(ASSETS_DIR, "8.png")),
+                "9": PIL.Image.open(os.path.join(ASSETS_DIR, "9.png")),
             }
             for index_meibo, meibo in enumerate(list_meibo):
                 dict_shokei = {str(daimon): 0 for daimon in list_daimon}
@@ -3781,10 +3864,7 @@ class SubWindow:
                                 (position_x, position_y),
                                 str(0),
                                 fill="red",
-                                font=PIL.ImageFont.truetype(
-                                    FONTFILE,
-                                    size=dict_project["export"]["point"]["size"],
-                                ),
+                                font=load_font(dict_project["export"]["point"]["size"]),
                             )
                         elif (
                             question["score"][index_meibo]["status"] == "correct"
@@ -3794,10 +3874,7 @@ class SubWindow:
                                 (position_x, position_y),
                                 str(question["haiten"]),
                                 fill="red",
-                                font=PIL.ImageFont.truetype(
-                                    FONTFILE,
-                                    size=dict_project["export"]["point"]["size"],
-                                ),
+                                font=load_font(dict_project["export"]["point"]["size"]),
                             )
                         elif (
                             question["score"][index_meibo]["status"] == "partial"
@@ -3807,10 +3884,7 @@ class SubWindow:
                                 (position_x, position_y),
                                 str(question["score"][index_meibo]["point"]),
                                 fill="red",
-                                font=PIL.ImageFont.truetype(
-                                    FONTFILE,
-                                    size=dict_project["export"]["point"]["size"],
-                                ),
+                                font=load_font(dict_project["export"]["point"]["size"]),
                             )
                         elif (
                             question["score"][index_meibo]["status"] == "hold"
@@ -3820,10 +3894,7 @@ class SubWindow:
                                 (position_x, position_y),
                                 str(question["score"][index_meibo]["point"]),
                                 fill="red",
-                                font=PIL.ImageFont.truetype(
-                                    FONTFILE,
-                                    size=dict_project["export"]["point"]["size"],
-                                ),
+                                font=load_font(dict_project["export"]["point"]["size"]),
                             )
                         elif (
                             question["score"][index_meibo]["status"] == "incorrect"
@@ -3833,10 +3904,7 @@ class SubWindow:
                                 (position_x, position_y),
                                 str(0),
                                 fill="red",
-                                font=PIL.ImageFont.truetype(
-                                    FONTFILE,
-                                    size=dict_project["export"]["point"]["size"],
-                                ),
+                                font=load_font(dict_project["export"]["point"]["size"]),
                             )
                     elif question["type"] == "小計点":
                         if str(question["daimon"]) in dict_shokei.keys():
@@ -3890,22 +3958,20 @@ class SubWindow:
                     f"{path_dir}/.temp_saiten/output/{index_meibo}.png"
                 )
 
-            path_pdf = tkinter.filedialog.asksaveasfile(
+            path_pdf = tkinter.filedialog.asksaveasfilename(
                 parent=self.window,
                 title="採点済答案画像の出力",
                 filetypes=[("PDF ドキュメント", ".pdf")],
                 defaultextension="pdf",
             )
-            if path_pdf not in [None, ""]:
+            if path_pdf:
                 try:
-                    with open(path_pdf.name, "wb") as f:
+                    with open(path_pdf, "wb") as f:
                         f.write(
                             img2pdf.convert(
                                 [
-                                    PIL.Image.open(
-                                        f"{path_dir}/.temp_saiten/output/{index_meibo}.png"
-                                    ).filename
-                                    for index_meibo, meibo in enumerate(list_meibo)
+                                    f"{path_dir}/.temp_saiten/output/{index_meibo}.png"
+                                    for index_meibo in range(len(list_meibo))
                                 ]
                             )
                         )
@@ -3918,7 +3984,7 @@ class SubWindow:
                     )
 
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
@@ -4325,11 +4391,11 @@ class SubWindow:
         canvas = tkinter.Canvas(frame_canvas, bg="black", width=567, height=760)
         canvas.bind(
             "<Control-MouseWheel>",
-            lambda eve: canvas.xview_scroll(int(-eve.delta / 120), "units"),
+            lambda eve: canvas.xview_scroll(wheel_steps(eve), "units"),
         )
         canvas.bind(
             "<MouseWheel>",
-            lambda eve: canvas.yview_scroll(int(-eve.delta / 120), "units"),
+            lambda eve: canvas.yview_scroll(wheel_steps(eve), "units"),
         )
         self.tk_image_model_answer = PIL.ImageTk.PhotoImage(file=path_file_model_answer)
         canvas.create_image(0, 0, image=self.tk_image_model_answer, anchor="nw")
@@ -4362,7 +4428,7 @@ class MainFrame(tkinter.Frame):
         self.sub_window = SubWindow(self.root)
         self.pack()
         self.index_selected_exam = tkinter.IntVar(root)
-        self.pack_propagate(0)
+        self.pack_propagate(False)
         self.create_listbox()
         self.btn_left()
         self.load_listbox_projects()
@@ -4429,12 +4495,12 @@ class MainFrame(tkinter.Frame):
 
     def write_index_to_config(self, index_projects_in_listbox):
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
         dict_config["index_projects_in_listbox"] = index_projects_in_listbox
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8"
+            CONFIG_PATH, "w", encoding="utf-8"
         ) as f:
             json.dump(dict_config, f, indent=2)
 
@@ -4448,14 +4514,14 @@ class MainFrame(tkinter.Frame):
             self = parent
         self.listbox_projects.delete(0, tkinter.END)
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
         if len(dict_config["projects"]) == 0:
             self.listbox_projects.insert(
                 0, "［追加］をクリックして新しく試験を追加して下さい"
             )
-            self.listbox_projects.configure(state="disable")
+            self.listbox_projects.configure(state=tkinter.DISABLED)
             self.write_index_to_config(None)
         else:
             for project in dict_config["projects"]:
@@ -4465,7 +4531,7 @@ class MainFrame(tkinter.Frame):
 
     def del_project(self):
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
         index_projects_in_listbox = dict_config["index_projects_in_listbox"]
@@ -4485,7 +4551,7 @@ class MainFrame(tkinter.Frame):
             )
             if bool_del_project:
                 with open(
-                    f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+                    CONFIG_PATH, "r", encoding="utf-8"
                 ) as f:
                     dict_config = json.load(f)
                 dict_config["projects"].pop(index_projects_in_listbox)
@@ -4494,7 +4560,7 @@ class MainFrame(tkinter.Frame):
                 else:
                     dict_config["index_projects_in_listbox"] = 0
                 with open(
-                    f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8"
+                    CONFIG_PATH, "w", encoding="utf-8"
                 ) as f:
                     json.dump(dict_config, f, indent=2)
                 self.load_listbox_projects()
@@ -4516,7 +4582,7 @@ class MainFrame(tkinter.Frame):
             + "自動的に Excel が起動するまで操作しないで下さい. ",
         )
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
@@ -4588,7 +4654,7 @@ class MainFrame(tkinter.Frame):
                 sheet_meibo.cell(index_row + 2, index_column + 2).protection = (
                     openpyxl.styles.Protection(locked=False)
                 )
-        list_add_images = []
+        list_add_images: list = []
         index_column += 2
         for str_type in ["生徒番号", "氏名"]:
             for question in dict_answer_area["questions"]:
@@ -4778,11 +4844,11 @@ class MainFrame(tkinter.Frame):
                 + "Excel を終了して, もう一度お試し下さい. ",
             )
         else:
-            os.startfile(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx")
+            open_with_default_app(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx")
 
     def read_xlsx(self):
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
@@ -4948,15 +5014,15 @@ def menu(root):
 
 
 def make_config():
-    dict_config = {"index_projects_in_listbox": None, "projects": []}
-    with open(f"{os.path.dirname(__file__)}/config.json", "w", encoding="utf-8") as f:
+    dict_config: dict[str, Any] = {"index_projects_in_listbox": None, "projects": []}
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(dict_config, f, indent=2)
 
 
 def check_on_run():
     try:
         with open(
-            f"{os.path.dirname(__file__)}/config.json", "r", encoding="utf-8"
+            CONFIG_PATH, "r", encoding="utf-8"
         ) as f:
             dict_config = json.load(f)
         return True

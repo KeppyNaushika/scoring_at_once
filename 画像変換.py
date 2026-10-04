@@ -67,9 +67,13 @@ def main():
   # input files
   print(f"\n＝＝＝＝＝＝＝＝＝＝")
   if str_input == "1":
-    if not os.path.exists(f"{os.path.dirname(__file__)}/poppler-22.01.0/Library/bin"):
-      print(f"poppler が存在しないため PDF を変換できません。変換モードを変更し画像ファイルを読み込んで下さい。")
-      return False
+    # Windows は同梱の poppler を使う. macOS/Linux は PATH 上の poppler (brew install poppler) を使う
+    poppler_path = None
+    if sys.platform == "win32":
+      poppler_path = f"{os.path.dirname(__file__)}/poppler-22.01.0/Library/bin"
+      if not os.path.exists(poppler_path):
+        print(f"poppler が存在しないため PDF を変換できません。変換モードを変更し画像ファイルを読み込んで下さい。")
+        return False
     print(f"変換元のファイルを指定します")
     path_pdf = tkinter.filedialog.askopenfilename(
       title="変換元の PDF ファイルを指定します",
@@ -82,7 +86,7 @@ def main():
     print(f"ファイル: {path_pdf}")
     sys.stdout.write(f"ファイルを読み込んでいます。PC の性能と PDF ファイルの状態によっては、数分かかる場合があります...")
     sys.stdout.flush()
-    list_image = pdf2image.convert_from_path(path_pdf, poppler_path=f"{os.path.dirname(__file__)}/poppler-22.01.0/Library/bin", thread_count=4)
+    list_image = pdf2image.convert_from_path(path_pdf, thread_count=4, **({"poppler_path": poppler_path} if poppler_path else {}))
     sys.stdout.write(f"\rファイルを読み込みが完了しました                                                                \r")
     sys.stdout.flush()
 
@@ -98,20 +102,20 @@ def main():
     print(f"フォルダ: {path_input_dir}")
     sys.stdout.write(f"ファイルを読み込んでいます。PC の性能と PDF ファイルの状態によっては、数分かかる場合があります...")
     sys.stdout.flush()
-    list_image = [PIL.Image.open(path_file) for path_file in natsort.natsorted(glob.glob(path_input_dir + "/*")) if os.path.splitext(path_file)[1] in [".jpeg", ".jpg", ".png"]]
+    list_image = [PIL.Image.open(path_file) for path_file in natsort.natsorted(glob.glob(path_input_dir + "/*")) if os.path.splitext(path_file)[1].lower() in [".jpeg", ".jpg", ".png"]]
     sys.stdout.write(f"\rファイルを読み込みが完了しました                                                                \r")
     sys.stdout.flush()
   print(f"\n{len(list_image)} 枚の画像を読み込みました")
 
   # set pages
   print(f"\n＝＝＝＝＝＝＝＝＝＝")
-  str_pages = None
+  str_pages = ""
   while str_pages not in [str(i+1) for i in range(10)]:
     print(f"連続する答案の枚数を指定します")
     str_pages = input(F"(1 - 10) >>> ")
   list_size = []
   for index_page in range(int(str_pages)):
-    str_size = None
+    str_size = ""
     while str_size not in ["A3", "A4", "A5", "A6", "B4", "B5", "B6", "B7"]:
       print(f"{index_page + 1}枚目の答案用紙のサイズを指定します")
       print(f"｜次のいずれかから指定します")
