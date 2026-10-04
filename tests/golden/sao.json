@@ -1,0 +1,763 @@
+{
+ "names": [
+  "archive.db",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/0.png",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/1.png",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/2.png",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/3.png",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/4.png",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/5.png",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/master-answers/model_answer.png",
+  "manifest.json"
+ ],
+ "manifest": {
+  "format": "score-at-once-archive",
+  "formatVersion": 1,
+  "lastMigration": "20261004150000_cascade_scoring_on_user_delete",
+  "exportedByUserId": "776e04ed-7e15-5088-b335-10211bf43a21",
+  "selection": {
+   "roots": {
+    "Exam": [
+     "c32c099b-5a64-5538-bc17-4efc6125e3cf"
+    ]
+   },
+   "shared": {},
+   "scoring": {
+    "kind": "all"
+   },
+   "includeAnswers": true,
+   "optionalItems": []
+  },
+  "exclusions": {
+   "requested": {},
+   "excludedRowCounts": {}
+  },
+  "rowCounts": {
+   "User": 1,
+   "Exam": 1,
+   "UserExam": 1,
+   "ExamPage": 1,
+   "CropRegion": 11,
+   "SubtotalGroup": 1,
+   "ExamSubtotalGroup": 1,
+   "Subtotal": 2,
+   "CropSubtotal": 6,
+   "Student": 6,
+   "Classroom": 3,
+   "ExamClassroom": 3,
+   "StudentClassroomMembership": 5,
+   "ExamStudent": 6,
+   "StudentAnswerImage": 6,
+   "QuestionScore": 24
+  },
+  "files": {
+   "count": 7,
+   "missing": []
+  }
+ },
+ "rows": {
+  "User": [
+   {
+    "id": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "username": "tester",
+    "passcode": null,
+    "name": "tester",
+    "role": "teacher",
+    "passcodeType": "none"
+   }
+  ],
+  "Exam": [
+   {
+    "id": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "examName": "回帰テスト",
+    "description": "一括採点 (Python 版) から移行",
+    "markerCorrectionEnabled": 0
+   }
+  ],
+  "UserExam": [
+   {
+    "id": "c23f3e9e-5b52-596b-aaa5-12a335b280ab",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "role": "OWNER",
+    "invitedBy": null
+   }
+  ],
+  "ExamPage": [
+   {
+    "id": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "pageNumber": 1,
+    "imagePath": "exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/master-answers/model_answer.png",
+    "pageSize": "A4"
+   }
+  ],
+  "CropRegion": [
+   {
+    "id": "084b4f24-0c1f-5587-9c25-9ab2b793bb64",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "小計1",
+    "type": "SUBTOTAL_SCORE",
+    "x": 0.7054673721340388,
+    "y": 0.175,
+    "width": 0.21164021164021163,
+    "height": 0.0625,
+    "points": null,
+    "orderIndex": 7
+   },
+   {
+    "id": "3e40de63-d954-56e2-93b2-605365637fe8",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "採点者印",
+    "type": "MARK",
+    "x": 0.07054673721340388,
+    "y": 0.875,
+    "width": 0.1763668430335097,
+    "height": 0.075,
+    "points": null,
+    "orderIndex": 10
+   },
+   {
+    "id": "4ab8acdf-7ec3-5212-8310-fef6374fc07f",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "生徒番号",
+    "type": "STUDENT_ID",
+    "x": 0.5291005291005291,
+    "y": 0.0875,
+    "width": 0.42328042328042326,
+    "height": 0.0375,
+    "points": null,
+    "orderIndex": 1
+   },
+   {
+    "id": "5cc9cc61-a6f9-5441-a55b-0ae3e51539d5",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "1-1",
+    "type": "QUESTION_ANSWER",
+    "x": 0.07054673721340388,
+    "y": 0.175,
+    "width": 0.3880070546737213,
+    "height": 0.0625,
+    "points": 5,
+    "orderIndex": 2
+   },
+   {
+    "id": "8f89563e-5667-5a54-939b-2fc79ef6c649",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "2-1",
+    "type": "QUESTION_ANSWER",
+    "x": 0.07054673721340388,
+    "y": 0.375,
+    "width": 0.3880070546737213,
+    "height": 0.0625,
+    "points": null,
+    "orderIndex": 4
+   },
+   {
+    "id": "af8c3689-a094-585b-9b65-55c805857372",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "合計",
+    "type": "TOTAL_SCORE",
+    "x": 0.7054673721340388,
+    "y": 0.75,
+    "width": 0.24691358024691357,
+    "height": 0.1,
+    "points": null,
+    "orderIndex": 9
+   },
+   {
+    "id": "b0182a61-f564-5406-9732-a0a5e1e3c619",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "1-2-ア",
+    "type": "QUESTION_ANSWER",
+    "x": 0.07054673721340388,
+    "y": 0.2625,
+    "width": 0.3880070546737213,
+    "height": 0.0625,
+    "points": 3,
+    "orderIndex": 3
+   },
+   {
+    "id": "b186efbb-082f-504d-ace9-13d0f80ee996",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "氏名",
+    "type": "STUDENT_NAME",
+    "x": 0.5291005291005291,
+    "y": 0.025,
+    "width": 0.42328042328042326,
+    "height": 0.05,
+    "points": null,
+    "orderIndex": 0
+   },
+   {
+    "id": "c717b0de-fcb5-5322-8d1c-c146fc148fa5",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "枠6",
+    "type": "QUESTION_ANSWER",
+    "x": 0.07054673721340388,
+    "y": 0.575,
+    "width": 0.3880070546737213,
+    "height": 0.0625,
+    "points": 2,
+    "orderIndex": 6
+   },
+   {
+    "id": "e721b969-f570-54f2-938e-2606310ae2dc",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "小計2",
+    "type": "SUBTOTAL_SCORE",
+    "x": 0.7054673721340388,
+    "y": 0.375,
+    "width": 0.21164021164021163,
+    "height": 0.0625,
+    "points": null,
+    "orderIndex": 8
+   },
+   {
+    "id": "e7331c8e-1462-51fb-973c-1fee03a1a4f0",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "label": "2-2",
+    "type": "QUESTION_ANSWER",
+    "x": 0.07054673721340388,
+    "y": 0.4625,
+    "width": 0.3880070546737213,
+    "height": 0.0625,
+    "points": 4,
+    "orderIndex": 5
+   }
+  ],
+  "SubtotalGroup": [
+   {
+    "id": "c279c137-5237-5077-b27d-d806409c9cfb",
+    "name": "大問（回帰テスト）"
+   }
+  ],
+  "ExamSubtotalGroup": [
+   {
+    "id": "923c5e8d-814b-5737-b211-f5862efe9f73",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "subtotalGroupId": "c279c137-5237-5077-b27d-d806409c9cfb",
+    "selectedForTable": 1,
+    "selectedForBoxPlot": 1
+   }
+  ],
+  "Subtotal": [
+   {
+    "id": "a7518098-af40-5d7f-b2d5-ef2e9718c1b9",
+    "name": "大問2",
+    "subtotalGroupId": "c279c137-5237-5077-b27d-d806409c9cfb",
+    "order": 1
+   },
+   {
+    "id": "c0f9bdb5-0f6e-545b-a478-ca42737ff3bc",
+    "name": "大問1",
+    "subtotalGroupId": "c279c137-5237-5077-b27d-d806409c9cfb",
+    "order": 0
+   }
+  ],
+  "CropSubtotal": [
+   {
+    "id": "3e43a286-61d7-51a8-92b4-c33f390839f5",
+    "cropRegionId": "084b4f24-0c1f-5587-9c25-9ab2b793bb64",
+    "subtotalId": "c0f9bdb5-0f6e-545b-a478-ca42737ff3bc",
+    "assignmentType": "SUBTOTAL_DEFINITION"
+   },
+   {
+    "id": "4a613e61-9c29-5d4d-bc96-5da23b066444",
+    "cropRegionId": "e721b969-f570-54f2-938e-2606310ae2dc",
+    "subtotalId": "a7518098-af40-5d7f-b2d5-ef2e9718c1b9",
+    "assignmentType": "SUBTOTAL_DEFINITION"
+   },
+   {
+    "id": "624abaa2-1337-5222-bf65-14e19fae1545",
+    "cropRegionId": "b0182a61-f564-5406-9732-a0a5e1e3c619",
+    "subtotalId": "c0f9bdb5-0f6e-545b-a478-ca42737ff3bc",
+    "assignmentType": "QUESTION_ASSIGNMENT"
+   },
+   {
+    "id": "6f513045-be6e-5e2b-a110-b39bb4a25bc7",
+    "cropRegionId": "8f89563e-5667-5a54-939b-2fc79ef6c649",
+    "subtotalId": "a7518098-af40-5d7f-b2d5-ef2e9718c1b9",
+    "assignmentType": "QUESTION_ASSIGNMENT"
+   },
+   {
+    "id": "ac3c5905-f6d9-5340-8e4f-6d8b4ff8461d",
+    "cropRegionId": "5cc9cc61-a6f9-5441-a55b-0ae3e51539d5",
+    "subtotalId": "c0f9bdb5-0f6e-545b-a478-ca42737ff3bc",
+    "assignmentType": "QUESTION_ASSIGNMENT"
+   },
+   {
+    "id": "f29e7001-7e38-5b43-aa03-5eae781d0912",
+    "cropRegionId": "e7331c8e-1462-51fb-973c-1fee03a1a4f0",
+    "subtotalId": "a7518098-af40-5d7f-b2d5-ef2e9718c1b9",
+    "assignmentType": "QUESTION_ASSIGNMENT"
+   }
+  ],
+  "Student": [
+   {
+    "id": "11bc7da5-2744-5acb-b82d-cc925b83f26a",
+    "studentNumber": "S101",
+    "lastName": "山田",
+    "firstName": "太郎",
+    "lastNameKana": "",
+    "firstNameKana": "",
+    "enrollmentYear": null
+   },
+   {
+    "id": "7440def5-9090-584c-8ce6-95f3715d70e3",
+    "studentNumber": "S103",
+    "lastName": "鈴木一郎",
+    "firstName": "",
+    "lastNameKana": "",
+    "firstNameKana": "",
+    "enrollmentYear": null
+   },
+   {
+    "id": "92bf8f5f-9781-51c0-af41-1e50f9f10fe9",
+    "studentNumber": "S202",
+    "lastName": "答案005",
+    "firstName": "",
+    "lastNameKana": "",
+    "firstNameKana": "",
+    "enrollmentYear": null
+   },
+   {
+    "id": "a0db3a27-2885-5311-9859-271d8fbb56d4",
+    "studentNumber": "仮-c32c099b-006",
+    "lastName": "答案006",
+    "firstName": "",
+    "lastNameKana": "",
+    "firstNameKana": "",
+    "enrollmentYear": null
+   },
+   {
+    "id": "aea6eb92-a449-5e4c-936e-5b46ca408b3e",
+    "studentNumber": "S102",
+    "lastName": "佐藤",
+    "firstName": "花子",
+    "lastNameKana": "",
+    "firstNameKana": "",
+    "enrollmentYear": null
+   },
+   {
+    "id": "c857bf6e-ecfc-596a-9f0d-10d3bf742025",
+    "studentNumber": "仮-c32c099b-004",
+    "lastName": "高橋",
+    "firstName": "次郎",
+    "lastNameKana": "",
+    "firstNameKana": "",
+    "enrollmentYear": null
+   }
+  ],
+  "Classroom": [
+   {
+    "id": "1347e91b-26bc-504a-a515-fdf2a52c84ad",
+    "name": "2年1組",
+    "classroomCode": null,
+    "grade": 2,
+    "description": null,
+    "isVisible": 1
+   },
+   {
+    "id": "960cc157-7e8d-5a6f-8c76-1e02cc0df145",
+    "name": "1年1組",
+    "classroomCode": null,
+    "grade": 1,
+    "description": null,
+    "isVisible": 1
+   },
+   {
+    "id": "bfa1a3e1-100c-59ab-a4cf-27543c642e1d",
+    "name": "1年2組",
+    "classroomCode": null,
+    "grade": 1,
+    "description": null,
+    "isVisible": 1
+   }
+  ],
+  "ExamClassroom": [
+   {
+    "id": "08254bfe-54fa-5f0b-8336-af889c973798",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "classroomId": "960cc157-7e8d-5a6f-8c76-1e02cc0df145",
+    "administered": 1,
+    "order": 0,
+    "teacherStatistics": 1,
+    "studentReport": 1
+   },
+   {
+    "id": "7289d3ee-a885-5c35-9c2a-ad314998962f",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "classroomId": "bfa1a3e1-100c-59ab-a4cf-27543c642e1d",
+    "administered": 1,
+    "order": 1,
+    "teacherStatistics": 1,
+    "studentReport": 1
+   },
+   {
+    "id": "84d22d90-e9ea-5ffc-ae79-bcf0766e3e08",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "classroomId": "1347e91b-26bc-504a-a515-fdf2a52c84ad",
+    "administered": 1,
+    "order": 2,
+    "teacherStatistics": 1,
+    "studentReport": 1
+   }
+  ],
+  "StudentClassroomMembership": [
+   {
+    "id": "20806980-41a4-5b8c-b95a-1f0da6fb57c4",
+    "studentId": "7440def5-9090-584c-8ce6-95f3715d70e3",
+    "classroomId": "bfa1a3e1-100c-59ab-a4cf-27543c642e1d",
+    "endDate": null,
+    "attendanceNumber": 1,
+    "notes": null
+   },
+   {
+    "id": "58b1085f-b776-5c77-b5e2-c94495d6a801",
+    "studentId": "aea6eb92-a449-5e4c-936e-5b46ca408b3e",
+    "classroomId": "960cc157-7e8d-5a6f-8c76-1e02cc0df145",
+    "endDate": null,
+    "attendanceNumber": 2,
+    "notes": null
+   },
+   {
+    "id": "783526ad-f255-5174-8e78-021b6dc2cee8",
+    "studentId": "11bc7da5-2744-5acb-b82d-cc925b83f26a",
+    "classroomId": "960cc157-7e8d-5a6f-8c76-1e02cc0df145",
+    "endDate": null,
+    "attendanceNumber": 1,
+    "notes": null
+   },
+   {
+    "id": "b21867da-96fc-5745-9f07-fb98a93a8c8b",
+    "studentId": "c857bf6e-ecfc-596a-9f0d-10d3bf742025",
+    "classroomId": "1347e91b-26bc-504a-a515-fdf2a52c84ad",
+    "endDate": null,
+    "attendanceNumber": 1,
+    "notes": null
+   },
+   {
+    "id": "bb93de6b-138d-5e28-8d19-4f9256818294",
+    "studentId": "92bf8f5f-9781-51c0-af41-1e50f9f10fe9",
+    "classroomId": "1347e91b-26bc-504a-a515-fdf2a52c84ad",
+    "endDate": null,
+    "attendanceNumber": 2,
+    "notes": null
+   }
+  ],
+  "ExamStudent": [
+   {
+    "id": "011a0bdd-ab13-5553-876f-c072cf066da8",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "studentId": "92bf8f5f-9781-51c0-af41-1e50f9f10fe9",
+    "status": "participating",
+    "customOrder": 4
+   },
+   {
+    "id": "01fe3d7e-001e-5cb2-b428-2fefe6e01a9a",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "studentId": "aea6eb92-a449-5e4c-936e-5b46ca408b3e",
+    "status": "participating",
+    "customOrder": 1
+   },
+   {
+    "id": "2178c9ab-efee-51fc-9b61-aeabd790c431",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "studentId": "7440def5-9090-584c-8ce6-95f3715d70e3",
+    "status": "participating",
+    "customOrder": 2
+   },
+   {
+    "id": "2c924eeb-6f3e-5c9e-8985-d409e016bbff",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "studentId": "a0db3a27-2885-5311-9859-271d8fbb56d4",
+    "status": "participating",
+    "customOrder": 5
+   },
+   {
+    "id": "c72c36fa-1e7b-505b-bad9-ebc5d4ee3b8c",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "studentId": "11bc7da5-2744-5acb-b82d-cc925b83f26a",
+    "status": "participating",
+    "customOrder": 0
+   },
+   {
+    "id": "d0689b57-04fc-5a45-8c6a-33271ecbd17a",
+    "examId": "c32c099b-5a64-5538-bc17-4efc6125e3cf",
+    "studentId": "c857bf6e-ecfc-596a-9f0d-10d3bf742025",
+    "status": "participating",
+    "customOrder": 3
+   }
+  ],
+  "StudentAnswerImage": [
+   {
+    "id": "09ca96aa-a4ea-5047-84b6-b00f50b8f605",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "examStudentId": "2c924eeb-6f3e-5c9e-8985-d409e016bbff",
+    "imagePath": "exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/5.png"
+   },
+   {
+    "id": "614259bb-0ef7-55d0-93b4-d1c369c379c3",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "examStudentId": "011a0bdd-ab13-5553-876f-c072cf066da8",
+    "imagePath": "exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/4.png"
+   },
+   {
+    "id": "78d44435-08b6-556e-9565-8c03a2d56396",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "examStudentId": "01fe3d7e-001e-5cb2-b428-2fefe6e01a9a",
+    "imagePath": "exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/1.png"
+   },
+   {
+    "id": "a33364dc-1bab-57dc-9763-5bfc603a672e",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "examStudentId": "2178c9ab-efee-51fc-9b61-aeabd790c431",
+    "imagePath": "exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/2.png"
+   },
+   {
+    "id": "c51c7444-c5d1-5d15-b523-91e6393da183",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "examStudentId": "c72c36fa-1e7b-505b-bad9-ebc5d4ee3b8c",
+    "imagePath": "exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/0.png"
+   },
+   {
+    "id": "cd66d03c-971f-5400-bcde-63d9203a4104",
+    "examPageId": "0a4ad91c-d3d5-5c47-8442-93c22ad719dc",
+    "examStudentId": "d0689b57-04fc-5a45-8c6a-33271ecbd17a",
+    "imagePath": "exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/3.png"
+   }
+  ],
+  "QuestionScore": [
+   {
+    "id": "0436f641-5b14-53f8-ada0-bc24dcdaaaf2",
+    "cropRegionId": "e7331c8e-1462-51fb-973c-1fee03a1a4f0",
+    "examStudentId": "2c924eeb-6f3e-5c9e-8985-d409e016bbff",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "0900821f-043c-5cc7-86a8-330481867d2d",
+    "cropRegionId": "e7331c8e-1462-51fb-973c-1fee03a1a4f0",
+    "examStudentId": "2178c9ab-efee-51fc-9b61-aeabd790c431",
+    "partialScore": 3,
+    "status": "partial",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "11e62228-7fb8-5905-8e3f-232253feda78",
+    "cropRegionId": "b0182a61-f564-5406-9732-a0a5e1e3c619",
+    "examStudentId": "2c924eeb-6f3e-5c9e-8985-d409e016bbff",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "14c81a9f-b38a-5025-9488-d7843a837b5b",
+    "cropRegionId": "5cc9cc61-a6f9-5441-a55b-0ae3e51539d5",
+    "examStudentId": "01fe3d7e-001e-5cb2-b428-2fefe6e01a9a",
+    "partialScore": null,
+    "status": "incorrect",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "20c200ee-a5d1-59af-b1ed-8bdbb6667cbf",
+    "cropRegionId": "5cc9cc61-a6f9-5441-a55b-0ae3e51539d5",
+    "examStudentId": "c72c36fa-1e7b-505b-bad9-ebc5d4ee3b8c",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "2148dac6-f78e-57a8-9c3c-4474fb386603",
+    "cropRegionId": "8f89563e-5667-5a54-939b-2fc79ef6c649",
+    "examStudentId": "2178c9ab-efee-51fc-9b61-aeabd790c431",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "4423dd77-d3fe-574f-8871-57f1846e4342",
+    "cropRegionId": "8f89563e-5667-5a54-939b-2fc79ef6c649",
+    "examStudentId": "c72c36fa-1e7b-505b-bad9-ebc5d4ee3b8c",
+    "partialScore": 2,
+    "status": "partial",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "4e82b981-0d8e-5f6d-9e70-37b49169a2e7",
+    "cropRegionId": "c717b0de-fcb5-5322-8d1c-c146fc148fa5",
+    "examStudentId": "011a0bdd-ab13-5553-876f-c072cf066da8",
+    "partialScore": 1,
+    "status": "partial",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "6ec2e769-b161-5bbc-8770-c49452ef2fe3",
+    "cropRegionId": "c717b0de-fcb5-5322-8d1c-c146fc148fa5",
+    "examStudentId": "2178c9ab-efee-51fc-9b61-aeabd790c431",
+    "partialScore": null,
+    "status": "incorrect",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "79e94446-d82c-5726-8939-677c7e9f2cc2",
+    "cropRegionId": "8f89563e-5667-5a54-939b-2fc79ef6c649",
+    "examStudentId": "01fe3d7e-001e-5cb2-b428-2fefe6e01a9a",
+    "partialScore": null,
+    "status": "pending",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "7b56528f-6260-56bc-8eae-7bf80d46ee8e",
+    "cropRegionId": "e7331c8e-1462-51fb-973c-1fee03a1a4f0",
+    "examStudentId": "011a0bdd-ab13-5553-876f-c072cf066da8",
+    "partialScore": 1,
+    "status": "pending",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "801ed1b2-28cf-5b53-8f11-d100982c1e46",
+    "cropRegionId": "b0182a61-f564-5406-9732-a0a5e1e3c619",
+    "examStudentId": "011a0bdd-ab13-5553-876f-c072cf066da8",
+    "partialScore": null,
+    "status": "incorrect",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "8be0aee6-72c6-51c4-ab29-59560c955118",
+    "cropRegionId": "c717b0de-fcb5-5322-8d1c-c146fc148fa5",
+    "examStudentId": "c72c36fa-1e7b-505b-bad9-ebc5d4ee3b8c",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "9f60eb7c-e245-5e00-898e-41413785c746",
+    "cropRegionId": "5cc9cc61-a6f9-5441-a55b-0ae3e51539d5",
+    "examStudentId": "2c924eeb-6f3e-5c9e-8985-d409e016bbff",
+    "partialScore": null,
+    "status": "pending",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "ae6973e8-66ec-5ad8-a876-a4bb3304e5c4",
+    "cropRegionId": "8f89563e-5667-5a54-939b-2fc79ef6c649",
+    "examStudentId": "2c924eeb-6f3e-5c9e-8985-d409e016bbff",
+    "partialScore": 0,
+    "status": "partial",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "b1e6263a-d5ed-541a-8349-716b0d7f3cc5",
+    "cropRegionId": "e7331c8e-1462-51fb-973c-1fee03a1a4f0",
+    "examStudentId": "c72c36fa-1e7b-505b-bad9-ebc5d4ee3b8c",
+    "partialScore": null,
+    "status": "incorrect",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "b5b5e06c-86fe-5041-9888-d8a1e9fd8f9f",
+    "cropRegionId": "b0182a61-f564-5406-9732-a0a5e1e3c619",
+    "examStudentId": "01fe3d7e-001e-5cb2-b428-2fefe6e01a9a",
+    "partialScore": 1,
+    "status": "partial",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "c1a12ec2-3019-5602-ae47-39ef831ddf0e",
+    "cropRegionId": "e7331c8e-1462-51fb-973c-1fee03a1a4f0",
+    "examStudentId": "01fe3d7e-001e-5cb2-b428-2fefe6e01a9a",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "d4dd6073-2795-57e3-8975-c6db3d6784d9",
+    "cropRegionId": "5cc9cc61-a6f9-5441-a55b-0ae3e51539d5",
+    "examStudentId": "011a0bdd-ab13-5553-876f-c072cf066da8",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "db29eaf0-63e7-55af-bae5-875f6bb82b34",
+    "cropRegionId": "b0182a61-f564-5406-9732-a0a5e1e3c619",
+    "examStudentId": "c72c36fa-1e7b-505b-bad9-ebc5d4ee3b8c",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "e0ce8f8a-36ca-591a-9a69-babc3792734c",
+    "cropRegionId": "c717b0de-fcb5-5322-8d1c-c146fc148fa5",
+    "examStudentId": "2c924eeb-6f3e-5c9e-8985-d409e016bbff",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "e445b035-9221-5ef6-89b1-fddd5c437051",
+    "cropRegionId": "b0182a61-f564-5406-9732-a0a5e1e3c619",
+    "examStudentId": "2178c9ab-efee-51fc-9b61-aeabd790c431",
+    "partialScore": 2,
+    "status": "pending",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "f99aa6fa-52b9-5587-ac76-d655d2a9a138",
+    "cropRegionId": "5cc9cc61-a6f9-5441-a55b-0ae3e51539d5",
+    "examStudentId": "2178c9ab-efee-51fc-9b61-aeabd790c431",
+    "partialScore": null,
+    "status": "partial",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   },
+   {
+    "id": "fe90e840-d297-540c-a558-c54e569824b3",
+    "cropRegionId": "8f89563e-5667-5a54-939b-2fc79ef6c649",
+    "examStudentId": "011a0bdd-ab13-5553-876f-c072cf066da8",
+    "partialScore": null,
+    "status": "incorrect",
+    "userId": "776e04ed-7e15-5088-b335-10211bf43a21",
+    "comment": ""
+   }
+  ]
+ },
+ "files": {
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/0.png": "980e5f70bdabf9331ab08a118dad87cc",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/1.png": "0b8743f061116a106ef971f8eedd5132",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/2.png": "adbf69533fc5e1b31ab6ec6f9414ca68",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/3.png": "afdc6818d85484cd3123f88ae4c1ce28",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/4.png": "7f45f2caf3a0fa8bb26d59e39b143e05",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/answer-sheets/5.png": "fe89b18671c2ae20019b3309eae85573",
+  "files/exams/c32c099b-5a64-5538-bc17-4efc6125e3cf/master-answers/model_answer.png": "d1589d5c4cffe86e189d39e8a09a84c8"
+ },
+ "errors": [],
+ "messages": [
+  "書き出しました"
+ ]
+}

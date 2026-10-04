@@ -1,0 +1,294 @@
+{
+ "scores": [
+  [
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   }
+  ],
+  [
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   }
+  ],
+  [
+   {
+    "status": "correct",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "incorrect",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "correct",
+    "point": null
+   },
+   {
+    "status": "hold",
+    "point": null
+   }
+  ],
+  [
+   {
+    "status": "correct",
+    "point": null
+   },
+   {
+    "status": "partial",
+    "point": 1
+   },
+   {
+    "status": "hold",
+    "point": 2
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "incorrect",
+    "point": null
+   },
+   {
+    "status": "correct",
+    "point": null
+   }
+  ],
+  [
+   {
+    "status": "incorrect",
+    "point": null
+   },
+   {
+    "status": "correct",
+    "point": null
+   },
+   {
+    "status": "partial",
+    "point": 1
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "incorrect",
+    "point": null
+   },
+   {
+    "status": "hold",
+    "point": 0
+   }
+  ],
+  [
+   {
+    "status": "incorrect",
+    "point": null
+   },
+   {
+    "status": "correct",
+    "point": null
+   },
+   {
+    "status": "partial",
+    "point": 3
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "hold",
+    "point": 1
+   },
+   {
+    "status": "correct",
+    "point": null
+   }
+  ],
+  [
+   {
+    "status": "correct",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "incorrect",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "partial",
+    "point": 1
+   },
+   {
+    "status": "correct",
+    "point": null
+   }
+  ],
+  [
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   }
+  ],
+  [
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   }
+  ],
+  [
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   }
+  ],
+  [
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   },
+   {
+    "status": "unscored",
+    "point": null
+   }
+  ]
+ ],
+ "errors": [],
+ "messages": [
+  "答案スキャンデータが読み込みました"
+ ]
+}

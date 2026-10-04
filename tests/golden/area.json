@@ -1,0 +1,176 @@
+{
+ "regions": [
+  {
+   "type": "氏名",
+   "daimon": null,
+   "shomon": null,
+   "shimon": null,
+   "haiten": null,
+   "area": [
+    300,
+    20,
+    540,
+    60
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "生徒番号",
+   "daimon": null,
+   "shomon": null,
+   "shimon": null,
+   "haiten": null,
+   "area": [
+    300,
+    70,
+    540,
+    100
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "設問",
+   "daimon": 1,
+   "shomon": 1,
+   "shimon": null,
+   "haiten": 5,
+   "area": [
+    40,
+    140,
+    260,
+    190
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "設問",
+   "daimon": 2,
+   "shomon": 1,
+   "shimon": null,
+   "haiten": null,
+   "area": [
+    40,
+    300,
+    260,
+    350
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "設問",
+   "daimon": 2,
+   "shomon": 2,
+   "shimon": null,
+   "haiten": 4,
+   "area": [
+    40,
+    370,
+    260,
+    420
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "設問",
+   "daimon": null,
+   "shomon": null,
+   "shimon": null,
+   "haiten": 2,
+   "area": [
+    40,
+    460,
+    260,
+    510
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "小計点",
+   "daimon": 1,
+   "shomon": null,
+   "shimon": null,
+   "haiten": null,
+   "area": [
+    400,
+    140,
+    520,
+    190
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "小計点",
+   "daimon": 2,
+   "shomon": null,
+   "shimon": null,
+   "haiten": null,
+   "area": [
+    400,
+    300,
+    520,
+    350
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "小計点",
+   "daimon": null,
+   "shomon": null,
+   "shimon": null,
+   "haiten": null,
+   "area": [
+    100,
+    550,
+    230,
+    590
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "合計点",
+   "daimon": null,
+   "shomon": null,
+   "shimon": null,
+   "haiten": null,
+   "area": [
+    400,
+    600,
+    540,
+    680
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "採点者印",
+   "daimon": null,
+   "shomon": null,
+   "shimon": null,
+   "haiten": null,
+   "area": [
+    40,
+    700,
+    140,
+    760
+   ],
+   "n_scores": 6
+  },
+  {
+   "type": "氏名",
+   "daimon": null,
+   "shomon": null,
+   "shimon": null,
+   "haiten": null,
+   "area": [
+    250,
+    260,
+    300,
+    300
+   ],
+   "n_scores": 6
+  }
+ ],
+ "errors": [],
+ "messages": [
+  "答案スキャンデータが読み込みました"
+ ]
+}

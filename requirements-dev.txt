@@ -2,3 +2,4 @@
 mypy
 types-openpyxl
 nuitka
+pytest

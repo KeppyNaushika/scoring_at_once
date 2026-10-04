@@ -1,0 +1,36 @@
+{
+ "export_settings": {
+  "symbol": {
+   "position": "c",
+   "x": 0,
+   "y": 0,
+   "size": 60,
+   "unscored": true,
+   "correct": true,
+   "partial": true,
+   "hold": true,
+   "incorrect": true
+  },
+  "point": {
+   "position": "se",
+   "x": -10,
+   "y": -10,
+   "size": 10,
+   "unscored": true,
+   "correct": true,
+   "partial": true,
+   "hold": true,
+   "incorrect": true
+  }
+ },
+ "png": {
+  "0.png": "42b79a70372cca163b8339357aaa5af9",
+  "1.png": "50b0332f305e9fd905bee89a759b5356",
+  "2.png": "294d31e0743ddbd8ac3def53460ef9d0",
+  "3.png": "cf839c5b5f49d1c2d704ec61c89e74bd",
+  "4.png": "3354c668343c61dcd1867172c996b96a",
+  "5.png": "8264031acc6a82fcea6da7c7892ab46b"
+ },
+ "errors": [],
+ "messages": []
+}
