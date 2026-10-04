@@ -86,6 +86,15 @@ def daimon_subtotals(regions: list[Region], sheet_index: int) -> dict[str, int]:
     return subtotals
 
 
+def total_points(regions: list[Region], sheet_index: int) -> int:
+    """答案 1 枚の合計点 (全ての設問. 点数が決まらない設問は 0 点). 採点結果一覧 Excel の合計と同じ."""
+    return sum(
+        earned_points(region["score"][sheet_index], region["haiten"]) or 0
+        for region in regions
+        if region["type"] == "設問"
+    )
+
+
 def anchor_position(area: list[int], style: MarkStyle) -> tuple[int, int]:
     """採点枠 area = [x0, y0, x1, y1] に採点記号・点数を置く座標.
 

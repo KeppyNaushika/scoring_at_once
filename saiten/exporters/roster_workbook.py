@@ -14,6 +14,7 @@ import PIL.Image
 from openpyxl.drawing.image import Image as WorkbookImage
 from openpyxl.styles import Border, Protection, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.worksheet import Worksheet
 
 from saiten.errors import UserError
@@ -195,7 +196,27 @@ def _add_cropped_images(sheet: Worksheet, workspace: Workspace, regions: list[Re
 # ---------------------------------------------------------------------------
 # 配点登録シート
 # ---------------------------------------------------------------------------
+def _input_rules() -> dict[HaitenKey, DataValidation]:
+    """入力欄の入力規則. 大問・小問・枝問は 10 文字以内, 配点は 0 以上の整数 (どれも空欄は可)."""
+    def label_rule() -> DataValidation:
+        return DataValidation(
+            type="textLength", operator="lessThanOrEqual", formula1="10", allow_blank=True,
+            showErrorMessage=True, errorTitle="入力できません", error="10 文字以内で入力して下さい. ",
+        )
+
+    return {
+        "daimon": label_rule(), "shomon": label_rule(), "shimon": label_rule(),
+        "haiten": DataValidation(
+            type="whole", operator="greaterThanOrEqual", formula1="0", allow_blank=True,
+            showErrorMessage=True, errorTitle="入力できません", error="0 以上の整数を入力して下さい. ",
+        ),
+    }
+
+
 def _fill_haiten_sheet(sheet: Worksheet, regions: list[Region]) -> None:
+    rules = _input_rules()
+    for rule in rules.values():
+        sheet.add_data_validation(rule)
     for column, header in enumerate(HAITEN_HEADERS, start=1):
         writable_cell(sheet, 1, column).value = header
     sheet.row_dimensions[1].height = HAITEN_ROW_HEIGHT
@@ -210,6 +231,7 @@ def _fill_haiten_sheet(sheet: Worksheet, regions: list[Region]) -> None:
             writable_cell(sheet, row, column).border = border
             if region["type"] in editable_types:
                 _make_input_cell(sheet, row, column, region[key], color)
+                rules[key].add(writable_cell(sheet, row, column))
             else:
                 cell = writable_cell(sheet, row, column)
                 cell.value = region[key]

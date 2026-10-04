@@ -1,4 +1,7 @@
-"""作り直しの前 (commit 99feca3) に記録した正解 (tests/golden/) と, 今のコードの挙動を比べる.
+"""記録した正解 (tests/golden/) と, 今のコードの挙動を比べる.
+
+正解は作り直しの前 (commit 99feca3) の挙動を記録したもの. その後, 意図して直した不具合の分だけ取り直した:
+- 採点済み答案の合計点に, 大問が未設定の設問の点数も含める (export:*, preset1, preset2 の答案 0・4・5)
 
 正解を取り直すとき (挙動を意図して変えたとき) は:
     for s in roster grading area projects sao preset1 preset2 export:default export:corners export:edges; do

@@ -14,7 +14,7 @@ import PIL.ImageDraw
 from saiten import environment
 from saiten.models import STATUSES, ExportSettings, MarkStyle, Region, Status, Workspace
 from saiten.resolution import Resolution, save_preserving_dpi
-from saiten.scoring import anchor_position, daimon_subtotals, printed_point_text
+from saiten.scoring import anchor_position, daimon_subtotals, printed_point_text, total_points
 
 POINT_COLOR = "red"
 # 小計・合計の数字画像の幅 (高さに対する比) と, 数字を並べる間隔 (幅に対する比)
@@ -88,8 +88,7 @@ def render_answer_sheet(
                 if (daimon := str(region["daimon"])) in subtotals:
                     sheet = _draw_number(sheet, subtotals[daimon], area, digits)
             case "合計点":
-                # 大問が未設定の設問は小計に入らないので, 合計にも入らない (旧バージョンの挙動)
-                sheet = _draw_number(sheet, sum(subtotals.values()), area, digits)
+                sheet = _draw_number(sheet, total_points(regions, sheet_index), area, digits)
     return sheet
 
 

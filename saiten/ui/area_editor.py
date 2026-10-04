@@ -33,6 +33,7 @@ HELP_TEXT = (
 # 枠がないときに一覧へ出す案内
 EMPTY_GUIDE = ("模範解答の画像の上で", "ドラッグして", "解答欄を指定して下さい")
 
+MIN_REGION_SIZE = 5  # 画像のピクセル
 NEW_RECTANGLE_TAG = "rectangle_new"
 REGION_TAG = "field"
 NUMBER_TAG = "number"
@@ -224,6 +225,10 @@ class AreaEditor(ProjectWindow):
         # 離した位置は最後の <B1-Motion> で受け取っている (旧版と同じ)
         x0, y0, x1, y1 = self.drag_rectangle
         area = [min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)]
+        self.canvas.coords(NEW_RECTANGLE_TAG, 0, 0, 0, 0)
+        # クリックしただけ (ほとんど動かしていない) なら枠を作らない. 小さすぎる枠は切り抜いても見えない
+        if area[2] - area[0] < MIN_REGION_SIZE or area[3] - area[1] < MIN_REGION_SIZE:
+            return
         self.regions.append(new_region(area, self.answer_count))
         self.selected_index = len(self.regions) - 1
         self._save_and_refresh()
