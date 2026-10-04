@@ -47,7 +47,10 @@ def config_dir() -> Path:
 
 
 def load_font(size: int) -> PIL.ImageFont.FreeTypeFont | PIL.ImageFont.ImageFont:
-    """点数の描画に使うフォント. 見つからなければ Pillow 既定のフォントで代用する."""
+    """点数の描画に使うフォント. 見つからなければ Pillow 既定のフォントで代用する.
+
+    フォントはスレッドの間で共有しない (書き出しは答案ごとにスレッドで並べて描くため, 呼ぶたびに作る).
+    """
     try:
         return PIL.ImageFont.truetype(FONT_FILE, size)
     except OSError:

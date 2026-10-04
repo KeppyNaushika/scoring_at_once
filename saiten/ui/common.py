@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import tkinter
 import tkinter.messagebox
 from pathlib import Path
@@ -72,8 +73,23 @@ def bind_wheel_scroll(widget: tkinter.Canvas | tkinter.Listbox) -> None:
 
 def scaled_photo(path: Path, scale: float) -> PIL.ImageTk.PhotoImage:
     """画像を縮尺 scale で表示するための PhotoImage. 参照が消えると表示も消えるので, 呼び出し側で持っておく."""
+    return PIL.ImageTk.PhotoImage(_load_scaled(path, scale))
+
+
+def scaled_photos(paths: list[Path], scale: float) -> list[PIL.ImageTk.PhotoImage]:
+    """複数の画像をまとめて scaled_photo する.
+
+    読み込みと縮小は Pillow が GIL を離して行うのでスレッドで並べ, PhotoImage は Tk の決まりでメインスレッドで作る.
+    """
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        images = list(executor.map(lambda path: _load_scaled(path, scale), paths))
+    return [PIL.ImageTk.PhotoImage(image) for image in images]
+
+
+def _load_scaled(path: Path, scale: float) -> PIL.Image.Image:
     with PIL.Image.open(path) as image:
-        if scale != 1.0:
-            size = (round(image.width * scale), round(image.height * scale))
-            return PIL.ImageTk.PhotoImage(image.resize(size, PIL.Image.Resampling.LANCZOS))
-        return PIL.ImageTk.PhotoImage(image)
+        if scale == 1.0:
+            image.load()
+            return image
+        size = (round(image.width * scale), round(image.height * scale))
+        return image.resize(size, PIL.Image.Resampling.LANCZOS)

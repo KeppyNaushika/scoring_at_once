@@ -17,7 +17,7 @@ from saiten.scoring import (
     question_title,
     score_entry_text,
 )
-from saiten.ui.common import ProjectWindow, scaled_photo
+from saiten.ui.common import ProjectWindow, scaled_photo, scaled_photos
 
 if TYPE_CHECKING:
     from saiten.ui.main_window import MainWindow
@@ -266,7 +266,7 @@ class GradingWindow(ProjectWindow):
         self.scale = Resolution.of(workspace.model_answer_path).display_scale
         self.model_image = scaled_photo(workspace.model_answer_path, self.scale)
         sheet_count = len(self.regions[self.question_index]["score"])
-        self.answer_images = [scaled_photo(workspace.answer_image(i), self.scale) for i in range(sheet_count)]
+        self.answer_images = scaled_photos([workspace.answer_image(i) for i in range(sheet_count)], self.scale)
         # 表示する採点状態の絞り込み. 初めは未採点だけを表示する
         self.status_filter = {status: tkinter.BooleanVar(value=status == "unscored") for status in STATUSES}
         self.show_name = tkinter.BooleanVar(value=False)

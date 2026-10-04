@@ -100,10 +100,26 @@ def _new_answer_images(project_dir: Path, model_answer: Path, imported: list[str
     ]
 
 
+# そのまま PNG にできる色の形式 (白黒 2 値・グレー・RGB). それ以外は RGB にそろえる
+PNG_MODES = ("1", "L", "RGB")
+
+
 def _copy_as_png(source: Path, destination: Path) -> None:
-    """画像を PNG にして作業フォルダに写す. 解像度の記録は表示の縮尺と記号の大きさに使うので残す."""
-    with PIL.Image.open(source) as image:
-        save_preserving_dpi(image, destination, image_dpi(source))
+    """画像を PNG にして作業フォルダに写す. 解像度の記録は表示の縮尺と記号の大きさに使うので残す.
+
+    CMYK の JPEG は PNG にできず, 透明度のある画像は PDF にするときに余計な処理が要るので, RGB にそろえる.
+    透明な部分は白にする (紙の色).
+    """
+    with PIL.Image.open(source) as original:
+        save_preserving_dpi(_as_png_mode(original), destination, image_dpi(source))
+
+
+def _as_png_mode(image: PIL.Image.Image) -> PIL.Image.Image:
+    if image.mode in PNG_MODES:
+        return image
+    if image.mode in ("RGBA", "LA", "PA") or "transparency" in image.info:
+        image = PIL.Image.alpha_composite(PIL.Image.new("RGBA", image.size, "white"), image.convert("RGBA"))
+    return image.convert("RGB")
 
 
 def _append_unscored(regions: list[Region]) -> None:
