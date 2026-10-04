@@ -11,6 +11,26 @@
 #                                                   #
 #####################################################
 
+"""一括採点 (scoring_at_once) v1.0.0 — 答案スキャン画像を設問ごとに並べて採点する tkinter アプリ.
+
+データの置き場所:
+    config.json                          試験一覧 (load_config / save_config)
+    <答案フォルダ>/.temp_saiten/
+        answer_area.json                 採点枠と採点結果
+            {"questions": [{"type": "設問" | "氏名" | "生徒番号" | "採点者印" | "小計点" | "合計点",
+                            "daimon", "shomon", "shimon": 大問・小問・枝問, "haiten": 配点,
+                            "area": [x0, y0, x1, y1] (模範解答画像のピクセル座標),
+                            "score": [{"status": "unscored" | "correct" | "partial" | "hold" | "incorrect",
+                                       "point": 部分点 or None}, ... 答案番号順]}]}
+        meibo.json                       名簿 [{"学年", "学級", "出席番号", "生徒番号", "氏名"}, ... 答案番号順]
+        load_picture.json                取り込み済みの元画像のパス {"answer": [...]}
+        model_answer/model_answer.png    模範解答
+        answer/<答案番号>.png            答案
+        output/<答案番号>.png            書き出し時に作る採点済み答案
+
+後継版 score-at-once-electron への移行用の書き出しは sao_export.py を参照.
+"""
+
 import tkinter
 import tkinter.filedialog
 import tkinter.font
@@ -81,6 +101,23 @@ def _user_config_dir() -> str:
 
 CONFIG_PATH = os.path.join(_user_config_dir(), "config.json")
 
+
+def load_config() -> dict[str, Any]:
+    """config.json (試験一覧と選択中の試験の番号) を読み込む.
+
+    {"index_projects_in_listbox": 選択中の試験の番号 or None,
+     "projects": [{"name", "path_dir", "path_file", "export": {...}}, ...],
+     "sao_username": 後継版へ書き出すときの利用者名 (任意)}
+    """
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_config(dict_config: dict[str, Any]) -> None:
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(dict_config, f, indent=2)
+
+
 # 画面表示用フォント名 (FONTNAME) と, 書き出し画像に点数を描くフォントファイル (FONTFILE)
 if IS_WINDOWS:
     FONTNAME = "Meiryo UI"
@@ -138,27 +175,68 @@ def wheel_steps(event: tkinter.Event) -> int:
 
 
 class SubWindow:
+    """メイン画面から開く子ウインドウ (試験の追加・編集, 解答欄の指定, 一括採点, 書き出し) をまとめたクラス.
+
+    各画面は @sub_window_loop を付けたメソッドで, 呼ばれるとメイン画面を隠して self.window に
+    Toplevel を作り, 閉じるとアプリ全体を作り直す (main() を呼び直す) ことで表示を最新にする.
+    データはメモリに持たず, 操作のたびに config.json と <答案フォルダ>/.temp_saiten/*.json を読み書きする.
+    """
+
     def __init__(self, parent) -> None:
         self.parent = parent
         # 子ウインドウ. 表示中は必ず Toplevel が入り, 閉じている間だけ None になる
         # (生成と破棄は sub_window_loop / this_window_close が担当する).
         # 各画面のメソッドは表示中にしか呼ばれないので, 型は Toplevel として扱う.
         self.window: tkinter.Toplevel = None  # type: ignore[assignment]
-        self.index_selected_relation_table_position_to_index_answersheet = 0
-        self.list_label_entry_score: list[tkinter.Label] = []
-        self.list_entry_score: list[tkinter.Entry] = []
-        self.len_column_position_of_answer = 0
-        self.pages_relation_table_position_to_index_answersheet: list[
-            list[tuple[tuple[int, int], int]]
-        ] = []  # Initialize the attribute
-        self.index_selected_question: int | None = None
-        self.canvas_draw_rectangle = [0, 0, 0, 0]
+
+        # --- 解答欄の指定画面 (select_area) ---
+        self.selected_area_index: int | None = None  # 一覧で選択中の採点枠
+        self.canvas_draw_rectangle = [0, 0, 0, 0]  # ドラッグ中の枠 [x0, y0, x1, y1]
         # 模範解答画像. 画面を開くときに必ず読み込まれる
         self.tk_image_model_answer: PIL.ImageTk.PhotoImage
-        self.index_pages_relation_table_position_to_index_answersheet = 0
-        self.len_columns_relation_table_position_to_index_answersheet = 0
-        self.len_rows_relation_table_position_to_index_answersheet = 0
-        self.index_selected_relation_table_position_to_index_answersheet = 0
+
+        # --- 一括採点画面 (score_answer) ---
+        # 設問一覧の行番号 → answer_area.json の questions の番号 (設問以外の枠は一覧に出ない)
+        self.scoring_question_indices: list[int]
+        self.scoring_question_index: int | None  # 採点中の設問 (questions の番号)
+        self.selected_sheet_index: int | None  # 選択中の答案 (答案番号)
+        # 答案の切り抜きを格子状に並べた表. ページごとに [((列, 行), 答案番号), ...]
+        self.answer_grid_pages: list[list[tuple[tuple[int, int], int]]] = []
+        self.answer_grid_page = 0  # 表示中のページ
+        self.answer_grid_cursor = 0  # 表示中のページ内で選択中の位置
+        self.answer_grid_column_count = 0  # 1 ページに並ぶ列数
+        self.answer_grid_row_count: int  # 1 ページに並ぶ行数
+        self.answer_grid_columns = 0
+        self.answer_grid_rows = 0
+        self.answer_grid_selected_column: int | None
+        self.answer_grid_selected_row: int | None
+        # 表示する採点状態の絞り込み (unscored / correct / partial / hold / incorrect)
+        self.show_status_filter: dict[str, tkinter.BooleanVar]
+        self.is_show_name: tkinter.BooleanVar  # 答案の下に氏名を表示するか
+        self.scoring_model_images: PIL.ImageTk.PhotoImage
+        self.list_scoring_images: list[PIL.ImageTk.PhotoImage]  # 答案画像 (答案番号順)
+        self.model_answer_cell_border: tkinter.Frame
+        self.model_answer_cell_frame: tkinter.Frame
+        self.canvas_model_answer: tkinter.Canvas
+        self.label_model_answer: tkinter.Label
+        self.label_name_model_answer: tkinter.Label
+        # 答案ごとの切り抜き表示 (答案番号順)
+        self.answer_cell_borders: list[tkinter.Frame]
+        self.answer_cell_frames: list[tkinter.Frame]
+        self.answer_cell_name_labels: list[tkinter.Label]
+        self.list_canvas_question: list[tkinter.Canvas]
+        self.list_label_entry_score: list[tkinter.Label] = []
+        self.list_entry_score: list[tkinter.Entry] = []
+
+        # --- 書き出し画面 (export) ---
+        self.symbol_images: dict  # 採点記号 (○ × など) の元画像
+        self.symbol_images_resized: dict  # 設定した大きさに縮めた採点記号
+        self.symbol_photo_images: dict  # プレビュー表示用
+        self.image_answersheet: PIL.Image.Image  # 記号を重ねている途中の答案画像
+        self.image_clear: PIL.Image.Image
+        self.image_suuji: dict  # 小計・合計の印字に使う数字画像 ("0"〜"9")
+        self.image_suuji_resized: PIL.Image.Image
+        self.list_image_answersheet: list
 
     def this_window_close(self):
         self.window.withdraw()
@@ -169,11 +247,14 @@ class SubWindow:
 
     @staticmethod
     def sub_window_loop(func: Callable[..., Any]):
+        """子ウインドウを開くメソッドに付けるデコレータ.
+
+        未読み込みの名簿/配点 Excel が残っていれば削除してよいか確認し, メイン画面を隠して
+        self.window を作ってから画面を組み立てる. 画面側が None を返せばその画面のイベントループに入り,
+        それ以外を返せば (準備に失敗したなど) すぐ閉じてメイン画面に戻る.
+        """
         def inner(self, *args, **kargs):
-            with open(
-                CONFIG_PATH, "r", encoding="utf-8"
-            ) as f:
-                dict_config = json.load(f)
+            dict_config = load_config()
             if dict_config["index_projects_in_listbox"] is not None:
                 dict_project = dict_config["projects"][
                     dict_config["index_projects_in_listbox"]
@@ -215,11 +296,15 @@ class SubWindow:
         return inner
 
     def check_dir_exist(self):
+        """選択中の試験の作業フォルダ (.temp_saiten) を用意し, 新しい答案画像を取り込む.
+
+        - 答案フォルダ内の jpeg/jpg/png (模範解答を除く) を名前順に answer/<番号>.png として保存する.
+          取り込み済みの元ファイルは load_picture.json に記録し, 次回以降は追加分だけを取り込む.
+        - 新しい答案の分だけ, 全採点枠の score と meibo.json に空の要素を足す.
+        答案が 1 枚もない・パスが誤っているなどで続行できなければ False を返す.
+        """
         self.window.withdraw()
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
         name_project = dict_project["name"]
         path_dir = dict_project["path_dir"]
@@ -275,10 +360,7 @@ class SubWindow:
             path_dir + "/.temp_saiten/answer_area.json", "r", encoding="utf-8"
         ) as f:
             dict_answer_area = json.load(f)
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
 
         # load_picture.json
@@ -363,8 +445,7 @@ class SubWindow:
 
     def edit_project(self):
         """選択中の試験の名前・答案フォルダ・模範解答を変更する."""
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         if dict_config["index_projects_in_listbox"] is None:
             tkinter.messagebox.showwarning(
                 "試験が選択されていません", "編集する試験を一覧から選択して下さい. "
@@ -414,10 +495,7 @@ class SubWindow:
                 )
                 self.window.lift()
                 return
-            with open(
-                CONFIG_PATH, "r", encoding="utf-8"
-            ) as f:
-                dict_config = json.load(f)
+            dict_config = load_config()
             if index_edit is not None:
                 # 編集: 失敗したら元に戻せるよう, 変更前の値を控えておく
                 dict_project_before = dict(dict_config["projects"][index_edit])
@@ -433,12 +511,10 @@ class SubWindow:
                     path_cached_model_answer
                 ):
                     os.remove(path_cached_model_answer)
-                with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-                    json.dump(dict_config, f, indent=2)
+                save_config(dict_config)
                 if not self.check_dir_exist():
                     dict_config["projects"][index_edit] = dict_project_before
-                    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-                        json.dump(dict_config, f, indent=2)
+                    save_config(dict_config)
                     self.window.deiconify()
                     self.window.lift()
                     return
@@ -476,24 +552,15 @@ class SubWindow:
                 }
             )
             dict_config["index_projects_in_listbox"] = len(dict_config["projects"]) - 1
-            with open(
-                CONFIG_PATH, "w", encoding="utf-8"
-            ) as f:
-                json.dump(dict_config, f, indent=2)
+            save_config(dict_config)
             if not self.check_dir_exist():
-                with open(
-                    CONFIG_PATH, "r", encoding="utf-8"
-                ) as f:
-                    dict_config = json.load(f)
+                dict_config = load_config()
                 dict_config["projects"].pop(len(dict_config["projects"]) - 1)
                 if len(dict_config["projects"]) == 0:
                     dict_config["index_projects_in_listbox"] = None
                 else:
                     dict_config["index_projects_in_listbox"] = 0
-                with open(
-                    CONFIG_PATH, "w", encoding="utf-8"
-                ) as f:
-                    json.dump(dict_config, f, indent=2)
+                save_config(dict_config)
                 self.window.deiconify()
                 self.window.lift()
                 return
@@ -559,8 +626,7 @@ class SubWindow:
         btn_path_file.grid(column=2, row=0)
 
         if index_edit is not None:
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                dict_project = json.load(f)["projects"][index_edit]
+            dict_project = load_config()["projects"][index_edit]
             entry_name.insert(0, dict_project["name"])
             entry_path_dir.insert(0, dict_project["path_dir"])
             entry_path_file.insert(0, dict_project["path_file"])
@@ -583,16 +649,18 @@ class SubWindow:
     # 解答欄の位置を指定
     @sub_window_loop
     def select_area(self):
+        """解答欄の指定画面. 模範解答の上をドラッグして採点枠を作り, 種類 (設問・氏名など) を決める.
+
+        枠は answer_area.json の questions に保存され, 座標は模範解答画像のピクセル座標
+        [x0, y0, x1, y1]. 同じ座標で全ての答案が切り抜かれる.
+        """
         if not self.check_dir_exist():
             tkinter.messagebox.showinfo(
                 "設定を確認して下さい",
                 f"試験一覧の［編集］ボタンをクリックして, 試験の設定を確認して下さい. \n\n「解答欄の位置を指定」を終了します. ",
             )
             return "break"
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
 
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
         path_dir = dict_project["path_dir"]
@@ -607,52 +675,52 @@ class SubWindow:
             dict_answer_area = json.load(f)
 
         def del_question():
-            if self.index_selected_question is not None:
+            if self.selected_area_index is not None:
                 with open(path_json_answer_area, "r", encoding="utf-8") as f:
                     dict_answer_area = json.load(f)
-                dict_answer_area["questions"].pop(self.index_selected_question)
+                dict_answer_area["questions"].pop(self.selected_area_index)
                 with open(path_json_answer_area, "w", encoding="utf-8") as f:
                     json.dump(dict_answer_area, f, indent=2)
                 reload_listbox_question()
 
         def up_question():
-            if self.index_selected_question is not None:
+            if self.selected_area_index is not None:
                 with open(path_json_answer_area, "r", encoding="utf-8") as f:
                     dict_answer_area = json.load(f)
                 pop_question = dict_answer_area["questions"].pop(
-                    self.index_selected_question
+                    self.selected_area_index
                 )
-                self.index_selected_question = max(self.index_selected_question - 1, 0)
+                self.selected_area_index = max(self.selected_area_index - 1, 0)
                 dict_answer_area["questions"].insert(
-                    self.index_selected_question, pop_question
+                    self.selected_area_index, pop_question
                 )
                 with open(path_json_answer_area, "w", encoding="utf-8") as f:
                     json.dump(dict_answer_area, f, indent=2)
                 reload_listbox_question()
 
         def down_question():
-            if self.index_selected_question is not None:
+            if self.selected_area_index is not None:
                 with open(path_json_answer_area, "r", encoding="utf-8") as f:
                     dict_answer_area = json.load(f)
                 pop_question = dict_answer_area["questions"].pop(
-                    self.index_selected_question
+                    self.selected_area_index
                 )
-                self.index_selected_question = min(
-                    self.index_selected_question + 1,
+                self.selected_area_index = min(
+                    self.selected_area_index + 1,
                     len(dict_answer_area["questions"]) - 1,
                 )
                 dict_answer_area["questions"].insert(
-                    self.index_selected_question, pop_question
+                    self.selected_area_index, pop_question
                 )
                 with open(path_json_answer_area, "w", encoding="utf-8") as f:
                     json.dump(dict_answer_area, f, indent=2)
                 reload_listbox_question()
 
         def set_type(str_type):
-            if self.index_selected_question is not None:
+            if self.selected_area_index is not None:
                 with open(path_json_answer_area, "r", encoding="utf-8") as f:
                     dict_answer_area = json.load(f)
-                dict_answer_area["questions"][self.index_selected_question][
+                dict_answer_area["questions"][self.selected_area_index][
                     "type"
                 ] = str_type
                 with open(path_json_answer_area, "w", encoding="utf-8") as f:
@@ -746,7 +814,7 @@ class SubWindow:
             )
             with open(path_json_answer_area, "w", encoding="utf-8") as f:
                 json.dump(dict_answer_area, f, indent=2)
-            self.index_selected_question = len(dict_answer_area["questions"]) - 1
+            self.selected_area_index = len(dict_answer_area["questions"]) - 1
             reload_listbox_question()
             canvas.coords("rectangle_new", 0, 0, 0, 0)
 
@@ -766,7 +834,7 @@ class SubWindow:
                     color_reactangle = "orange"
                 elif question["type"] == "採点者印":
                     color_reactangle = "yellow"
-                self.index_selected_question = listbox_question.curselection()[0]
+                self.selected_area_index = listbox_question.curselection()[0]
                 if index_question == listbox_question.curselection()[0]:
                     color_reactangle = "red"
                 canvas.create_rectangle(
@@ -796,15 +864,15 @@ class SubWindow:
             canvas.delete("field")
             canvas.delete("number")
             if len(dict_answer_area["questions"]) == 0:
-                self.index_selected_question = None
+                self.selected_area_index = None
                 listbox_question.insert(tkinter.END, "模範解答の画像の上で")
                 listbox_question.insert(tkinter.END, "ドラッグして")
                 listbox_question.insert(tkinter.END, "解答欄を指定して下さい")
                 listbox_question.configure(state=tkinter.DISABLED)
             else:
                 # 未選択 (None) なら先頭を選ぶ. 削除で範囲外になったら末尾に寄せる
-                self.index_selected_question = min(
-                    self.index_selected_question or 0,
+                self.selected_area_index = min(
+                    self.selected_area_index or 0,
                     len(dict_answer_area["questions"]) - 1,
                 )
                 for index_question, question in enumerate(
@@ -813,7 +881,7 @@ class SubWindow:
                     listbox_question.insert(
                         tkinter.END, f"枠{index_question} - {question['type']}"
                     )
-                listbox_question.select_set(self.index_selected_question)
+                listbox_question.select_set(self.selected_area_index)
                 selected_listbox_question()
 
         self.window.title("解答欄を指定")
@@ -964,14 +1032,19 @@ class SubWindow:
         canvas.bind("<ButtonRelease-1>", canvas_draw_rectangle_release)
 
         if len(dict_answer_area["questions"]) == 0:
-            self.index_selected_question = None
+            self.selected_area_index = None
         else:
-            self.index_selected_question = len(dict_answer_area["questions"]) - 1
+            self.selected_area_index = len(dict_answer_area["questions"]) - 1
 
         reload_listbox_question()
 
     @sub_window_loop
     def score_answer(self):
+        """一括採点画面. 設問を 1 つ選び, 全答案の同じ解答欄を並べてキーボードで採点する.
+
+        E: 正答 / Q: 未採点 / O: 誤答 / F: 部分点 / J: 保留, 数字キーで部分点の点数を入力,
+        WASD で選択を移動, R で再読み込み. 採点するたびに answer_area.json に保存する.
+        """
         def help_score_answer(**kwargs):
             tkinter.messagebox.showinfo(
                 "使い方",
@@ -999,10 +1072,7 @@ class SubWindow:
             return "break"
         self.parent.winfo_screenwidth()
         self.window.geometry("1600x1000+0+0")
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
         path_dir = dict_project["path_dir"]
         path_json_answer_area = (
@@ -1081,8 +1151,8 @@ class SubWindow:
                     PIL.ImageTk.PhotoImage(file=path_file_answer)
                 )
 
-        self.index_selected_scoring_question = 0
-        self.relation_index_scoring_question_to_index_question = []
+        self.scoring_question_index = 0
+        self.scoring_question_indices = []
         for index_question, question in enumerate(dict_answer_area["questions"]):
             if question["type"] == "設問":
                 name_question = "設問"
@@ -1093,33 +1163,33 @@ class SubWindow:
                 if question["shimon"] is not None:
                     name_question += " - " + str(question["shimon"])
                 listbox_question.insert(tkinter.END, name_question)
-                self.relation_index_scoring_question_to_index_question.append(
+                self.scoring_question_indices.append(
                     index_question
                 )
-        listbox_question.select_set(self.index_selected_scoring_question)
-        self.index_selected_scoring_question = (
-            self.relation_index_scoring_question_to_index_question[0]
+        listbox_question.select_set(self.scoring_question_index)
+        self.scoring_question_index = (
+            self.scoring_question_indices[0]
         )
 
         def repack_chosen_frame_canvas_answer(self):
             with open(path_json_answer_area, "r", encoding="utf-8") as f:
                 dict_answer_area = json.load(f)
             label_show_page.configure(
-                text=f"{self.index_pages_relation_table_position_to_index_answersheet + 1} 頁 / {len(self.pages_relation_table_position_to_index_answersheet)} 頁"
+                text=f"{self.answer_grid_page + 1} 頁 / {len(self.answer_grid_pages)} 頁"
             )
             for index_relation_table_position_to_index_answersheet, (
                 (int_column_position_of_answer, int_row_position_of_answer),
                 index_scoring_answersheet,
             ) in enumerate(
-                self.pages_relation_table_position_to_index_answersheet[
-                    self.index_pages_relation_table_position_to_index_answersheet
+                self.answer_grid_pages[
+                    self.answer_grid_page
                 ]
             ):
                 self.list_entry_score[index_scoring_answersheet].configure(
                     state="normal"
                 )
                 if (
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "score"
                     ][index_scoring_answersheet]["status"]
                     == "unscored"
@@ -1130,7 +1200,7 @@ class SubWindow:
                     )
                     self.list_entry_score[index_scoring_answersheet].insert(0, "未採")
                 elif (
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "score"
                     ][index_scoring_answersheet]["status"]
                     == "correct"
@@ -1141,7 +1211,7 @@ class SubWindow:
                     )
                     if (
                         dict_answer_area["questions"][
-                            self.index_selected_scoring_question
+                            self.scoring_question_index
                         ]["haiten"]
                         is None
                     ):
@@ -1151,12 +1221,12 @@ class SubWindow:
                             0,
                             str(
                                 dict_answer_area["questions"][
-                                    self.index_selected_scoring_question
+                                    self.scoring_question_index
                                 ]["haiten"]
                             ),
                         )
                 elif (
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "score"
                     ][index_scoring_answersheet]["status"]
                     == "partial"
@@ -1167,7 +1237,7 @@ class SubWindow:
                     )
                     if (
                         dict_answer_area["questions"][
-                            self.index_selected_scoring_question
+                            self.scoring_question_index
                         ]["score"][index_scoring_answersheet]["point"]
                         is not None
                     ):
@@ -1175,12 +1245,12 @@ class SubWindow:
                             0,
                             str(
                                 dict_answer_area["questions"][
-                                    self.index_selected_scoring_question
+                                    self.scoring_question_index
                                 ]["score"][index_scoring_answersheet]["point"]
                             ),
                         )
                 elif (
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "score"
                     ][index_scoring_answersheet]["status"]
                     == "hold"
@@ -1191,7 +1261,7 @@ class SubWindow:
                     )
                     if (
                         dict_answer_area["questions"][
-                            self.index_selected_scoring_question
+                            self.scoring_question_index
                         ]["score"][index_scoring_answersheet]["point"]
                         is not None
                     ):
@@ -1199,12 +1269,12 @@ class SubWindow:
                             0,
                             str(
                                 dict_answer_area["questions"][
-                                    self.index_selected_scoring_question
+                                    self.scoring_question_index
                                 ]["score"][index_scoring_answersheet]["point"]
                             ),
                         )
                 elif (
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "score"
                     ][index_scoring_answersheet]["status"]
                     == "incorrect"
@@ -1220,10 +1290,10 @@ class SubWindow:
                 self.list_entry_score[index_scoring_answersheet].configure(
                     state="readonly"
                 )
-                self.list_frame_border_frame_canvas_question[
+                self.answer_cell_borders[
                     index_scoring_answersheet
                 ].configure(background=background_frame)
-                self.list_frame_border_frame_canvas_question[
+                self.answer_cell_borders[
                     index_scoring_answersheet
                 ].grid(
                     column=int_column_position_of_answer,
@@ -1231,7 +1301,7 @@ class SubWindow:
                     padx=2,
                     pady=2,
                 )
-                self.list_frame_canvas_question[index_scoring_answersheet].configure(
+                self.answer_cell_frames[index_scoring_answersheet].configure(
                     background="white"
                 )
                 self.list_label_entry_score[index_scoring_answersheet].configure(
@@ -1239,7 +1309,7 @@ class SubWindow:
                 )
                 if (
                     index_relation_table_position_to_index_answersheet
-                    == self.index_selected_relation_table_position_to_index_answersheet
+                    == self.answer_grid_cursor
                 ):
                     self.list_canvas_question[index_scoring_answersheet].configure(
                         background="cyan"
@@ -1247,15 +1317,15 @@ class SubWindow:
                     self.list_label_entry_score[index_scoring_answersheet].configure(
                         background="cyan"
                     )
-                self.list_frame_canvas_question[index_scoring_answersheet].grid(
+                self.answer_cell_frames[index_scoring_answersheet].grid(
                     padx=3, pady=3
                 )
                 if self.is_show_name.get():
-                    self.list_label_name_question[index_scoring_answersheet].grid(
+                    self.answer_cell_name_labels[index_scoring_answersheet].grid(
                         column=0, row=0, columnspan=2, padx=1, pady=1
                     )
                 else:
-                    self.list_label_name_question[
+                    self.answer_cell_name_labels[
                         index_scoring_answersheet
                     ].grid_forget()
                 self.list_canvas_question[index_scoring_answersheet].grid(
@@ -1269,10 +1339,7 @@ class SubWindow:
                 )
 
         def choose_to_show_frame_canvas_answer(self):
-            with open(
-                CONFIG_PATH, "r", encoding="utf-8"
-            ) as f:
-                dict_config = json.load(f)
+            dict_config = load_config()
             dict_project = dict_config["projects"][
                 dict_config["index_projects_in_listbox"]
             ]
@@ -1289,8 +1356,8 @@ class SubWindow:
             with open(path_json_answer_area, "r", encoding="utf-8") as f:
                 dict_answer_area = json.load(f)
 
-            if self.index_selected_scoring_question is None:
-                self.index_pages_relation_table_position_to_index_answersheet = None
+            if self.scoring_question_index is None:
+                self.answer_grid_page = None
             else:
                 self.window.update_idletasks()
                 width_window = self.window.winfo_width()
@@ -1303,47 +1370,47 @@ class SubWindow:
                 height_frame_btn_operate = frame_btn_operate.winfo_height()
 
                 width_canvas = (
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "area"
                     ][2]
                     - dict_answer_area["questions"][
-                        self.index_selected_scoring_question
+                        self.scoring_question_index
                     ]["area"][0]
                 )
                 height_canvas = (
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "area"
                     ][3]
                     - dict_answer_area["questions"][
-                        self.index_selected_scoring_question
+                        self.scoring_question_index
                     ]["area"][1]
                 )
 
-                self.len_column_position_of_answer = (
+                self.answer_grid_column_count = (
                     width_window - width_frame_list_question
                 ) // (width_canvas + 20)
-                self.len_row_position_of_answer = (height_window - 150) // (
+                self.answer_grid_row_count = (height_window - 150) // (
                     height_canvas + 40
                 )
 
-                self.frame_border_frame_canvas_model_answer.grid(column=0, row=0)
-                self.frame_canvas_model_answer.grid(padx=4, pady=4)
+                self.model_answer_cell_border.grid(column=0, row=0)
+                self.model_answer_cell_frame.grid(padx=4, pady=4)
                 self.canvas_model_answer.grid(column=0, row=0)
                 self.label_model_answer.grid(column=0, row=1)
 
                 int_column_position_of_answer = 1
                 int_row_position_of_answer = 0
 
-                self.pages_relation_table_position_to_index_answersheet = [[]]
+                self.answer_grid_pages = [[]]
                 for index_scoring_answersheet, scoring_answersheet in enumerate(
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "score"
                     ]
                 ):
-                    if self.booleanVar_checkbutton_show[
+                    if self.show_status_filter[
                         scoring_answersheet["status"]
                     ].get():
-                        self.pages_relation_table_position_to_index_answersheet[
+                        self.answer_grid_pages[
                             -1
                         ].append(
                             (
@@ -1357,34 +1424,31 @@ class SubWindow:
                         int_column_position_of_answer += 1
                         if (
                             int_column_position_of_answer
-                            == self.len_column_position_of_answer
+                            == self.answer_grid_column_count
                         ):
                             int_column_position_of_answer = 0
                             int_row_position_of_answer += 1
                         if (
                             int_row_position_of_answer
-                            == self.len_row_position_of_answer
+                            == self.answer_grid_row_count
                             and index_scoring_answersheet
                             != len(
                                 dict_answer_area["questions"][
-                                    self.index_selected_scoring_question
+                                    self.scoring_question_index
                                 ]["score"]
                             )
                             - 1
                         ):
-                            self.pages_relation_table_position_to_index_answersheet.append(
+                            self.answer_grid_pages.append(
                                 []
                             )
                             int_column_position_of_answer = 1
                             int_row_position_of_answer = 0
-                self.index_selected_relation_table_position_to_index_answersheet = 0
+                self.answer_grid_cursor = 0
                 repack_chosen_frame_canvas_answer(self)
 
         def reload_frame_canvas_answer(self, *args, **kwargs):
-            with open(
-                CONFIG_PATH, "r", encoding="utf-8"
-            ) as f:
-                dict_config = json.load(f)
+            dict_config = load_config()
             dict_project = dict_config["projects"][
                 dict_config["index_projects_in_listbox"]
             ]
@@ -1398,60 +1462,60 @@ class SubWindow:
 
             frame_list_frame_canvas_answer.grid_forget()
             frame_list_frame_canvas_answer.grid(column=0, row=1, sticky="nw")
-            self.frame_border_frame_canvas_model_answer.destroy()
-            for canvas_question in self.list_frame_border_frame_canvas_question:
+            self.model_answer_cell_border.destroy()
+            for canvas_question in self.answer_cell_borders:
                 canvas_question.destroy()
-            self.list_frame_border_frame_canvas_question = []
-            self.list_frame_canvas_question = []
-            self.list_label_name_question = []
+            self.answer_cell_borders = []
+            self.answer_cell_frames = []
+            self.answer_cell_name_labels = []
             self.list_canvas_question = []
             self.list_label_entry_score = []
             self.list_entry_score = []
             width_canvas = (
-                dict_answer_area["questions"][self.index_selected_scoring_question][
+                dict_answer_area["questions"][self.scoring_question_index][
                     "area"
                 ][2]
-                - dict_answer_area["questions"][self.index_selected_scoring_question][
+                - dict_answer_area["questions"][self.scoring_question_index][
                     "area"
                 ][0]
             )
             height_canvas = (
-                dict_answer_area["questions"][self.index_selected_scoring_question][
+                dict_answer_area["questions"][self.scoring_question_index][
                     "area"
                 ][3]
-                - dict_answer_area["questions"][self.index_selected_scoring_question][
+                - dict_answer_area["questions"][self.scoring_question_index][
                     "area"
                 ][1]
             )
 
-            self.frame_border_frame_canvas_model_answer = tkinter.Frame(
+            self.model_answer_cell_border = tkinter.Frame(
                 frame_list_frame_canvas_answer, background="black"
             )
-            self.frame_canvas_model_answer = tkinter.Frame(
-                self.frame_border_frame_canvas_model_answer
+            self.model_answer_cell_frame = tkinter.Frame(
+                self.model_answer_cell_border
             )
             self.label_name_model_answer = tkinter.Label(
-                self.frame_canvas_model_answer, text="模範解答"
+                self.model_answer_cell_frame, text="模範解答"
             )
             self.canvas_model_answer = tkinter.Canvas(
-                self.frame_canvas_model_answer, width=width_canvas, height=height_canvas
+                self.model_answer_cell_frame, width=width_canvas, height=height_canvas
             )
             self.canvas_model_answer.create_image(
                 -1
-                * dict_answer_area["questions"][self.index_selected_scoring_question][
+                * dict_answer_area["questions"][self.scoring_question_index][
                     "area"
                 ][0],
                 -1
-                * dict_answer_area["questions"][self.index_selected_scoring_question][
+                * dict_answer_area["questions"][self.scoring_question_index][
                     "area"
                 ][1],
                 image=self.scoring_model_images,
                 anchor="nw",
                 tags="answer",
             )
-            self.label_model_answer = tkinter.Label(self.frame_canvas_model_answer)
+            self.label_model_answer = tkinter.Label(self.model_answer_cell_frame)
             if (
-                dict_answer_area["questions"][self.index_selected_scoring_question][
+                dict_answer_area["questions"][self.scoring_question_index][
                     "haiten"
                 ]
                 is None
@@ -1459,42 +1523,42 @@ class SubWindow:
                 self.label_model_answer.configure(text=f"模範解答: 未配点")
             else:
                 self.label_model_answer.configure(
-                    text=f"模範解答: {dict_answer_area['questions'][self.index_selected_scoring_question]['haiten']}点"
+                    text=f"模範解答: {dict_answer_area['questions'][self.scoring_question_index]['haiten']}点"
                 )
 
             if (
-                len(dict_answer_area["questions"][self.index_selected_scoring_question])
+                len(dict_answer_area["questions"][self.scoring_question_index])
                 == 0
             ):
-                self.index_selected_column_position_of_answer = None
-                self.index_selected_row_position_of_answer = None
-                self.index_selected_column_position_of_answer = None
+                self.answer_grid_selected_column = None
+                self.answer_grid_selected_row = None
+                self.answer_grid_selected_column = None
             else:
-                self.index_selected_column_position_of_answer = 1
-                self.index_selected_row_position_of_answer = 0
-                self.index_selected_scoring_answersheet = 0
-            self.index_pages_relation_table_position_to_index_answersheet = 0
+                self.answer_grid_selected_column = 1
+                self.answer_grid_selected_row = 0
+                self.selected_sheet_index = 0
+            self.answer_grid_page = 0
 
             for index_scoring_answersheet, scoring_answersheet in enumerate(
-                dict_answer_area["questions"][self.index_selected_scoring_question][
+                dict_answer_area["questions"][self.scoring_question_index][
                     "score"
                 ]
             ):
-                self.list_frame_border_frame_canvas_question.append(
+                self.answer_cell_borders.append(
                     tkinter.Frame(frame_list_frame_canvas_answer)
                 )  # , background=background_frame))
-                self.list_frame_canvas_question.append(
-                    tkinter.Frame(self.list_frame_border_frame_canvas_question[-1])
+                self.answer_cell_frames.append(
+                    tkinter.Frame(self.answer_cell_borders[-1])
                 )
-                self.list_label_name_question.append(
+                self.answer_cell_name_labels.append(
                     tkinter.Label(
-                        self.list_frame_canvas_question[-1],
+                        self.answer_cell_frames[-1],
                         text=str(dict_meibo[index_scoring_answersheet]["氏名"]),
                     )
                 )
                 self.list_canvas_question.append(
                     tkinter.Canvas(
-                        self.list_frame_canvas_question[-1],
+                        self.answer_cell_frames[-1],
                         width=width_canvas,
                         height=height_canvas,
                     )
@@ -1502,11 +1566,11 @@ class SubWindow:
                 self.list_canvas_question[index_scoring_answersheet].create_image(
                     -1
                     * dict_answer_area["questions"][
-                        self.index_selected_scoring_question
+                        self.scoring_question_index
                     ]["area"][0],
                     -1
                     * dict_answer_area["questions"][
-                        self.index_selected_scoring_question
+                        self.scoring_question_index
                     ]["area"][1],
                     image=self.list_scoring_images[index_scoring_answersheet],
                     anchor="nw",
@@ -1514,12 +1578,12 @@ class SubWindow:
                 )
                 self.list_entry_score.append(
                     tkinter.Entry(
-                        self.list_frame_canvas_question[-1], width=5, justify="right"
+                        self.answer_cell_frames[-1], width=5, justify="right"
                     )
                 )
                 self.list_label_entry_score.append(
                     tkinter.Label(
-                        self.list_frame_canvas_question[-1],
+                        self.answer_cell_frames[-1],
                         width=3,
                         text="点",
                         justify="left",
@@ -1529,109 +1593,109 @@ class SubWindow:
             choose_to_show_frame_canvas_answer(self)
 
         def selected_scoring_question(*args, **kwargs):
-            self.index_selected_scoring_question = (
-                self.relation_index_scoring_question_to_index_question[
+            self.scoring_question_index = (
+                self.scoring_question_indices[
                     listbox_question.curselection()[0]
                 ]
             )
             reload_frame_canvas_answer(self)
 
         def move_selected_question_answersheet(direction: str, *args, **kwargs):
-            if len(self.pages_relation_table_position_to_index_answersheet[0]) > 0:
+            if len(self.answer_grid_pages[0]) > 0:
                 if direction in ["up", "down", "next", "back"]:
                     if direction == "up":
                         if (
-                            self.index_selected_relation_table_position_to_index_answersheet
+                            self.answer_grid_cursor
                             == 0
                         ):
-                            self.index_selected_relation_table_position_to_index_answersheet = (
+                            self.answer_grid_cursor = (
                                 len(
-                                    self.pages_relation_table_position_to_index_answersheet[
-                                        self.index_pages_relation_table_position_to_index_answersheet
+                                    self.answer_grid_pages[
+                                        self.answer_grid_page
                                     ]
                                 )
                                 - 1
                             )
                         else:
-                            self.index_selected_relation_table_position_to_index_answersheet -= (
-                                self.len_column_position_of_answer
+                            self.answer_grid_cursor -= (
+                                self.answer_grid_column_count
                             )
                             if (
-                                self.index_selected_relation_table_position_to_index_answersheet
+                                self.answer_grid_cursor
                                 < 0
                             ):
-                                self.index_selected_relation_table_position_to_index_answersheet = (
+                                self.answer_grid_cursor = (
                                     0
                                 )
                     elif direction == "down":
                         if (
-                            self.index_selected_relation_table_position_to_index_answersheet
+                            self.answer_grid_cursor
                             == len(
-                                self.pages_relation_table_position_to_index_answersheet[
-                                    self.index_pages_relation_table_position_to_index_answersheet
+                                self.answer_grid_pages[
+                                    self.answer_grid_page
                                 ]
                             )
                             - 1
                         ):
-                            self.index_selected_relation_table_position_to_index_answersheet = (
+                            self.answer_grid_cursor = (
                                 0
                             )
                         else:
-                            self.index_selected_relation_table_position_to_index_answersheet += (
-                                self.len_column_position_of_answer
+                            self.answer_grid_cursor += (
+                                self.answer_grid_column_count
                             )
                             if (
-                                self.index_selected_relation_table_position_to_index_answersheet
+                                self.answer_grid_cursor
                                 > len(
-                                    self.pages_relation_table_position_to_index_answersheet[
-                                        self.index_pages_relation_table_position_to_index_answersheet
+                                    self.answer_grid_pages[
+                                        self.answer_grid_page
                                     ]
                                 )
                                 - 1
                             ):
-                                self.index_selected_relation_table_position_to_index_answersheet = (
+                                self.answer_grid_cursor = (
                                     len(
-                                        self.pages_relation_table_position_to_index_answersheet[
-                                            self.index_pages_relation_table_position_to_index_answersheet
+                                        self.answer_grid_pages[
+                                            self.answer_grid_page
                                         ]
                                     )
                                     - 1
                                 )
                     elif direction == "next":
-                        self.index_selected_relation_table_position_to_index_answersheet += (
+                        self.answer_grid_cursor += (
                             1
                         )
                         if (
-                            self.index_selected_relation_table_position_to_index_answersheet
+                            self.answer_grid_cursor
                             == len(
-                                self.pages_relation_table_position_to_index_answersheet[
-                                    self.index_pages_relation_table_position_to_index_answersheet
+                                self.answer_grid_pages[
+                                    self.answer_grid_page
                                 ]
                             )
                         ):
-                            self.index_selected_relation_table_position_to_index_answersheet = (
+                            self.answer_grid_cursor = (
                                 0
                             )
                     elif direction == "back":
-                        self.index_selected_relation_table_position_to_index_answersheet -= (
+                        self.answer_grid_cursor -= (
                             1
                         )
                         if (
-                            self.index_selected_relation_table_position_to_index_answersheet
+                            self.answer_grid_cursor
                             == -1
                         ):
-                            self.index_selected_relation_table_position_to_index_answersheet = (
+                            self.answer_grid_cursor = (
                                 len(
-                                    self.pages_relation_table_position_to_index_answersheet[
-                                        self.index_pages_relation_table_position_to_index_answersheet
+                                    self.answer_grid_pages[
+                                        self.answer_grid_page
                                     ]
                                 )
                                 - 1
                             )
-                    self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[
-                        self.index_pages_relation_table_position_to_index_answersheet
+                    self.selected_sheet_index = self.answer_grid_pages[
+                        self.answer_grid_page
                     ][
-                        self.index_selected_relation_table_position_to_index_answersheet
+                        self.answer_grid_cursor
                     ][
                         1
                     ]
@@ -1641,14 +1705,14 @@ class SubWindow:
                         (int_column_position_of_answer, int_row_position_of_answer),
                         index_scoring_answersheet,
                     ) in enumerate(
-                        self.pages_relation_table_position_to_index_answersheet[
-                            self.index_pages_relation_table_position_to_index_answersheet
+                        self.answer_grid_pages[
+                            self.answer_grid_page
                         ]
                     ):
-                        self.list_frame_border_frame_canvas_question[
+                        self.answer_cell_borders[
                             index_scoring_answersheet
                         ].grid_forget()
-                        self.list_frame_border_frame_canvas_question[
+                        self.answer_cell_borders[
                             index_scoring_answersheet
                         ].grid_forget()
                         self.list_canvas_question[
@@ -1660,98 +1724,98 @@ class SubWindow:
                         ].grid_forget()
                     if direction == "page_back":
                         if (
-                            self.index_pages_relation_table_position_to_index_answersheet
+                            self.answer_grid_page
                             > 0
                         ):
-                            self.index_pages_relation_table_position_to_index_answersheet -= (
+                            self.answer_grid_page -= (
                                 1
                             )
-                            self.index_selected_relation_table_position_to_index_answersheet = (
+                            self.answer_grid_cursor = (
                                 0
                             )
                     elif direction == "page_next":
                         if (
-                            self.index_pages_relation_table_position_to_index_answersheet
+                            self.answer_grid_page
                             < len(
-                                self.pages_relation_table_position_to_index_answersheet
+                                self.answer_grid_pages
                             )
                             - 1
                         ):
-                            self.index_pages_relation_table_position_to_index_answersheet += (
+                            self.answer_grid_page += (
                                 1
                             )
-                            self.index_selected_relation_table_position_to_index_answersheet = (
+                            self.answer_grid_cursor = (
                                 0
                             )
-                    self.index_selected_scoring_answersheet = self.pages_relation_table_position_to_index_answersheet[
-                        self.index_pages_relation_table_position_to_index_answersheet
+                    self.selected_sheet_index = self.answer_grid_pages[
+                        self.answer_grid_page
                     ][
-                        self.index_selected_relation_table_position_to_index_answersheet
+                        self.answer_grid_cursor
                     ][
                         1
                     ]
-                    self.index_selected_relation_table_position_to_index_answersheet = 0
+                    self.answer_grid_cursor = 0
                     repack_chosen_frame_canvas_answer(self)
 
         def score_selected_question_answersheet(value: str, *args):
             # 採点する設問を選ぶ前にキーが押されたときは何もしない
             if (
-                self.index_selected_scoring_question is None
-                or not self.pages_relation_table_position_to_index_answersheet
-                or not self.pages_relation_table_position_to_index_answersheet[0]
+                self.scoring_question_index is None
+                or not self.answer_grid_pages
+                or not self.answer_grid_pages[0]
             ):
                 return
-            self.index_selected_scoring_answersheet = (
-                self.pages_relation_table_position_to_index_answersheet[
-                    self.index_pages_relation_table_position_to_index_answersheet
-                ][self.index_selected_relation_table_position_to_index_answersheet][1]
+            self.selected_sheet_index = (
+                self.answer_grid_pages[
+                    self.answer_grid_page
+                ][self.answer_grid_cursor][1]
             )
-            if self.index_selected_scoring_answersheet is not None:
+            if self.selected_sheet_index is not None:
                 with open(path_json_answer_area, "r", encoding="utf-8") as f:
                     dict_answer_area = json.load(f)
                 if value in ["unscored", "correct", "partial", "hold", "incorrect"]:
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "score"
-                    ][self.index_selected_scoring_answersheet]["status"] = value
+                    ][self.selected_sheet_index]["status"] = value
                 else:
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "score"
-                    ][self.index_selected_scoring_answersheet]["status"] = "partial"
+                    ][self.selected_sheet_index]["status"] = "partial"
                 if value in ["unscored", "correct", "incorrect"]:
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "score"
-                    ][self.index_selected_scoring_answersheet]["point"] = None
+                    ][self.selected_sheet_index]["point"] = None
                 elif value in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
                     if (
                         dict_answer_area["questions"][
-                            self.index_selected_scoring_question
-                        ]["score"][self.index_selected_scoring_answersheet]["point"]
+                            self.scoring_question_index
+                        ]["score"][self.selected_sheet_index]["point"]
                         is None
                     ):
                         dict_answer_area["questions"][
-                            self.index_selected_scoring_question
-                        ]["score"][self.index_selected_scoring_answersheet][
+                            self.scoring_question_index
+                        ]["score"][self.selected_sheet_index][
                             "point"
                         ] = int(
                             value
                         )
                     else:
                         dict_answer_area["questions"][
-                            self.index_selected_scoring_question
-                        ]["score"][self.index_selected_scoring_answersheet][
+                            self.scoring_question_index
+                        ]["score"][self.selected_sheet_index][
                             "point"
                         ] *= 10
                         dict_answer_area["questions"][
-                            self.index_selected_scoring_question
-                        ]["score"][self.index_selected_scoring_answersheet][
+                            self.scoring_question_index
+                        ]["score"][self.selected_sheet_index][
                             "point"
                         ] += int(
                             value
                         )
                 elif value in ["backspace"]:
-                    dict_answer_area["questions"][self.index_selected_scoring_question][
+                    dict_answer_area["questions"][self.scoring_question_index][
                         "score"
-                    ][self.index_selected_scoring_answersheet]["point"] = None
+                    ][self.selected_sheet_index]["point"] = None
                 with open(path_json_answer_area, "w", encoding="utf-8") as f:
                     json.dump(dict_answer_area, f, indent=2)
                 if value in ["unscored", "correct", "partial", "hold", "incorrect"]:
@@ -1822,7 +1886,7 @@ class SubWindow:
         frame_bar = tkinter.Frame(frame_btn_scoring, height=5, background="#bfbfbf")
         frame_bar.grid(column=0, row=1, columnspan=6, sticky="we")
 
-        self.booleanVar_checkbutton_show = {
+        self.show_status_filter = {
             "unscored": tkinter.BooleanVar(value=True),
             "correct": tkinter.BooleanVar(value=False),
             "partial": tkinter.BooleanVar(value=False),
@@ -1857,31 +1921,31 @@ class SubWindow:
             frame_border_checkbutton_show_unscored,
             width=12,
             text="未採点 (Ctrl + Q) ",
-            variable=self.booleanVar_checkbutton_show["unscored"],
+            variable=self.show_status_filter["unscored"],
         )
         checkbutton_show_correct = tkinter.Checkbutton(
             frame_border_checkbutton_show_correct,
             width=12,
             text="正答 (Ctrl + E) ",
-            variable=self.booleanVar_checkbutton_show["correct"],
+            variable=self.show_status_filter["correct"],
         )
         checkbutton_show_partial = tkinter.Checkbutton(
             frame_border_checkbutton_show_partial,
             width=12,
             text="部分点 (Ctrl + F) ",
-            variable=self.booleanVar_checkbutton_show["partial"],
+            variable=self.show_status_filter["partial"],
         )
         checkbutton_show_hold = tkinter.Checkbutton(
             frame_border_checkbutton_show_hold,
             width=12,
             text="保留 (Ctrl + J) ",
-            variable=self.booleanVar_checkbutton_show["hold"],
+            variable=self.show_status_filter["hold"],
         )
         checkbutton_show_incorrect = tkinter.Checkbutton(
             frame_border_checkbutton_show_incorrect,
             width=12,
             text="誤答 (Ctrl + O) ",
-            variable=self.booleanVar_checkbutton_show["incorrect"],
+            variable=self.show_status_filter["incorrect"],
         )
         checkbutton_show_unscored.pack(padx=4, pady=4)
         checkbutton_show_correct.pack(padx=4, pady=4)
@@ -1997,18 +2061,18 @@ class SubWindow:
 
         listbox_question.bind("<<ListboxSelect>>", selected_scoring_question)
 
-        self.frame_border_frame_canvas_model_answer = tkinter.Frame(
+        self.model_answer_cell_border = tkinter.Frame(
             frame_list_frame_canvas_answer, background="black"
         )
-        self.list_frame_border_frame_canvas_question = []
+        self.answer_cell_borders = []
         self.list_canvas_question = []
 
         self.window.bind("r", functools.partial(reload_frame_canvas_answer, self))
         reload_frame_canvas_answer(self)
 
         def toggle_booleanVar_checkbutton_show(status, event):
-            self.booleanVar_checkbutton_show[status].set(
-                not self.booleanVar_checkbutton_show[status].get()
+            self.show_status_filter[status].set(
+                not self.show_status_filter[status].get()
             )
             choose_to_show_frame_canvas_answer(self)
 
@@ -2101,6 +2165,10 @@ class SubWindow:
 
     @sub_window_loop
     def export(self):
+        """書き出し画面. 採点記号と点数を答案に重ねた PDF と, 採点結果一覧の Excel を出力する.
+
+        記号・点数の位置や大きさは config.json の projects[i]["export"] に保存される.
+        """
         def export_list_xlsx():
             ### この関数いろいろダメです。信用しないで下さい。
             def set_style(
@@ -2448,10 +2516,7 @@ class SubWindow:
                                 else:
                                     cell.border = openpyxl.styles.borders.Border()
 
-            with open(
-                CONFIG_PATH, "r", encoding="utf-8"
-            ) as f:
-                dict_config = json.load(f)
+            dict_config = load_config()
             dict_project = dict_config["projects"][
                 dict_config["index_projects_in_listbox"]
             ]
@@ -2995,10 +3060,7 @@ class SubWindow:
                 )
 
         def preview_export_picture():
-            with open(
-                CONFIG_PATH, "r", encoding="utf-8"
-            ) as f:
-                dict_config = json.load(f)
+            dict_config = load_config()
             dict_project = dict_config["projects"][
                 dict_config["index_projects_in_listbox"]
             ]
@@ -3016,7 +3078,7 @@ class SubWindow:
             canvas.delete("saiten")
 
             size = dict_project["export"]["symbol"]["size"]
-            self.dict_image_scoring_symbol = {
+            self.symbol_images = {
                 "unscored": PIL.Image.open(
                     os.path.join(ASSETS_DIR, "unscored.png")
                 ),
@@ -3046,68 +3108,68 @@ class SubWindow:
                     os.path.join(ASSETS_DIR, "tranceparent_incorrect.png")
                 ),
             }
-            self.dict_image_scoring_symbol_resized = {
-                "unscored": self.dict_image_scoring_symbol["unscored"].resize(
+            self.symbol_images_resized = {
+                "unscored": self.symbol_images["unscored"].resize(
                     (size, size)
                 ),
-                "correct": self.dict_image_scoring_symbol["correct"].resize(
+                "correct": self.symbol_images["correct"].resize(
                     (size, size)
                 ),
-                "partial": self.dict_image_scoring_symbol["partial"].resize(
+                "partial": self.symbol_images["partial"].resize(
                     (size, size)
                 ),
-                "hold": self.dict_image_scoring_symbol["hold"].resize((size, size)),
-                "incorrect": self.dict_image_scoring_symbol["incorrect"].resize(
+                "hold": self.symbol_images["hold"].resize((size, size)),
+                "incorrect": self.symbol_images["incorrect"].resize(
                     (size, size)
                 ),
-                "tranceparent_unscored": self.dict_image_scoring_symbol[
+                "tranceparent_unscored": self.symbol_images[
                     "tranceparent_unscored"
                 ].resize((size, size)),
-                "tranceparent_correct": self.dict_image_scoring_symbol[
+                "tranceparent_correct": self.symbol_images[
                     "tranceparent_correct"
                 ].resize((size, size)),
-                "tranceparent_partial": self.dict_image_scoring_symbol[
+                "tranceparent_partial": self.symbol_images[
                     "tranceparent_partial"
                 ].resize((size, size)),
-                "tranceparent_hold": self.dict_image_scoring_symbol[
+                "tranceparent_hold": self.symbol_images[
                     "tranceparent_hold"
                 ].resize((size, size)),
-                "tranceparent_incorrect": self.dict_image_scoring_symbol[
+                "tranceparent_incorrect": self.symbol_images[
                     "tranceparent_incorrect"
                 ].resize((size, size)),
             }
-            self.dict_imagetk_scoring_symbol = {
+            self.symbol_photo_images = {
                 "unscored": PIL.ImageTk.PhotoImage(
-                    image=self.dict_image_scoring_symbol_resized["unscored"]
+                    image=self.symbol_images_resized["unscored"]
                 ),
                 "correct": PIL.ImageTk.PhotoImage(
-                    image=self.dict_image_scoring_symbol_resized["correct"]
+                    image=self.symbol_images_resized["correct"]
                 ),
                 "partial": PIL.ImageTk.PhotoImage(
-                    image=self.dict_image_scoring_symbol_resized["partial"]
+                    image=self.symbol_images_resized["partial"]
                 ),
                 "hold": PIL.ImageTk.PhotoImage(
-                    image=self.dict_image_scoring_symbol_resized["hold"]
+                    image=self.symbol_images_resized["hold"]
                 ),
                 "incorrect": PIL.ImageTk.PhotoImage(
-                    image=self.dict_image_scoring_symbol_resized["incorrect"]
+                    image=self.symbol_images_resized["incorrect"]
                 ),
                 "tranceparent_unscored": PIL.ImageTk.PhotoImage(
-                    image=self.dict_image_scoring_symbol_resized[
+                    image=self.symbol_images_resized[
                         "tranceparent_unscored"
                     ]
                 ),
                 "tranceparent_correct": PIL.ImageTk.PhotoImage(
-                    image=self.dict_image_scoring_symbol_resized["tranceparent_correct"]
+                    image=self.symbol_images_resized["tranceparent_correct"]
                 ),
                 "tranceparent_partial": PIL.ImageTk.PhotoImage(
-                    image=self.dict_image_scoring_symbol_resized["tranceparent_partial"]
+                    image=self.symbol_images_resized["tranceparent_partial"]
                 ),
                 "tranceparent_hold": PIL.ImageTk.PhotoImage(
-                    image=self.dict_image_scoring_symbol_resized["tranceparent_hold"]
+                    image=self.symbol_images_resized["tranceparent_hold"]
                 ),
                 "tranceparent_incorrect": PIL.ImageTk.PhotoImage(
-                    image=self.dict_image_scoring_symbol_resized[
+                    image=self.symbol_images_resized[
                         "tranceparent_incorrect"
                     ]
                 ),
@@ -3210,7 +3272,7 @@ class SubWindow:
                             position_x,
                             position_y,
                             anchor="center",
-                            image=self.dict_imagetk_scoring_symbol[
+                            image=self.symbol_photo_images[
                                 "tranceparent_unscored"
                             ],
                             tags="saiten",
@@ -3220,7 +3282,7 @@ class SubWindow:
                             position_x,
                             position_y,
                             anchor="center",
-                            image=self.dict_imagetk_scoring_symbol[
+                            image=self.symbol_photo_images[
                                 "tranceparent_correct"
                             ],
                             tags="saiten",
@@ -3230,7 +3292,7 @@ class SubWindow:
                             position_x,
                             position_y,
                             anchor="center",
-                            image=self.dict_imagetk_scoring_symbol[
+                            image=self.symbol_photo_images[
                                 "tranceparent_partial"
                             ],
                             tags="saiten",
@@ -3240,7 +3302,7 @@ class SubWindow:
                             position_x,
                             position_y,
                             anchor="center",
-                            image=self.dict_imagetk_scoring_symbol["tranceparent_hold"],
+                            image=self.symbol_photo_images["tranceparent_hold"],
                             tags="saiten",
                         )
                     elif index_setsumon % 5 == 4 and booleanvar_incorrect_symbol.get():
@@ -3248,7 +3310,7 @@ class SubWindow:
                             position_x,
                             position_y,
                             anchor="center",
-                            image=self.dict_imagetk_scoring_symbol[
+                            image=self.symbol_photo_images[
                                 "tranceparent_incorrect"
                             ],
                             tags="saiten",
@@ -3399,18 +3461,12 @@ class SubWindow:
                         )
 
         def set_position(symbol_or_point, key_property, position, *args):
-            with open(
-                CONFIG_PATH, "r", encoding="utf-8"
-            ) as f:
-                dict_config = json.load(f)
+            dict_config = load_config()
             if key_property in ["position"]:
                 dict_config["projects"][dict_config["index_projects_in_listbox"]][
                     "export"
                 ][symbol_or_point][key_property] = position
-                with open(
-                    CONFIG_PATH, "w", encoding="utf-8"
-                ) as f:
-                    json.dump(dict_config, f, indent=2)
+                save_config(dict_config)
                 preview_export_picture()
             elif key_property in [
                 "unscored",
@@ -3430,10 +3486,7 @@ class SubWindow:
                 ][
                     key_property
                 ]
-                with open(
-                    CONFIG_PATH, "w", encoding="utf-8"
-                ) as f:
-                    json.dump(dict_config, f, indent=2)
+                save_config(dict_config)
                 preview_export_picture()
             elif key_property in ["x", "y", "size"]:
                 if position == "-" and key_property in ["x", "y"]:
@@ -3458,22 +3511,14 @@ class SubWindow:
                         dict_config["projects"][
                             dict_config["index_projects_in_listbox"]
                         ]["export"][symbol_or_point][key_property] = int(position)
-                        with open(
-                            CONFIG_PATH,
-                            "w",
-                            encoding="utf-8",
-                        ) as f:
-                            json.dump(dict_config, f, indent=2)
+                        save_config(dict_config)
                         preview_export_picture()
                         return True
                 else:
                     return False
 
         def set_position_ex1(*args):
-            with open(
-                CONFIG_PATH, "r", encoding="utf-8"
-            ) as f:
-                dict_config = json.load(f)
+            dict_config = load_config()
             dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][
                 "symbol"
             ]["position"] = "w"
@@ -3540,17 +3585,11 @@ class SubWindow:
             entry_point_x.insert(0, "0")
             entry_point_y.insert(0, "0")
             entry_point_size.insert(0, "15")
-            with open(
-                CONFIG_PATH, "w", encoding="utf-8"
-            ) as f:
-                json.dump(dict_config, f, indent=2)
+            save_config(dict_config)
             preview_export_picture()
 
         def set_position_ex2(*args):
-            with open(
-                CONFIG_PATH, "r", encoding="utf-8"
-            ) as f:
-                dict_config = json.load(f)
+            dict_config = load_config()
             dict_config["projects"][dict_config["index_projects_in_listbox"]]["export"][
                 "symbol"
             ]["position"] = "c"
@@ -3617,17 +3656,11 @@ class SubWindow:
             entry_point_x.insert(0, "-10")
             entry_point_y.insert(0, "-10")
             entry_point_size.insert(0, "10")
-            with open(
-                CONFIG_PATH, "w", encoding="utf-8"
-            ) as f:
-                json.dump(dict_config, f, indent=2)
+            save_config(dict_config)
             preview_export_picture()
 
         def export_pdf():
-            with open(
-                CONFIG_PATH, "r", encoding="utf-8"
-            ) as f:
-                dict_config = json.load(f)
+            dict_config = load_config()
             dict_project = dict_config["projects"][
                 dict_config["index_projects_in_listbox"]
             ]
@@ -3659,28 +3692,28 @@ class SubWindow:
                 os.mkdir(f"{path_dir}/.temp_saiten/output")
 
             self.list_image_answersheet = []
-            self.dict_image_scoring_symbol_resized["tranceparent_unscored"] = (
-                self.dict_image_scoring_symbol_resized["tranceparent_unscored"].convert(
+            self.symbol_images_resized["tranceparent_unscored"] = (
+                self.symbol_images_resized["tranceparent_unscored"].convert(
                     "RGBA"
                 )
             )
-            self.dict_image_scoring_symbol_resized["tranceparent_correct"] = (
-                self.dict_image_scoring_symbol_resized["tranceparent_correct"].convert(
+            self.symbol_images_resized["tranceparent_correct"] = (
+                self.symbol_images_resized["tranceparent_correct"].convert(
                     "RGBA"
                 )
             )
-            self.dict_image_scoring_symbol_resized["tranceparent_partial"] = (
-                self.dict_image_scoring_symbol_resized["tranceparent_partial"].convert(
+            self.symbol_images_resized["tranceparent_partial"] = (
+                self.symbol_images_resized["tranceparent_partial"].convert(
                     "RGBA"
                 )
             )
-            self.dict_image_scoring_symbol_resized["tranceparent_hold"] = (
-                self.dict_image_scoring_symbol_resized["tranceparent_hold"].convert(
+            self.symbol_images_resized["tranceparent_hold"] = (
+                self.symbol_images_resized["tranceparent_hold"].convert(
                     "RGBA"
                 )
             )
-            self.dict_image_scoring_symbol_resized["tranceparent_incorrect"] = (
-                self.dict_image_scoring_symbol_resized[
+            self.symbol_images_resized["tranceparent_incorrect"] = (
+                self.symbol_images_resized[
                     "tranceparent_incorrect"
                 ].convert("RGBA")
             )
@@ -3815,7 +3848,7 @@ class SubWindow:
                             and booleanvar_unscored_symbol.get()
                         ):
                             self.image_clear.paste(
-                                self.dict_image_scoring_symbol_resized[
+                                self.symbol_images_resized[
                                     "tranceparent_unscored"
                                 ],
                                 (position_x, position_y),
@@ -3825,7 +3858,7 @@ class SubWindow:
                             and booleanvar_correct_symbol.get()
                         ):
                             self.image_clear.paste(
-                                self.dict_image_scoring_symbol_resized[
+                                self.symbol_images_resized[
                                     "tranceparent_correct"
                                 ],
                                 (position_x, position_y),
@@ -3835,7 +3868,7 @@ class SubWindow:
                             and booleanvar_partial_symbol.get()
                         ):
                             self.image_clear.paste(
-                                self.dict_image_scoring_symbol_resized[
+                                self.symbol_images_resized[
                                     "tranceparent_partial"
                                 ],
                                 (position_x, position_y),
@@ -3845,7 +3878,7 @@ class SubWindow:
                             and booleanvar_hold_symbol.get()
                         ):
                             self.image_clear.paste(
-                                self.dict_image_scoring_symbol_resized[
+                                self.symbol_images_resized[
                                     "tranceparent_hold"
                                 ],
                                 (position_x, position_y),
@@ -3855,7 +3888,7 @@ class SubWindow:
                             and booleanvar_incorrect_symbol.get()
                         ):
                             self.image_clear.paste(
-                                self.dict_image_scoring_symbol_resized[
+                                self.symbol_images_resized[
                                     "tranceparent_incorrect"
                                 ],
                                 (position_x, position_y),
@@ -4068,10 +4101,7 @@ class SubWindow:
                         + "ファイルを閉じて, もう一度お試し下さい. ",
                     )
 
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
         path_dir = dict_project["path_dir"]
         path_json_answer_area = (
@@ -4518,6 +4548,8 @@ class SubWindow:
 
 
 class MainFrame(tkinter.Frame):
+    """メイン画面. 左に試験一覧, 右に各画面を開くボタンを並べる."""
+
     def __init__(self, root):
         super().__init__(root, width=800, height=500, borderwidth=2, relief="groove")
         self.root = root
@@ -4590,15 +4622,9 @@ class MainFrame(tkinter.Frame):
         ).grid(column=4, row=0)
 
     def write_index_to_config(self, index_projects_in_listbox):
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         dict_config["index_projects_in_listbox"] = index_projects_in_listbox
-        with open(
-            CONFIG_PATH, "w", encoding="utf-8"
-        ) as f:
-            json.dump(dict_config, f, indent=2)
+        save_config(dict_config)
 
     def selected_element_in_listbox(self, event):
         if self.listbox_projects.curselection() != ():
@@ -4609,10 +4635,7 @@ class MainFrame(tkinter.Frame):
         if parent is not None:
             self = parent
         self.listbox_projects.delete(0, tkinter.END)
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         if len(dict_config["projects"]) == 0:
             self.listbox_projects.insert(
                 0, "［追加］をクリックして新しく試験を追加して下さい"
@@ -4626,10 +4649,8 @@ class MainFrame(tkinter.Frame):
             self.listbox_projects.select_set(index_projects_in_listbox)
 
     def del_project(self):
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        """選択中の試験を一覧から外す (答案や採点データのファイルは消さない)."""
+        dict_config = load_config()
         index_projects_in_listbox = dict_config["index_projects_in_listbox"]
         if index_projects_in_listbox is None:
             tkinter.messagebox.showinfo(
@@ -4646,19 +4667,13 @@ class MainFrame(tkinter.Frame):
                 + f"本当に試験を削除しますか？",
             )
             if bool_del_project:
-                with open(
-                    CONFIG_PATH, "r", encoding="utf-8"
-                ) as f:
-                    dict_config = json.load(f)
+                dict_config = load_config()
                 dict_config["projects"].pop(index_projects_in_listbox)
                 if len(dict_config["projects"]) == 0:
                     dict_config["index_projects_in_listbox"] = None
                 else:
                     dict_config["index_projects_in_listbox"] = 0
-                with open(
-                    CONFIG_PATH, "w", encoding="utf-8"
-                ) as f:
-                    json.dump(dict_config, f, indent=2)
+                save_config(dict_config)
                 self.load_listbox_projects()
 
     def up_project(self):
@@ -4669,8 +4684,7 @@ class MainFrame(tkinter.Frame):
 
     def move_project(self, offset: int):
         """選択中の試験を試験一覧の中で offset だけ移動する (-1 で上へ, +1 で下へ)."""
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         index_from = dict_config["index_projects_in_listbox"]
         if index_from is None:
             return
@@ -4680,11 +4694,11 @@ class MainFrame(tkinter.Frame):
         projects = dict_config["projects"]
         projects[index_from], projects[index_to] = projects[index_to], projects[index_from]
         dict_config["index_projects_in_listbox"] = index_to
-        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(dict_config, f, indent=2)
+        save_config(dict_config)
         self.load_listbox_projects()
 
     def make_xlsx(self):
+        """名簿と配点を入力するための Excel ファイルを作って開く (入力後に read_xlsx で読み込む)."""
         tkinter.messagebox.showinfo(
             "配点を入力します",
             "配点の入力は, 本ソフトウェア上ではなく Excel 等の表計算ソフトウェアを使用して行います. \n\n"
@@ -4692,10 +4706,7 @@ class MainFrame(tkinter.Frame):
             + "作成には数十秒かかる場合があります. \n"
             + "自動的に Excel が起動するまで操作しないで下さい. ",
         )
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
         path_dir = dict_project["path_dir"]
         with open(path_dir + "/.temp_saiten/answer_area.json") as f:
@@ -4958,10 +4969,8 @@ class MainFrame(tkinter.Frame):
             open_with_default_app(path_dir + "/.temp_saiten/名簿と配点の入力.xlsx")
 
     def read_xlsx(self):
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        """make_xlsx で作った Excel から名簿 (meibo.json) と配点 (answer_area.json) を読み込む."""
+        dict_config = load_config()
         dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
         path_dir = dict_project["path_dir"]
         with open(path_dir + "/.temp_saiten/answer_area.json") as f:
@@ -5041,6 +5050,7 @@ class MainFrame(tkinter.Frame):
 
     # btn_left: 操作ボタン
     def btn_left(self):
+        """メイン画面右側の操作ボタン群."""
         frame_operate = tkinter.Frame(self)
         frame_operate.grid(column=1, row=0, padx=10, pady=10)
         tkinter.Button(
@@ -5097,8 +5107,7 @@ class MainFrame(tkinter.Frame):
 
     def export_sao(self):
         """選択中の試験を, 後継版 score-at-once-electron で取り込める .sao に書き出す."""
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         if dict_config["index_projects_in_listbox"] is None:
             tkinter.messagebox.showwarning(
                 "試験が選択されていません", "書き出す試験を一覧から選択して下さい. "
@@ -5146,8 +5155,7 @@ class MainFrame(tkinter.Frame):
             return
 
         dict_config["sao_username"] = username
-        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(dict_config, f, indent=2)
+        save_config(dict_config)
         tkinter.messagebox.showinfo(
             "書き出しました",
             f"{path_sao}\n\n"
@@ -5178,16 +5186,12 @@ def menu(root):
 
 def make_config():
     dict_config: dict[str, Any] = {"index_projects_in_listbox": None, "projects": []}
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        json.dump(dict_config, f, indent=2)
+    save_config(dict_config)
 
 
 def check_on_run():
     try:
-        with open(
-            CONFIG_PATH, "r", encoding="utf-8"
-        ) as f:
-            dict_config = json.load(f)
+        dict_config = load_config()
         return True
     except FileNotFoundError:
         tkinter.messagebox.showinfo(

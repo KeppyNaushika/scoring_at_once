@@ -3,3 +3,4 @@ test-figure/.*
 ./build/.*
 ./dist/.*.mypy_cache/
 .venv/
+.venv-build/
