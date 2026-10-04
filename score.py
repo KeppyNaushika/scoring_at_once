@@ -15,6 +15,7 @@ import tkinter
 import tkinter.filedialog
 import tkinter.font
 import tkinter.messagebox
+import tkinter.simpledialog
 
 import PIL
 import PIL.Image
@@ -30,6 +31,7 @@ import openpyxl.worksheet.datavalidation
 import openpyxl.worksheet.views
 
 import functools
+import getpass
 import glob
 import img2pdf
 import json
@@ -39,6 +41,8 @@ import subprocess
 import sys
 import webbrowser
 from typing import Callable, Any
+
+import sao_export
 
 # ---------------------------------------------------------------------------
 # OS ごとの差異をここに集約する
@@ -57,6 +61,10 @@ def _user_config_dir() -> str:
     Windows は従来どおり実行ファイルの隣 (既存ユーザーの設定を引き継ぐため).
     macOS/Linux は .app バンドル内に書き込めないので, ユーザーごとの設定ディレクトリを使う.
     """
+    if os.environ.get("SCORING_AT_ONCE_CONFIG_DIR"):  # 動作確認用に設定の置き場所を差し替える
+        path = os.environ["SCORING_AT_ONCE_CONFIG_DIR"]
+        os.makedirs(path, exist_ok=True)
+        return path
     if IS_WINDOWS:
         return APP_DIR
     if IS_MACOS:
@@ -1619,6 +1627,13 @@ class SubWindow:
                     repack_chosen_frame_canvas_answer(self)
 
         def score_selected_question_answersheet(value: str, *args):
+            # 採点する設問を選ぶ前にキーが押されたときは何もしない
+            if (
+                self.index_selected_scoring_question is None
+                or not self.pages_relation_table_position_to_index_answersheet
+                or not self.pages_relation_table_position_to_index_answersheet[0]
+            ):
+                return
             self.index_selected_scoring_answersheet = (
                 self.pages_relation_table_position_to_index_answersheet[
                     self.index_pages_relation_table_position_to_index_answersheet
@@ -3632,13 +3647,16 @@ class SubWindow:
                                 dict_shokei[str(question["daimon"])] += question[
                                     "haiten"
                                 ]
-                        if question["score"][index_meibo]["status"] in [
-                            "partial",
-                            "hold",
-                        ]:
-                            dict_shokei[str(question["daimon"])] += question["score"][
-                                index_meibo
-                            ]["point"]
+                        # 部分点・保留は入力された点数を加える. 大問が未設定の設問や
+                        # 点数が未入力 (None) のものは小計に含めない
+                        if (
+                            question["score"][index_meibo]["status"]
+                            in ["partial", "hold"]
+                            and question["daimon"] is not None
+                        ):
+                            dict_shokei[str(question["daimon"])] += (
+                                question["score"][index_meibo]["point"] or 0
+                            )
                 self.image_answersheet = PIL.Image.open(
                     f"{path_dir_of_answers}/{index_meibo}.png"
                 ).convert("RGBA")
@@ -4907,7 +4925,8 @@ class MainFrame(tkinter.Frame):
                 dict_answer_area["questions"][index_question]["shimon"] = (
                     sheet_haiten.cell(index_question + 2, 5).value
                 )
-                if sheet_haiten.cell(index_question + 2, 5).value == "":
+                # 6 列目 = 配点. openpyxl は空のセルを None として返す
+                if sheet_haiten.cell(index_question + 2, 6).value in (None, ""):
                     dict_answer_area["questions"][index_question]["haiten"] = None
                 else:
                     dict_answer_area["questions"][index_question]["haiten"] = (
@@ -4973,8 +4992,77 @@ class MainFrame(tkinter.Frame):
             height=2,
         ).grid(column=0, row=5, columnspan=2)
         tkinter.Button(
-            frame_operate, text="終了", command=self.root.destroy, width=20, height=2
+            frame_operate,
+            text="後継版へ書き出す\n(.sao)",
+            command=self.export_sao,
+            width=20,
+            height=2,
         ).grid(column=0, row=6, columnspan=2)
+        tkinter.Button(
+            frame_operate, text="終了", command=self.root.destroy, width=20, height=2
+        ).grid(column=0, row=7, columnspan=2)
+
+    def export_sao(self):
+        """選択中の試験を, 後継版 score-at-once-electron で取り込める .sao に書き出す."""
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            dict_config = json.load(f)
+        if dict_config["index_projects_in_listbox"] is None:
+            tkinter.messagebox.showwarning(
+                "試験が選択されていません", "書き出す試験を一覧から選択して下さい. "
+            )
+            return
+        dict_project = dict_config["projects"][dict_config["index_projects_in_listbox"]]
+
+        # 取り込む人の利用者名と一致させると, 取り込み後その人の試験一覧に表示される.
+        # 前回入力した名前を覚えておく.
+        username = tkinter.simpledialog.askstring(
+            "後継版の利用者名",
+            "score-at-once-electron (後継版) で使っている利用者名を入力して下さい. \n"
+            + "取り込んだ試験は, この利用者の試験として登録されます. ",
+            initialvalue=dict_config.get("sao_username") or getpass.getuser(),
+            parent=self.root,
+        )
+        if not username or not username.strip():
+            return
+        username = username.strip()
+
+        path_sao = tkinter.filedialog.asksaveasfilename(
+            parent=self.root,
+            title="後継版へ書き出す",
+            initialfile=f"{dict_project['name']}.sao",
+            filetypes=[("一括採点アーカイブ", ".sao")],
+            defaultextension="sao",
+        )
+        if not path_sao:
+            return
+        try:
+            row_counts = sao_export.export_sao(
+                dict_project,
+                path_sao,
+                username,
+                template_path=os.path.join(ASSETS_DIR, "sao_template.db"),
+            )
+        except sao_export.SaoExportError as e:
+            tkinter.messagebox.showerror("書き出せませんでした", str(e))
+            return
+        except OSError as e:
+            tkinter.messagebox.showerror(
+                "書き出せませんでした",
+                f"ファイルの読み書きに失敗しました. \n\n{e}",
+            )
+            return
+
+        dict_config["sao_username"] = username
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(dict_config, f, indent=2)
+        tkinter.messagebox.showinfo(
+            "書き出しました",
+            f"{path_sao}\n\n"
+            + f"答案 {row_counts.get('ExamStudent', 0)} 枚, "
+            + f"採点枠 {row_counts.get('CropRegion', 0)} 個, "
+            + f"採点結果 {row_counts.get('QuestionScore', 0)} 件を書き出しました. \n\n"
+            + "後継版 score-at-once-electron の「取り込み」からこのファイルを選んで下さい. ",
+        )
 
 
 def menu(root):
