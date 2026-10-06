@@ -140,20 +140,46 @@ def dump_xlsx(path: Path) -> list[Any]:
 
 
 def mask_ids(data: dict[str, Any]) -> dict[str, Any]:
-    """.sao の ID (UUID) を出てきた順の番号に置き換える.
+    """.sao の ID (UUID) を, その ID が指す行の中身に置き換える.
 
-    ID は試験フォルダの絶対パスから作られるので, OS や置き場所が違うと変わる. 番号にすれば中身を比べられる.
-    行の並びも ID 順ではなく, ID を伏せた中身の順にしてから番号を振る.
+    ID は試験フォルダの絶対パスから作られるので, OS や置き場所が違うと変わる. 参照先の中身で書けば,
+    置き場所によらず「どの行がどの行を指しているか」を比べられる. 行の並びもその中身の順にする.
     """
     import re
 
     uuid = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
-    hidden = lambda value: uuid.sub("<id>", json.dumps(value, ensure_ascii=False, sort_keys=True))  # noqa: E731
-    data["rows"] = {table: sorted(rows, key=hidden) for table, rows in data["rows"].items()}
-    data["names"] = sorted(data["names"], key=hidden)
-    numbers: dict[str, str] = {}
-    text = uuid.sub(lambda m: numbers.setdefault(m.group(), f"<id{len(numbers)}>"), json.dumps(data, ensure_ascii=False))
-    return json.loads(text)
+    # 生徒番号が未入力の答案の仮番号 "仮-<試験 ID の先頭 8 文字>-NNN" も置き場所で変わる
+    short_id = re.compile(r"仮-[0-9a-f]{8}-")
+
+    def without_ids(value: object) -> str:
+        text = json.dumps(value, ensure_ascii=False, sort_keys=True)
+        return short_id.sub("仮-<id>-", uuid.sub("<id>", text))
+
+    rows: dict[str, list[dict[str, Any]]] = data["rows"]
+    # ID → 参照先の行 (ID を伏せた中身). 参照先の行の中の ID は伏せるだけにして, 循環をたどらない
+    targets = {
+        row["id"]: f"{table}{without_ids({k: v for k, v in row.items() if k != 'id'})}"
+        for table, table_rows in rows.items()
+        for row in table_rows
+    }
+
+    def resolve(value: object) -> object:
+        if isinstance(value, str):
+            return short_id.sub("仮-<id>-", uuid.sub(lambda m: targets.get(m.group(), "<id>"), value))
+        if isinstance(value, dict):
+            return {key: resolve(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [resolve(item) for item in value]
+        return value
+
+    resolved = resolve({"names": data["names"], "manifest": data["manifest"], "files": data["files"]})
+    assert isinstance(resolved, dict)
+    resolved["rows"] = {
+        table: sorted((resolve(row) for row in table_rows), key=lambda row: json.dumps(row, ensure_ascii=False, sort_keys=True))
+        for table, table_rows in rows.items()
+    }
+    resolved["names"] = sorted(resolved["names"])
+    return resolved
 
 
 def finish() -> None:

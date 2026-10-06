@@ -1,24 +1,24 @@
 {
  "names": [
   "archive.db",
-  "files/exams/<id0>/answer-sheets/0.png",
-  "files/exams/<id0>/answer-sheets/1.png",
-  "files/exams/<id0>/answer-sheets/2.png",
-  "files/exams/<id0>/answer-sheets/3.png",
-  "files/exams/<id0>/answer-sheets/4.png",
-  "files/exams/<id0>/answer-sheets/5.png",
-  "files/exams/<id0>/master-answers/model_answer.png",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/0.png",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/1.png",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/2.png",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/3.png",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/4.png",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/5.png",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/master-answers/model_answer.png",
   "manifest.json"
  ],
  "manifest": {
   "format": "score-at-once-archive",
   "formatVersion": 1,
   "lastMigration": "20261004150000_cascade_scoring_on_user_delete",
-  "exportedByUserId": "<id1>",
+  "exportedByUserId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
   "selection": {
    "roots": {
     "Exam": [
-     "<id0>"
+     "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}"
     ]
    },
    "shared": {},
@@ -55,10 +55,19 @@
    "missing": []
   }
  },
+ "files": {
+  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/0.png": "980e5f70bdabf9331ab08a118dad87cc",
+  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/1.png": "0b8743f061116a106ef971f8eedd5132",
+  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/2.png": "adbf69533fc5e1b31ab6ec6f9414ca68",
+  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/3.png": "afdc6818d85484cd3123f88ae4c1ce28",
+  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/4.png": "7f45f2caf3a0fa8bb26d59e39b143e05",
+  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/5.png": "fe89b18671c2ae20019b3309eae85573",
+  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/master-answers/model_answer.png": "d1589d5c4cffe86e189d39e8a09a84c8"
+ },
  "rows": {
   "User": [
    {
-    "id": "<id1>",
+    "id": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
     "username": "tester",
     "passcode": null,
     "name": "tester",
@@ -68,7 +77,7 @@
   ],
   "Exam": [
    {
-    "id": "<id0>",
+    "id": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
     "examName": "回帰テスト",
     "description": "一括採点 (Python 版) から移行",
     "markerCorrectionEnabled": 0
@@ -76,26 +85,26 @@
   ],
   "UserExam": [
    {
-    "id": "<id2>",
-    "userId": "<id1>",
-    "examId": "<id0>",
+    "id": "UserExam{\"examId\": \"<id>\", \"invitedBy\": null, \"role\": \"OWNER\", \"userId\": \"<id>\"}",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
     "role": "OWNER",
     "invitedBy": null
    }
   ],
   "ExamPage": [
    {
-    "id": "<id3>",
-    "examId": "<id0>",
+    "id": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
     "pageNumber": 1,
-    "imagePath": "exams/<id0>/master-answers/model_answer.png",
+    "imagePath": "exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/master-answers/model_answer.png",
     "pageSize": "A4"
    }
   ],
   "CropRegion": [
    {
-    "id": "<id4>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0375, \"label\": \"生徒番号\", \"orderIndex\": 1, \"points\": null, \"type\": \"STUDENT_ID\", \"width\": 0.42328042328042326, \"x\": 0.5291005291005291, \"y\": 0.0875}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "生徒番号",
     "type": "STUDENT_ID",
     "x": 0.5291005291005291,
@@ -106,8 +115,8 @@
     "orderIndex": 1
    },
    {
-    "id": "<id5>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.05, \"label\": \"氏名\", \"orderIndex\": 0, \"points\": null, \"type\": \"STUDENT_NAME\", \"width\": 0.42328042328042326, \"x\": 0.5291005291005291, \"y\": 0.025}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "氏名",
     "type": "STUDENT_NAME",
     "x": 0.5291005291005291,
@@ -118,8 +127,8 @@
     "orderIndex": 0
    },
    {
-    "id": "<id6>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-1\", \"orderIndex\": 2, \"points\": 5, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.175}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "1-1",
     "type": "QUESTION_ANSWER",
     "x": 0.07054673721340388,
@@ -130,8 +139,8 @@
     "orderIndex": 2
    },
    {
-    "id": "<id7>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-2-ア\", \"orderIndex\": 3, \"points\": 3, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.2625}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "1-2-ア",
     "type": "QUESTION_ANSWER",
     "x": 0.07054673721340388,
@@ -142,8 +151,8 @@
     "orderIndex": 3
    },
    {
-    "id": "<id8>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-1\", \"orderIndex\": 4, \"points\": null, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.375}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "2-1",
     "type": "QUESTION_ANSWER",
     "x": 0.07054673721340388,
@@ -154,8 +163,8 @@
     "orderIndex": 4
    },
    {
-    "id": "<id9>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-2\", \"orderIndex\": 5, \"points\": 4, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.4625}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "2-2",
     "type": "QUESTION_ANSWER",
     "x": 0.07054673721340388,
@@ -166,8 +175,8 @@
     "orderIndex": 5
    },
    {
-    "id": "<id10>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"小計1\", \"orderIndex\": 7, \"points\": null, \"type\": \"SUBTOTAL_SCORE\", \"width\": 0.21164021164021163, \"x\": 0.7054673721340388, \"y\": 0.175}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "小計1",
     "type": "SUBTOTAL_SCORE",
     "x": 0.7054673721340388,
@@ -178,8 +187,8 @@
     "orderIndex": 7
    },
    {
-    "id": "<id11>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"小計2\", \"orderIndex\": 8, \"points\": null, \"type\": \"SUBTOTAL_SCORE\", \"width\": 0.21164021164021163, \"x\": 0.7054673721340388, \"y\": 0.375}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "小計2",
     "type": "SUBTOTAL_SCORE",
     "x": 0.7054673721340388,
@@ -190,8 +199,8 @@
     "orderIndex": 8
    },
    {
-    "id": "<id12>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"枠6\", \"orderIndex\": 6, \"points\": 2, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.575}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "枠6",
     "type": "QUESTION_ANSWER",
     "x": 0.07054673721340388,
@@ -202,8 +211,8 @@
     "orderIndex": 6
    },
    {
-    "id": "<id13>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.075, \"label\": \"採点者印\", \"orderIndex\": 10, \"points\": null, \"type\": \"MARK\", \"width\": 0.1763668430335097, \"x\": 0.07054673721340388, \"y\": 0.875}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "採点者印",
     "type": "MARK",
     "x": 0.07054673721340388,
@@ -214,8 +223,8 @@
     "orderIndex": 10
    },
    {
-    "id": "<id14>",
-    "examPageId": "<id3>",
+    "id": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.1, \"label\": \"合計\", \"orderIndex\": 9, \"points\": null, \"type\": \"TOTAL_SCORE\", \"width\": 0.24691358024691357, \"x\": 0.7054673721340388, \"y\": 0.75}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
     "label": "合計",
     "type": "TOTAL_SCORE",
     "x": 0.7054673721340388,
@@ -228,74 +237,74 @@
   ],
   "SubtotalGroup": [
    {
-    "id": "<id15>",
+    "id": "SubtotalGroup{\"name\": \"大問（回帰テスト）\"}",
     "name": "大問（回帰テスト）"
    }
   ],
   "ExamSubtotalGroup": [
    {
-    "id": "<id16>",
-    "examId": "<id0>",
-    "subtotalGroupId": "<id15>",
+    "id": "ExamSubtotalGroup{\"examId\": \"<id>\", \"selectedForBoxPlot\": 1, \"selectedForTable\": 1, \"subtotalGroupId\": \"<id>\"}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
+    "subtotalGroupId": "SubtotalGroup{\"name\": \"大問（回帰テスト）\"}",
     "selectedForTable": 1,
     "selectedForBoxPlot": 1
    }
   ],
   "Subtotal": [
    {
-    "id": "<id17>",
+    "id": "Subtotal{\"name\": \"大問1\", \"order\": 0, \"subtotalGroupId\": \"<id>\"}",
     "name": "大問1",
-    "subtotalGroupId": "<id15>",
+    "subtotalGroupId": "SubtotalGroup{\"name\": \"大問（回帰テスト）\"}",
     "order": 0
    },
    {
-    "id": "<id18>",
+    "id": "Subtotal{\"name\": \"大問2\", \"order\": 1, \"subtotalGroupId\": \"<id>\"}",
     "name": "大問2",
-    "subtotalGroupId": "<id15>",
+    "subtotalGroupId": "SubtotalGroup{\"name\": \"大問（回帰テスト）\"}",
     "order": 1
    }
   ],
   "CropSubtotal": [
    {
-    "id": "<id19>",
-    "cropRegionId": "<id8>",
-    "subtotalId": "<id18>",
+    "id": "CropSubtotal{\"assignmentType\": \"QUESTION_ASSIGNMENT\", \"cropRegionId\": \"<id>\", \"subtotalId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-1\", \"orderIndex\": 2, \"points\": 5, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.175}",
+    "subtotalId": "Subtotal{\"name\": \"大問1\", \"order\": 0, \"subtotalGroupId\": \"<id>\"}",
     "assignmentType": "QUESTION_ASSIGNMENT"
    },
    {
-    "id": "<id20>",
-    "cropRegionId": "<id6>",
-    "subtotalId": "<id17>",
+    "id": "CropSubtotal{\"assignmentType\": \"QUESTION_ASSIGNMENT\", \"cropRegionId\": \"<id>\", \"subtotalId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-2-ア\", \"orderIndex\": 3, \"points\": 3, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.2625}",
+    "subtotalId": "Subtotal{\"name\": \"大問1\", \"order\": 0, \"subtotalGroupId\": \"<id>\"}",
     "assignmentType": "QUESTION_ASSIGNMENT"
    },
    {
-    "id": "<id21>",
-    "cropRegionId": "<id9>",
-    "subtotalId": "<id18>",
+    "id": "CropSubtotal{\"assignmentType\": \"QUESTION_ASSIGNMENT\", \"cropRegionId\": \"<id>\", \"subtotalId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-1\", \"orderIndex\": 4, \"points\": null, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.375}",
+    "subtotalId": "Subtotal{\"name\": \"大問2\", \"order\": 1, \"subtotalGroupId\": \"<id>\"}",
     "assignmentType": "QUESTION_ASSIGNMENT"
    },
    {
-    "id": "<id22>",
-    "cropRegionId": "<id7>",
-    "subtotalId": "<id17>",
+    "id": "CropSubtotal{\"assignmentType\": \"QUESTION_ASSIGNMENT\", \"cropRegionId\": \"<id>\", \"subtotalId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-2\", \"orderIndex\": 5, \"points\": 4, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.4625}",
+    "subtotalId": "Subtotal{\"name\": \"大問2\", \"order\": 1, \"subtotalGroupId\": \"<id>\"}",
     "assignmentType": "QUESTION_ASSIGNMENT"
    },
    {
-    "id": "<id23>",
-    "cropRegionId": "<id11>",
-    "subtotalId": "<id18>",
+    "id": "CropSubtotal{\"assignmentType\": \"SUBTOTAL_DEFINITION\", \"cropRegionId\": \"<id>\", \"subtotalId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"小計1\", \"orderIndex\": 7, \"points\": null, \"type\": \"SUBTOTAL_SCORE\", \"width\": 0.21164021164021163, \"x\": 0.7054673721340388, \"y\": 0.175}",
+    "subtotalId": "Subtotal{\"name\": \"大問1\", \"order\": 0, \"subtotalGroupId\": \"<id>\"}",
     "assignmentType": "SUBTOTAL_DEFINITION"
    },
    {
-    "id": "<id24>",
-    "cropRegionId": "<id10>",
-    "subtotalId": "<id17>",
+    "id": "CropSubtotal{\"assignmentType\": \"SUBTOTAL_DEFINITION\", \"cropRegionId\": \"<id>\", \"subtotalId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"小計2\", \"orderIndex\": 8, \"points\": null, \"type\": \"SUBTOTAL_SCORE\", \"width\": 0.21164021164021163, \"x\": 0.7054673721340388, \"y\": 0.375}",
+    "subtotalId": "Subtotal{\"name\": \"大問2\", \"order\": 1, \"subtotalGroupId\": \"<id>\"}",
     "assignmentType": "SUBTOTAL_DEFINITION"
    }
   ],
   "Student": [
    {
-    "id": "<id25>",
+    "id": "Student{\"enrollmentYear\": null, \"firstName\": \"\", \"firstNameKana\": \"\", \"lastName\": \"答案005\", \"lastNameKana\": \"\", \"studentNumber\": \"S202\"}",
     "studentNumber": "S202",
     "lastName": "答案005",
     "firstName": "",
@@ -304,8 +313,8 @@
     "enrollmentYear": null
    },
    {
-    "id": "<id26>",
-    "studentNumber": "仮-177b8c1f-006",
+    "id": "Student{\"enrollmentYear\": null, \"firstName\": \"\", \"firstNameKana\": \"\", \"lastName\": \"答案006\", \"lastNameKana\": \"\", \"studentNumber\": \"仮-<id>-006\"}",
+    "studentNumber": "仮-<id>-006",
     "lastName": "答案006",
     "firstName": "",
     "lastNameKana": "",
@@ -313,7 +322,7 @@
     "enrollmentYear": null
    },
    {
-    "id": "<id27>",
+    "id": "Student{\"enrollmentYear\": null, \"firstName\": \"\", \"firstNameKana\": \"\", \"lastName\": \"鈴木一郎\", \"lastNameKana\": \"\", \"studentNumber\": \"S103\"}",
     "studentNumber": "S103",
     "lastName": "鈴木一郎",
     "firstName": "",
@@ -322,7 +331,7 @@
     "enrollmentYear": null
    },
    {
-    "id": "<id28>",
+    "id": "Student{\"enrollmentYear\": null, \"firstName\": \"太郎\", \"firstNameKana\": \"\", \"lastName\": \"山田\", \"lastNameKana\": \"\", \"studentNumber\": \"S101\"}",
     "studentNumber": "S101",
     "lastName": "山田",
     "firstName": "太郎",
@@ -331,8 +340,8 @@
     "enrollmentYear": null
    },
    {
-    "id": "<id29>",
-    "studentNumber": "仮-177b8c1f-004",
+    "id": "Student{\"enrollmentYear\": null, \"firstName\": \"次郎\", \"firstNameKana\": \"\", \"lastName\": \"高橋\", \"lastNameKana\": \"\", \"studentNumber\": \"仮-<id>-004\"}",
+    "studentNumber": "仮-<id>-004",
     "lastName": "高橋",
     "firstName": "次郎",
     "lastNameKana": "",
@@ -340,7 +349,7 @@
     "enrollmentYear": null
    },
    {
-    "id": "<id30>",
+    "id": "Student{\"enrollmentYear\": null, \"firstName\": \"花子\", \"firstNameKana\": \"\", \"lastName\": \"佐藤\", \"lastNameKana\": \"\", \"studentNumber\": \"S102\"}",
     "studentNumber": "S102",
     "lastName": "佐藤",
     "firstName": "花子",
@@ -351,7 +360,7 @@
   ],
   "Classroom": [
    {
-    "id": "<id31>",
+    "id": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 1, \"isVisible\": 1, \"name\": \"1年1組\"}",
     "name": "1年1組",
     "classroomCode": null,
     "grade": 1,
@@ -359,7 +368,7 @@
     "isVisible": 1
    },
    {
-    "id": "<id32>",
+    "id": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 1, \"isVisible\": 1, \"name\": \"1年2組\"}",
     "name": "1年2組",
     "classroomCode": null,
     "grade": 1,
@@ -367,7 +376,7 @@
     "isVisible": 1
    },
    {
-    "id": "<id33>",
+    "id": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 2, \"isVisible\": 1, \"name\": \"2年1組\"}",
     "name": "2年1組",
     "classroomCode": null,
     "grade": 2,
@@ -377,27 +386,27 @@
   ],
   "ExamClassroom": [
    {
-    "id": "<id34>",
-    "examId": "<id0>",
-    "classroomId": "<id31>",
+    "id": "ExamClassroom{\"administered\": 1, \"classroomId\": \"<id>\", \"examId\": \"<id>\", \"order\": 0, \"studentReport\": 1, \"teacherStatistics\": 1}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
+    "classroomId": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 1, \"isVisible\": 1, \"name\": \"1年1組\"}",
     "administered": 1,
     "order": 0,
     "teacherStatistics": 1,
     "studentReport": 1
    },
    {
-    "id": "<id35>",
-    "examId": "<id0>",
-    "classroomId": "<id32>",
+    "id": "ExamClassroom{\"administered\": 1, \"classroomId\": \"<id>\", \"examId\": \"<id>\", \"order\": 1, \"studentReport\": 1, \"teacherStatistics\": 1}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
+    "classroomId": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 1, \"isVisible\": 1, \"name\": \"1年2組\"}",
     "administered": 1,
     "order": 1,
     "teacherStatistics": 1,
     "studentReport": 1
    },
    {
-    "id": "<id36>",
-    "examId": "<id0>",
-    "classroomId": "<id33>",
+    "id": "ExamClassroom{\"administered\": 1, \"classroomId\": \"<id>\", \"examId\": \"<id>\", \"order\": 2, \"studentReport\": 1, \"teacherStatistics\": 1}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
+    "classroomId": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 2, \"isVisible\": 1, \"name\": \"2年1組\"}",
     "administered": 1,
     "order": 2,
     "teacherStatistics": 1,
@@ -406,41 +415,41 @@
   ],
   "StudentClassroomMembership": [
    {
-    "id": "<id37>",
-    "studentId": "<id27>",
-    "classroomId": "<id32>",
+    "id": "StudentClassroomMembership{\"attendanceNumber\": 1, \"classroomId\": \"<id>\", \"endDate\": null, \"notes\": null, \"studentId\": \"<id>\"}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"太郎\", \"firstNameKana\": \"\", \"lastName\": \"山田\", \"lastNameKana\": \"\", \"studentNumber\": \"S101\"}",
+    "classroomId": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 1, \"isVisible\": 1, \"name\": \"1年1組\"}",
     "endDate": null,
     "attendanceNumber": 1,
     "notes": null
    },
    {
-    "id": "<id38>",
-    "studentId": "<id28>",
-    "classroomId": "<id31>",
+    "id": "StudentClassroomMembership{\"attendanceNumber\": 1, \"classroomId\": \"<id>\", \"endDate\": null, \"notes\": null, \"studentId\": \"<id>\"}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"\", \"firstNameKana\": \"\", \"lastName\": \"鈴木一郎\", \"lastNameKana\": \"\", \"studentNumber\": \"S103\"}",
+    "classroomId": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 1, \"isVisible\": 1, \"name\": \"1年2組\"}",
     "endDate": null,
     "attendanceNumber": 1,
     "notes": null
    },
    {
-    "id": "<id39>",
-    "studentId": "<id29>",
-    "classroomId": "<id33>",
+    "id": "StudentClassroomMembership{\"attendanceNumber\": 1, \"classroomId\": \"<id>\", \"endDate\": null, \"notes\": null, \"studentId\": \"<id>\"}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"次郎\", \"firstNameKana\": \"\", \"lastName\": \"高橋\", \"lastNameKana\": \"\", \"studentNumber\": \"仮-<id>-004\"}",
+    "classroomId": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 2, \"isVisible\": 1, \"name\": \"2年1組\"}",
     "endDate": null,
     "attendanceNumber": 1,
     "notes": null
    },
    {
-    "id": "<id40>",
-    "studentId": "<id25>",
-    "classroomId": "<id33>",
+    "id": "StudentClassroomMembership{\"attendanceNumber\": 2, \"classroomId\": \"<id>\", \"endDate\": null, \"notes\": null, \"studentId\": \"<id>\"}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"花子\", \"firstNameKana\": \"\", \"lastName\": \"佐藤\", \"lastNameKana\": \"\", \"studentNumber\": \"S102\"}",
+    "classroomId": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 1, \"isVisible\": 1, \"name\": \"1年1組\"}",
     "endDate": null,
     "attendanceNumber": 2,
     "notes": null
    },
    {
-    "id": "<id41>",
-    "studentId": "<id30>",
-    "classroomId": "<id31>",
+    "id": "StudentClassroomMembership{\"attendanceNumber\": 2, \"classroomId\": \"<id>\", \"endDate\": null, \"notes\": null, \"studentId\": \"<id>\"}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"\", \"firstNameKana\": \"\", \"lastName\": \"答案005\", \"lastNameKana\": \"\", \"studentNumber\": \"S202\"}",
+    "classroomId": "Classroom{\"classroomCode\": null, \"description\": null, \"grade\": 2, \"isVisible\": 1, \"name\": \"2年1組\"}",
     "endDate": null,
     "attendanceNumber": 2,
     "notes": null
@@ -448,313 +457,304 @@
   ],
   "ExamStudent": [
    {
-    "id": "<id42>",
-    "examId": "<id0>",
-    "studentId": "<id28>",
+    "id": "ExamStudent{\"customOrder\": 0, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"太郎\", \"firstNameKana\": \"\", \"lastName\": \"山田\", \"lastNameKana\": \"\", \"studentNumber\": \"S101\"}",
     "status": "participating",
     "customOrder": 0
    },
    {
-    "id": "<id43>",
-    "examId": "<id0>",
-    "studentId": "<id30>",
+    "id": "ExamStudent{\"customOrder\": 1, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"花子\", \"firstNameKana\": \"\", \"lastName\": \"佐藤\", \"lastNameKana\": \"\", \"studentNumber\": \"S102\"}",
     "status": "participating",
     "customOrder": 1
    },
    {
-    "id": "<id44>",
-    "examId": "<id0>",
-    "studentId": "<id27>",
+    "id": "ExamStudent{\"customOrder\": 2, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"\", \"firstNameKana\": \"\", \"lastName\": \"鈴木一郎\", \"lastNameKana\": \"\", \"studentNumber\": \"S103\"}",
     "status": "participating",
     "customOrder": 2
    },
    {
-    "id": "<id45>",
-    "examId": "<id0>",
-    "studentId": "<id29>",
+    "id": "ExamStudent{\"customOrder\": 3, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"次郎\", \"firstNameKana\": \"\", \"lastName\": \"高橋\", \"lastNameKana\": \"\", \"studentNumber\": \"仮-<id>-004\"}",
     "status": "participating",
     "customOrder": 3
    },
    {
-    "id": "<id46>",
-    "examId": "<id0>",
-    "studentId": "<id25>",
+    "id": "ExamStudent{\"customOrder\": 4, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"\", \"firstNameKana\": \"\", \"lastName\": \"答案005\", \"lastNameKana\": \"\", \"studentNumber\": \"S202\"}",
     "status": "participating",
     "customOrder": 4
    },
    {
-    "id": "<id47>",
-    "examId": "<id0>",
-    "studentId": "<id26>",
+    "id": "ExamStudent{\"customOrder\": 5, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "examId": "Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}",
+    "studentId": "Student{\"enrollmentYear\": null, \"firstName\": \"\", \"firstNameKana\": \"\", \"lastName\": \"答案006\", \"lastNameKana\": \"\", \"studentNumber\": \"仮-<id>-006\"}",
     "status": "participating",
     "customOrder": 5
    }
   ],
   "StudentAnswerImage": [
    {
-    "id": "<id48>",
-    "examPageId": "<id3>",
-    "examStudentId": "<id42>",
-    "imagePath": "exams/<id0>/answer-sheets/0.png"
+    "id": "StudentAnswerImage{\"examPageId\": \"<id>\", \"examStudentId\": \"<id>\", \"imagePath\": \"exams/<id>/answer-sheets/0.png\"}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
+    "examStudentId": "ExamStudent{\"customOrder\": 0, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "imagePath": "exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/0.png"
    },
    {
-    "id": "<id49>",
-    "examPageId": "<id3>",
-    "examStudentId": "<id43>",
-    "imagePath": "exams/<id0>/answer-sheets/1.png"
+    "id": "StudentAnswerImage{\"examPageId\": \"<id>\", \"examStudentId\": \"<id>\", \"imagePath\": \"exams/<id>/answer-sheets/1.png\"}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
+    "examStudentId": "ExamStudent{\"customOrder\": 1, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "imagePath": "exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/1.png"
    },
    {
-    "id": "<id50>",
-    "examPageId": "<id3>",
-    "examStudentId": "<id44>",
-    "imagePath": "exams/<id0>/answer-sheets/2.png"
+    "id": "StudentAnswerImage{\"examPageId\": \"<id>\", \"examStudentId\": \"<id>\", \"imagePath\": \"exams/<id>/answer-sheets/2.png\"}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
+    "examStudentId": "ExamStudent{\"customOrder\": 2, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "imagePath": "exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/2.png"
    },
    {
-    "id": "<id51>",
-    "examPageId": "<id3>",
-    "examStudentId": "<id45>",
-    "imagePath": "exams/<id0>/answer-sheets/3.png"
+    "id": "StudentAnswerImage{\"examPageId\": \"<id>\", \"examStudentId\": \"<id>\", \"imagePath\": \"exams/<id>/answer-sheets/3.png\"}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
+    "examStudentId": "ExamStudent{\"customOrder\": 3, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "imagePath": "exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/3.png"
    },
    {
-    "id": "<id52>",
-    "examPageId": "<id3>",
-    "examStudentId": "<id46>",
-    "imagePath": "exams/<id0>/answer-sheets/4.png"
+    "id": "StudentAnswerImage{\"examPageId\": \"<id>\", \"examStudentId\": \"<id>\", \"imagePath\": \"exams/<id>/answer-sheets/4.png\"}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
+    "examStudentId": "ExamStudent{\"customOrder\": 4, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "imagePath": "exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/4.png"
    },
    {
-    "id": "<id53>",
-    "examPageId": "<id3>",
-    "examStudentId": "<id47>",
-    "imagePath": "exams/<id0>/answer-sheets/5.png"
+    "id": "StudentAnswerImage{\"examPageId\": \"<id>\", \"examStudentId\": \"<id>\", \"imagePath\": \"exams/<id>/answer-sheets/5.png\"}",
+    "examPageId": "ExamPage{\"examId\": \"<id>\", \"imagePath\": \"exams/<id>/master-answers/model_answer.png\", \"pageNumber\": 1, \"pageSize\": \"A4\"}",
+    "examStudentId": "ExamStudent{\"customOrder\": 5, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "imagePath": "exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/5.png"
    }
   ],
   "QuestionScore": [
    {
-    "id": "<id54>",
-    "cropRegionId": "<id8>",
-    "examStudentId": "<id47>",
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"correct\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-1\", \"orderIndex\": 2, \"points\": 5, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.175}",
+    "examStudentId": "ExamStudent{\"customOrder\": 0, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"incorrect\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-1\", \"orderIndex\": 2, \"points\": 5, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.175}",
+    "examStudentId": "ExamStudent{\"customOrder\": 1, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "incorrect",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"partial\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-1\", \"orderIndex\": 2, \"points\": 5, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.175}",
+    "examStudentId": "ExamStudent{\"customOrder\": 2, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "partial",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"correct\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-1\", \"orderIndex\": 2, \"points\": 5, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.175}",
+    "examStudentId": "ExamStudent{\"customOrder\": 4, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"pending\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-1\", \"orderIndex\": 2, \"points\": 5, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.175}",
+    "examStudentId": "ExamStudent{\"customOrder\": 5, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "pending",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"correct\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-2-ア\", \"orderIndex\": 3, \"points\": 3, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.2625}",
+    "examStudentId": "ExamStudent{\"customOrder\": 0, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": 1, \"status\": \"partial\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-2-ア\", \"orderIndex\": 3, \"points\": 3, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.2625}",
+    "examStudentId": "ExamStudent{\"customOrder\": 1, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": 1,
+    "status": "partial",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": 2, \"status\": \"pending\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-2-ア\", \"orderIndex\": 3, \"points\": 3, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.2625}",
+    "examStudentId": "ExamStudent{\"customOrder\": 2, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": 2,
+    "status": "pending",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"incorrect\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-2-ア\", \"orderIndex\": 3, \"points\": 3, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.2625}",
+    "examStudentId": "ExamStudent{\"customOrder\": 4, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "incorrect",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"correct\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"1-2-ア\", \"orderIndex\": 3, \"points\": 3, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.2625}",
+    "examStudentId": "ExamStudent{\"customOrder\": 5, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": 2, \"status\": \"partial\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-1\", \"orderIndex\": 4, \"points\": null, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.375}",
+    "examStudentId": "ExamStudent{\"customOrder\": 0, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": 2,
+    "status": "partial",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"pending\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-1\", \"orderIndex\": 4, \"points\": null, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.375}",
+    "examStudentId": "ExamStudent{\"customOrder\": 1, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "pending",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"correct\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-1\", \"orderIndex\": 4, \"points\": null, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.375}",
+    "examStudentId": "ExamStudent{\"customOrder\": 2, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"incorrect\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-1\", \"orderIndex\": 4, \"points\": null, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.375}",
+    "examStudentId": "ExamStudent{\"customOrder\": 4, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "incorrect",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": 0, \"status\": \"partial\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-1\", \"orderIndex\": 4, \"points\": null, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.375}",
+    "examStudentId": "ExamStudent{\"customOrder\": 5, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
     "partialScore": 0,
     "status": "partial",
-    "userId": "<id1>",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
     "comment": ""
    },
    {
-    "id": "<id55>",
-    "cropRegionId": "<id12>",
-    "examStudentId": "<id46>",
-    "partialScore": 1,
-    "status": "partial",
-    "userId": "<id1>",
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"incorrect\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-2\", \"orderIndex\": 5, \"points\": 4, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.4625}",
+    "examStudentId": "ExamStudent{\"customOrder\": 0, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "incorrect",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
     "comment": ""
    },
    {
-    "id": "<id56>",
-    "cropRegionId": "<id7>",
-    "examStudentId": "<id43>",
-    "partialScore": 1,
-    "status": "partial",
-    "userId": "<id1>",
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"correct\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-2\", \"orderIndex\": 5, \"points\": 4, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.4625}",
+    "examStudentId": "ExamStudent{\"customOrder\": 1, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": null,
+    "status": "correct",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
     "comment": ""
    },
    {
-    "id": "<id57>",
-    "cropRegionId": "<id9>",
-    "examStudentId": "<id46>",
-    "partialScore": 1,
-    "status": "pending",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id58>",
-    "cropRegionId": "<id8>",
-    "examStudentId": "<id42>",
-    "partialScore": 2,
-    "status": "partial",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id59>",
-    "cropRegionId": "<id7>",
-    "examStudentId": "<id44>",
-    "partialScore": 2,
-    "status": "pending",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id60>",
-    "cropRegionId": "<id9>",
-    "examStudentId": "<id44>",
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": 3, \"status\": \"partial\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-2\", \"orderIndex\": 5, \"points\": 4, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.4625}",
+    "examStudentId": "ExamStudent{\"customOrder\": 2, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
     "partialScore": 3,
     "status": "partial",
-    "userId": "<id1>",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
     "comment": ""
    },
    {
-    "id": "<id61>",
-    "cropRegionId": "<id7>",
-    "examStudentId": "<id47>",
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": 1, \"status\": \"pending\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-2\", \"orderIndex\": 5, \"points\": 4, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.4625}",
+    "examStudentId": "ExamStudent{\"customOrder\": 4, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": 1,
+    "status": "pending",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
+    "comment": ""
+   },
+   {
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"correct\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"2-2\", \"orderIndex\": 5, \"points\": 4, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.4625}",
+    "examStudentId": "ExamStudent{\"customOrder\": 5, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
     "partialScore": null,
     "status": "correct",
-    "userId": "<id1>",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
     "comment": ""
    },
    {
-    "id": "<id62>",
-    "cropRegionId": "<id7>",
-    "examStudentId": "<id42>",
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"correct\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"枠6\", \"orderIndex\": 6, \"points\": 2, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.575}",
+    "examStudentId": "ExamStudent{\"customOrder\": 0, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
     "partialScore": null,
     "status": "correct",
-    "userId": "<id1>",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
     "comment": ""
    },
    {
-    "id": "<id63>",
-    "cropRegionId": "<id9>",
-    "examStudentId": "<id43>",
-    "partialScore": null,
-    "status": "correct",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id64>",
-    "cropRegionId": "<id12>",
-    "examStudentId": "<id42>",
-    "partialScore": null,
-    "status": "correct",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id65>",
-    "cropRegionId": "<id12>",
-    "examStudentId": "<id47>",
-    "partialScore": null,
-    "status": "correct",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id66>",
-    "cropRegionId": "<id6>",
-    "examStudentId": "<id46>",
-    "partialScore": null,
-    "status": "correct",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id67>",
-    "cropRegionId": "<id8>",
-    "examStudentId": "<id44>",
-    "partialScore": null,
-    "status": "correct",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id68>",
-    "cropRegionId": "<id9>",
-    "examStudentId": "<id47>",
-    "partialScore": null,
-    "status": "correct",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id69>",
-    "cropRegionId": "<id6>",
-    "examStudentId": "<id42>",
-    "partialScore": null,
-    "status": "correct",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id70>",
-    "cropRegionId": "<id12>",
-    "examStudentId": "<id44>",
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"incorrect\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"枠6\", \"orderIndex\": 6, \"points\": 2, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.575}",
+    "examStudentId": "ExamStudent{\"customOrder\": 2, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
     "partialScore": null,
     "status": "incorrect",
-    "userId": "<id1>",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
     "comment": ""
    },
    {
-    "id": "<id71>",
-    "cropRegionId": "<id7>",
-    "examStudentId": "<id46>",
-    "partialScore": null,
-    "status": "incorrect",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id72>",
-    "cropRegionId": "<id9>",
-    "examStudentId": "<id42>",
-    "partialScore": null,
-    "status": "incorrect",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id73>",
-    "cropRegionId": "<id8>",
-    "examStudentId": "<id46>",
-    "partialScore": null,
-    "status": "incorrect",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id74>",
-    "cropRegionId": "<id6>",
-    "examStudentId": "<id43>",
-    "partialScore": null,
-    "status": "incorrect",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id75>",
-    "cropRegionId": "<id6>",
-    "examStudentId": "<id44>",
-    "partialScore": null,
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": 1, \"status\": \"partial\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"枠6\", \"orderIndex\": 6, \"points\": 2, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.575}",
+    "examStudentId": "ExamStudent{\"customOrder\": 4, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
+    "partialScore": 1,
     "status": "partial",
-    "userId": "<id1>",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
     "comment": ""
    },
    {
-    "id": "<id76>",
-    "cropRegionId": "<id6>",
-    "examStudentId": "<id47>",
+    "id": "QuestionScore{\"comment\": \"\", \"cropRegionId\": \"<id>\", \"examStudentId\": \"<id>\", \"partialScore\": null, \"status\": \"correct\", \"userId\": \"<id>\"}",
+    "cropRegionId": "CropRegion{\"examPageId\": \"<id>\", \"height\": 0.0625, \"label\": \"枠6\", \"orderIndex\": 6, \"points\": 2, \"type\": \"QUESTION_ANSWER\", \"width\": 0.3880070546737213, \"x\": 0.07054673721340388, \"y\": 0.575}",
+    "examStudentId": "ExamStudent{\"customOrder\": 5, \"examId\": \"<id>\", \"status\": \"participating\", \"studentId\": \"<id>\"}",
     "partialScore": null,
-    "status": "pending",
-    "userId": "<id1>",
-    "comment": ""
-   },
-   {
-    "id": "<id77>",
-    "cropRegionId": "<id8>",
-    "examStudentId": "<id43>",
-    "partialScore": null,
-    "status": "pending",
-    "userId": "<id1>",
+    "status": "correct",
+    "userId": "User{\"name\": \"tester\", \"passcode\": null, \"passcodeType\": \"none\", \"role\": \"teacher\", \"username\": \"tester\"}",
     "comment": ""
    }
   ]
- },
- "files": {
-  "files/exams/<id0>/answer-sheets/0.png": "980e5f70bdabf9331ab08a118dad87cc",
-  "files/exams/<id0>/answer-sheets/1.png": "0b8743f061116a106ef971f8eedd5132",
-  "files/exams/<id0>/answer-sheets/2.png": "adbf69533fc5e1b31ab6ec6f9414ca68",
-  "files/exams/<id0>/answer-sheets/3.png": "afdc6818d85484cd3123f88ae4c1ce28",
-  "files/exams/<id0>/answer-sheets/4.png": "7f45f2caf3a0fa8bb26d59e39b143e05",
-  "files/exams/<id0>/answer-sheets/5.png": "fe89b18671c2ae20019b3309eae85573",
-  "files/exams/<id0>/master-answers/model_answer.png": "d1589d5c4cffe86e189d39e8a09a84c8"
  },
  "errors": [],
  "messages": [
