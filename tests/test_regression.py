@@ -34,5 +34,8 @@ def test_same_as_golden(scenario: str, tmp_path: Path) -> None:
     expected = json.loads((ROOT / "tests" / "golden" / f"{scenario.replace(':', '_')}.json").read_text(encoding="utf-8"))
     assert actual.get("exception") is None
     assert actual["errors"] == []
-    for key in expected.keys() - {"messages"}:  # ダイアログの文言は比べない
+    # ダイアログの文言は比べない. 採点済み答案画像は点数の文字のフォントが OS ごとに違う (メイリオ/ヒラギノ) ので,
+    # 正解を記録した macOS でだけ画素を比べる (他の OS でも書き出しの処理自体は通す)
+    ignored = {"messages"} | (set() if sys.platform == "darwin" else {"png"})
+    for key in expected.keys() - ignored:
         assert actual.get(key) == expected[key], f"{scenario}: {key} が変わっています"
