@@ -56,13 +56,13 @@
   }
  },
  "files": {
-  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/0.png": "980e5f70bdabf9331ab08a118dad87cc",
-  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/1.png": "0b8743f061116a106ef971f8eedd5132",
-  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/2.png": "adbf69533fc5e1b31ab6ec6f9414ca68",
-  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/3.png": "afdc6818d85484cd3123f88ae4c1ce28",
-  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/4.png": "7f45f2caf3a0fa8bb26d59e39b143e05",
-  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/answer-sheets/5.png": "fe89b18671c2ae20019b3309eae85573",
-  "files/exams/177b8c1f-9d0f-5fba-bf7b-792d12a61aea/master-answers/model_answer.png": "d1589d5c4cffe86e189d39e8a09a84c8"
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/0.png": "980e5f70bdabf9331ab08a118dad87cc",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/1.png": "0b8743f061116a106ef971f8eedd5132",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/2.png": "adbf69533fc5e1b31ab6ec6f9414ca68",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/3.png": "afdc6818d85484cd3123f88ae4c1ce28",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/4.png": "7f45f2caf3a0fa8bb26d59e39b143e05",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/answer-sheets/5.png": "fe89b18671c2ae20019b3309eae85573",
+  "files/exams/Exam{\"description\": \"一括採点 (Python 版) から移行\", \"examName\": \"回帰テスト\", \"markerCorrectionEnabled\": 0}/master-answers/model_answer.png": "d1589d5c4cffe86e189d39e8a09a84c8"
  },
  "rows": {
   "User": [

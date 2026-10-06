@@ -167,7 +167,7 @@ def mask_ids(data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(value, str):
             return short_id.sub("仮-<id>-", uuid.sub(lambda m: targets.get(m.group(), "<id>"), value))
         if isinstance(value, dict):
-            return {key: resolve(item) for key, item in value.items()}
+            return {str(resolve(key)): resolve(item) for key, item in value.items()}
         if isinstance(value, list):
             return [resolve(item) for item in value]
         return value
