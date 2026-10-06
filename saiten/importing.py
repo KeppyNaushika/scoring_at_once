@@ -87,17 +87,20 @@ def prepare_workspace(project: Project) -> Workspace:
 
 
 def _new_answer_images(project_dir: Path, model_answer: Path, imported: list[str]) -> list[str]:
-    """答案フォルダ内の, まだ取り込んでいない答案画像 (自然順). パスは旧バージョンと同じ "/" 区切り."""
-    model = os.path.normpath(model_answer)
+    """答案フォルダ内の, まだ取り込んでいない答案画像 (自然順). パスは旧バージョンと同じ "/" 区切り.
+
+    取り込み済みかどうかは正規化したパスで比べる (区切り文字の違いや, Windows の大文字・小文字の違いを無視する).
+    """
+    known = {_path_key(path) for path in [str(model_answer), *imported]}
     # "." で始まるファイル (作業フォルダや macOS の ._ ファイル) は glob と同じく除く
     candidates = natsort.natsorted(
         str(p).replace("\\", "/") for p in project_dir.iterdir() if not p.name.startswith(".")
     )
-    return [
-        path
-        for path in candidates
-        if is_image_file(path) and os.path.normpath(path) != model and path not in imported
-    ]
+    return [path for path in candidates if is_image_file(path) and _path_key(path) not in known]
+
+
+def _path_key(path: str) -> str:
+    return os.path.normcase(os.path.normpath(path))
 
 
 # そのまま PNG にできる色の形式 (白黒 2 値・グレー・RGB). それ以外は RGB にそろえる

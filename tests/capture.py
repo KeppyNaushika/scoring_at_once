@@ -139,6 +139,23 @@ def dump_xlsx(path: Path) -> list[Any]:
     return rows
 
 
+def mask_ids(data: dict[str, Any]) -> dict[str, Any]:
+    """.sao の ID (UUID) を出てきた順の番号に置き換える.
+
+    ID は試験フォルダの絶対パスから作られるので, OS や置き場所が違うと変わる. 番号にすれば中身を比べられる.
+    行の並びも ID 順ではなく, ID を伏せた中身の順にしてから番号を振る.
+    """
+    import re
+
+    uuid = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+    hidden = lambda value: uuid.sub("<id>", json.dumps(value, ensure_ascii=False, sort_keys=True))  # noqa: E731
+    data["rows"] = {table: sorted(rows, key=hidden) for table, rows in data["rows"].items()}
+    data["names"] = sorted(data["names"], key=hidden)
+    numbers: dict[str, str] = {}
+    text = uuid.sub(lambda m: numbers.setdefault(m.group(), f"<id{len(numbers)}>"), json.dumps(data, ensure_ascii=False))
+    return json.loads(text)
+
+
 def finish() -> None:
     result["errors"] = errors
     result["messages"] = messages
@@ -293,7 +310,7 @@ def scenario_projects() -> None:
     config = read_json(config_path)
     for name in ("二つ目", "三つ目"):
         config["projects"].append(dict(config["projects"][0], name=name))
-    config_path.write_text(json.dumps(config, ensure_ascii=False))
+    config_path.write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
 
     def run() -> None:
         listbox = next(widgets(app_root, tkinter.Listbox))
@@ -340,7 +357,7 @@ def scenario_sao() -> None:
                 {c: v for c, v in zip(columns, r) if c not in ("createdAt", "updatedAt", "invitedAt", "referenceDate", "startDate")}
                 for r in cursor
             ]
-        result.update(names=names, manifest=manifest, rows=rows, files=files)
+        result.update(mask_ids(dict(names=names, manifest=manifest, rows=rows, files=files)))
         finish()
     step(10, run)
 

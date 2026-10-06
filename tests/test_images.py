@@ -1,5 +1,6 @@
 """画像の取り込みと, 採点記号の重ね合わせの単体テスト."""
 
+import sys
 from pathlib import Path
 
 import PIL.Image
@@ -42,3 +43,16 @@ def test_import_normalizes_image_modes(tmp_path: Path) -> None:
     assert [image.mode for image in images] == ["RGB", "RGB", "RGB", "1", "L"]
     assert images[1].getpixel((0, 0)) == (255, 255, 255)  # 透明な部分は白 (紙の色) にする
     assert round(images[0].info["dpi"][0]) == 300  # 解像度の記録を残す
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="区切り文字が 2 種類あるのは Windows だけ")
+def test_import_does_not_duplicate_with_other_path_style(tmp_path: Path) -> None:
+    """取り込み済みの記録が \\ 区切りでも / 区切りでも, 同じ答案を取り込み直さない."""
+    PIL.Image.new("RGB", (40, 60), "white").save(tmp_path / "model.png")
+    for name in ("a1.png", "a2.png"):
+        PIL.Image.new("RGB", (40, 60), "white").save(tmp_path / name)
+    project = {"name": "t", "path_dir": str(tmp_path), "path_file": str(tmp_path / "model.png"), "export": default_export_settings()}
+    workspace = prepare_workspace(project)  # type: ignore[arg-type]
+    sources = workspace.load_sources()
+    workspace.save_sources([source.replace("/", "\\") if "\\" not in source else source.replace("\\", "/") for source in sources])
+    assert len(prepare_workspace(project).load_sources()) == 2  # type: ignore[arg-type]
