@@ -3,3 +3,4 @@ mypy
 types-openpyxl
 nuitka
 pytest
+ruff

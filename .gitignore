@@ -2,18 +2,32 @@
 config.json
 test-figure/
 
-# ビルド成果物 (Nuitka)
+# ビルド成果物 (Nuitka). 出力先を変えたときの *.build / *.dist も含める
 /Build/
 /build/
 /dist/
+*.build/
+*.dist/
+*.onefile-build/
 nuitka-crash-report.xml
+
+# 画像変換.py が Windows で使う poppler (配布物に同梱する. リポジトリには入れない)
+poppler-*/
 
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
 .venv-build/
 .mypy_cache/
+.pytest_cache/
+.ruff_cache/
 
-# macOS
+# エディタ
+.vscode/
+.idea/
+
+# OS
 .DS_Store
+Thumbs.db
+desktop.ini
