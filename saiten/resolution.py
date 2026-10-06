@@ -59,8 +59,9 @@ class Resolution:
         if self.mark_scale == 1.0:
             return style
         scaled = style.copy()
-        for field in ("x", "y", "size"):
-            scaled[field] = round(style[field] * self.mark_scale)
+        scaled["x"] = round(style["x"] * self.mark_scale)
+        scaled["y"] = round(style["y"] * self.mark_scale)
+        scaled["size"] = round(style["size"] * self.mark_scale)
         return scaled
 
     def scale_settings(self, settings: ExportSettings) -> ExportSettings:

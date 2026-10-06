@@ -65,7 +65,7 @@ def score_entry_text(score: Score, haiten: int | None) -> str:
 
 def question_title(region: Region) -> str:
     """設問の見出し (例: "設問 - 1 - 2 - ア"). 未設定の番号は省く."""
-    numbers = [region[key] for key in ("daimon", "shomon", "shimon")]
+    numbers = (region["daimon"], region["shomon"], region["shimon"])
     return " - ".join(["設問", *(str(n) for n in numbers if n is not None)])
 
 
